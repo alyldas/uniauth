@@ -1,4 +1,4 @@
-# Uniauth
+# UniAuth
 
 [![CI](https://github.com/alyldas/uniauth/actions/workflows/ci.yml/badge.svg)](https://github.com/alyldas/uniauth/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/github/package-json/v/alyldas/uniauth?label=version)](package.json)
@@ -121,8 +121,11 @@ import {
   EMAIL_OTP_PROVIDER_ID,
   OtpChannel,
   PHONE_OTP_PROVIDER_ID,
+  UniAuthError,
+  UniAuthErrorCode,
   VerificationPurpose,
   createDefaultAuthPolicy,
+  isUniAuthError,
   type AuthProvider,
   type AuthService,
   type ProviderIdentityAssertion,
@@ -162,6 +165,21 @@ const result = await service.signIn({
   },
 })
 ```
+
+Public error helpers use the `UniAuth` brand casing:
+
+```ts
+try {
+  await service.signIn({})
+} catch (error) {
+  if (isUniAuthError(error) && error.code === UniAuthErrorCode.InvalidInput) {
+    throw new UniAuthError(UniAuthErrorCode.InvalidInput, error.message)
+  }
+}
+```
+
+The previous `UniauthError`, `UniauthErrorCode`, and `isUniauthError` exports remain as deprecated
+compatibility aliases.
 
 OTP sign-in is still headless: `startOtpChallenge` creates a hashed verification secret and sends
 the plain code through the configured sender port; `finishOtpSignIn` consumes the code once and
@@ -213,14 +231,16 @@ The root entry point exposes attribution metadata and a pure helper for About, L
 acknowledgements screens:
 
 ```ts
-import { UNIAUTH_ATTRIBUTION, getUniauthAttributionNotice } from '@alyldas/uniauth'
+import { UNIAUTH_ATTRIBUTION, getUniAuthAttributionNotice } from '@alyldas/uniauth'
 
 const metadata = UNIAUTH_ATTRIBUTION
-const notice = getUniauthAttributionNotice({ productName: 'Example App' })
+const notice = getUniAuthAttributionNotice({ productName: 'Example App' })
 ```
 
 The helper does not send telemetry, read environment variables, touch storage, or expose anything
 automatically.
+
+The previous `getUniauthAttributionNotice` export remains as a deprecated compatibility alias.
 
 For commercial licensing, paid subscription terms, written agreements, or attribution questions,
 contact `alyldas@ya.ru`.

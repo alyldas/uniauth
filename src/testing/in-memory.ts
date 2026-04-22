@@ -16,7 +16,7 @@ import {
   type User,
   type Verification,
 } from '../domain/types.js'
-import { UniauthError, UniauthErrorCode } from '../errors'
+import { UniAuthError, UniAuthErrorCode } from '../errors'
 import type {
   AuditLogRepo,
   AuthServiceRepositories,
@@ -52,7 +52,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       const existing = this.users.get(id)
 
       if (!existing) {
-        throw new UniauthError(UniauthErrorCode.UserNotFound, 'User was not found.')
+        throw new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
       }
 
       const updated: User = { ...existing, ...patch }
@@ -91,7 +91,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       const key = this.identityKey(identity.provider, identity.providerUserId)
 
       if (this.identityKeys.has(key)) {
-        throw new UniauthError(UniauthErrorCode.IdentityAlreadyLinked, 'Identity cannot be linked.')
+        throw new UniAuthError(UniAuthErrorCode.IdentityAlreadyLinked, 'Identity cannot be linked.')
       }
 
       this.identities.set(identity.id, identity)
@@ -102,7 +102,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       const existing = this.identities.get(id)
 
       if (!existing) {
-        throw new UniauthError(UniauthErrorCode.IdentityNotFound, 'Identity was not found.')
+        throw new UniAuthError(UniAuthErrorCode.IdentityNotFound, 'Identity was not found.')
       }
 
       const updated: AuthIdentity = { ...existing, ...patch }
@@ -111,7 +111,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       const existingIdentityId = this.identityKeys.get(newKey)
 
       if (newKey !== oldKey && existingIdentityId) {
-        throw new UniauthError(UniauthErrorCode.IdentityAlreadyLinked, 'Identity cannot be linked.')
+        throw new UniAuthError(UniAuthErrorCode.IdentityAlreadyLinked, 'Identity cannot be linked.')
       }
 
       this.identityKeys.delete(oldKey)
@@ -133,7 +133,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       const existing = this.credentials.get(id)
 
       if (!existing) {
-        throw new UniauthError(UniauthErrorCode.InvalidInput, 'Credential was not found.')
+        throw new UniAuthError(UniAuthErrorCode.InvalidInput, 'Credential was not found.')
       }
 
       const updated: Credential = { ...existing, ...patch }
@@ -152,7 +152,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       const existing = this.verifications.get(id)
 
       if (!existing) {
-        throw new UniauthError(UniauthErrorCode.VerificationNotFound, 'Verification was not found.')
+        throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
       }
 
       const updated: Verification = { ...existing, ...patch }
@@ -173,7 +173,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       const existing = this.sessions.get(id)
 
       if (!existing) {
-        throw new UniauthError(UniauthErrorCode.SessionNotFound, 'Session was not found.')
+        throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
       }
 
       const updated: Session = { ...existing, ...patch }

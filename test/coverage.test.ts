@@ -4,10 +4,11 @@ import {
   CredentialType,
   DefaultAuthService,
   SessionStatus,
-  UniauthError,
-  UniauthErrorCode,
+  UniAuthError,
+  UniAuthErrorCode,
   VerificationPurpose,
   VerificationStatus,
+  getUniauthAttributionNotice,
   addSeconds,
   asAuditEventId,
   asCredentialId,
@@ -23,12 +24,15 @@ import {
   generateSecret,
   hashSecret,
   invalidInput,
+  isUniAuthError,
   isUniauthError,
   normalizeEmail,
   normalizePhone,
   normalizeTarget,
   systemClock,
   verifySecret,
+  UniauthError,
+  UniauthErrorCode,
   type AuthIdentity,
   type Credential,
   type ProviderIdentityAssertion,
@@ -209,11 +213,20 @@ describe('coverage support paths', () => {
       }),
     ).toBe(true)
 
-    const error = new UniauthError(UniauthErrorCode.InvalidInput, 'Invalid.', { field: 'email' })
+    const error = new UniAuthError(UniAuthErrorCode.InvalidInput, 'Invalid.', { field: 'email' })
+    const deprecatedAliasError = new UniauthError(
+      UniauthErrorCode.InvalidInput,
+      'Deprecated alias.',
+    )
 
     expect(error.details).toEqual({ field: 'email' })
-    expect(isUniauthError(error)).toBe(true)
-    expect(isUniauthError(new Error('nope'))).toBe(false)
+    expect(error.name).toBe('UniAuthError')
+    expect(isUniAuthError(error)).toBe(true)
+    expect(isUniAuthError(new Error('nope'))).toBe(false)
+    expect(isUniauthError(deprecatedAliasError)).toBe(true)
+    expect(getUniauthAttributionNotice({ includeContact: false })).not.toContain(
+      'Licensing contact',
+    )
     expect(invalidInput().message).toBe('Invalid auth input.')
   })
 
@@ -230,7 +243,7 @@ describe('coverage support paths', () => {
         .update(asUserId('missing'), { displayName: 'Missing' })
         .catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.UserNotFound,
+      code: UniAuthErrorCode.UserNotFound,
     })
 
     const emailIdentity = await store.identityRepo.create(
@@ -262,7 +275,7 @@ describe('coverage support paths', () => {
     expect(
       await store.identityRepo.create(emailIdentity).catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.IdentityAlreadyLinked,
+      code: UniAuthErrorCode.IdentityAlreadyLinked,
     })
     expect(
       await store.identityRepo
@@ -271,13 +284,13 @@ describe('coverage support paths', () => {
           providerUserId: emailIdentity.providerUserId,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.IdentityAlreadyLinked })
+    ).toMatchObject({ code: UniAuthErrorCode.IdentityAlreadyLinked })
     expect(
       await store.identityRepo
         .update(asIdentityId('missing'), {})
         .catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.IdentityNotFound,
+      code: UniAuthErrorCode.IdentityNotFound,
     })
     expect(
       await store.identityRepo.update(secondIdentity.id, { providerUserId: 'oauth-alice-2' }),
@@ -306,7 +319,7 @@ describe('coverage support paths', () => {
         .update(asCredentialId('missing'), {})
         .catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.InvalidInput,
+      code: UniAuthErrorCode.InvalidInput,
     })
 
     const verification: Verification = {
@@ -332,7 +345,7 @@ describe('coverage support paths', () => {
         .update(asVerificationId('missing'), {})
         .catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.VerificationNotFound,
+      code: UniAuthErrorCode.VerificationNotFound,
     })
 
     const session: Session = {
@@ -355,7 +368,7 @@ describe('coverage support paths', () => {
     expect(
       await store.sessionRepo.update(asSessionId('missing'), {}).catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.SessionNotFound,
+      code: UniAuthErrorCode.SessionNotFound,
     })
 
     await store.auditLogRepo.append({
@@ -425,7 +438,7 @@ describe('coverage support paths', () => {
     expect(
       await defaultService.revokeSession(asSessionId('missing')).catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.SessionNotFound,
+      code: UniAuthErrorCode.SessionNotFound,
     })
 
     expect(
@@ -477,7 +490,7 @@ describe('coverage support paths', () => {
         .unlink({ userId: first.user.id, identityId: linked.identity.id, now })
         .catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.IdentityNotFound,
+      code: UniAuthErrorCode.IdentityNotFound,
     })
 
     const second = await defaultService.signIn({
@@ -495,7 +508,7 @@ describe('coverage support paths', () => {
         .unlink({ userId: second.user.id, identityId: first.identity.id, now })
         .catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.IdentityNotFound,
+      code: UniAuthErrorCode.IdentityNotFound,
     })
     expect(
       await defaultService
@@ -505,13 +518,13 @@ describe('coverage support paths', () => {
           now,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
 
     await defaultStore.userRepo.update(second.user.id, { disabledAt: now })
     expect(
       await defaultService.getUserIdentities(second.user.id).catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.UserNotFound,
+      code: UniAuthErrorCode.UserNotFound,
     })
   })
 
@@ -523,12 +536,12 @@ describe('coverage support paths', () => {
         .signIn({ provider: 'missing', finishInput: {}, now })
         .catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.ProviderNotFound,
+      code: UniAuthErrorCode.ProviderNotFound,
     })
     expect(
       await noRegistryService.signIn({ now }).catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.InvalidInput,
+      code: UniAuthErrorCode.InvalidInput,
     })
     expect(
       await noRegistryService
@@ -537,7 +550,7 @@ describe('coverage support paths', () => {
           now,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
 
     const kit = createInMemoryAuthKit({
       policy: createDefaultAuthPolicy({
@@ -564,7 +577,7 @@ describe('coverage support paths', () => {
         .signIn({ provider: 'missing', finishInput: {}, now })
         .catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.ProviderNotFound,
+      code: UniAuthErrorCode.ProviderNotFound,
     })
 
     const phoneUser = await kit.service.signIn({
@@ -597,7 +610,7 @@ describe('coverage support paths', () => {
           now,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.ReAuthRequired })
+    ).toMatchObject({ code: UniAuthErrorCode.ReAuthRequired })
 
     const passkey = await kit.service.link({
       userId: phoneUser.user.id,
@@ -618,7 +631,7 @@ describe('coverage support paths', () => {
           now,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.ReAuthRequired })
+    ).toMatchObject({ code: UniAuthErrorCode.ReAuthRequired })
 
     const verification = await kit.service.createVerification({
       purpose: VerificationPurpose.ReAuth,
@@ -649,7 +662,7 @@ describe('coverage support paths', () => {
         .consumeVerification({ verificationId: asVerificationId('missing'), secret: 'x', now })
         .catch((caught: unknown) => caught),
     ).toMatchObject({
-      code: UniauthErrorCode.VerificationNotFound,
+      code: UniAuthErrorCode.VerificationNotFound,
     })
     expect(
       await kit.service
@@ -659,7 +672,7 @@ describe('coverage support paths', () => {
           now: addSeconds(now, 5),
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.VerificationExpired })
+    ).toMatchObject({ code: UniAuthErrorCode.VerificationExpired })
 
     const deniedKit = createInMemoryAuthKit({
       policy: {
@@ -687,7 +700,7 @@ describe('coverage support paths', () => {
       await deniedKit.service
         .unlink({ userId: deniedUser.user.id, identityId: deniedIdentity.identity.id, now })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.PolicyDenied })
+    ).toMatchObject({ code: UniAuthErrorCode.PolicyDenied })
 
     const malformedKit = createInMemoryAuthKit({
       policy: createDefaultAuthPolicy({ allowAutoLink: true }),

@@ -1,4 +1,4 @@
-export const UniauthErrorCode = {
+export const UniAuthErrorCode = {
   InvalidInput: 'invalid_input',
   ProviderNotFound: 'provider_not_found',
   UserNotFound: 'user_not_found',
@@ -14,15 +14,15 @@ export const UniauthErrorCode = {
   VerificationInvalidSecret: 'verification_invalid_secret',
 } as const
 
-export type UniauthErrorCode = (typeof UniauthErrorCode)[keyof typeof UniauthErrorCode]
+export type UniAuthErrorCode = (typeof UniAuthErrorCode)[keyof typeof UniAuthErrorCode]
 
-export class UniauthError extends Error {
-  readonly code: UniauthErrorCode
+export class UniAuthError extends Error {
+  readonly code: UniAuthErrorCode
   readonly details?: Record<string, unknown>
 
-  constructor(code: UniauthErrorCode, message: string, details?: Record<string, unknown>) {
+  constructor(code: UniAuthErrorCode, message: string, details?: Record<string, unknown>) {
     super(message)
-    this.name = 'UniauthError'
+    this.name = 'UniAuthError'
     this.code = code
     if (details) {
       this.details = details
@@ -30,10 +30,25 @@ export class UniauthError extends Error {
   }
 }
 
-export function isUniauthError(error: unknown): error is UniauthError {
-  return error instanceof UniauthError
+export function isUniAuthError(error: unknown): error is UniAuthError {
+  return error instanceof UniAuthError
 }
 
-export function invalidInput(message = 'Invalid auth input.'): UniauthError {
-  return new UniauthError(UniauthErrorCode.InvalidInput, message)
+export function invalidInput(message = 'Invalid auth input.'): UniAuthError {
+  return new UniAuthError(UniAuthErrorCode.InvalidInput, message)
 }
+
+/** @deprecated Use `UniAuthErrorCode` instead. */
+export const UniauthErrorCode = UniAuthErrorCode
+
+/** @deprecated Use `UniAuthErrorCode` instead. */
+export type UniauthErrorCode = UniAuthErrorCode
+
+/** @deprecated Use `UniAuthError` instead. */
+export const UniauthError = UniAuthError
+
+/** @deprecated Use `UniAuthError` instead. */
+export type UniauthError = UniAuthError
+
+/** @deprecated Use `isUniAuthError` instead. */
+export const isUniauthError: typeof isUniAuthError = isUniAuthError
