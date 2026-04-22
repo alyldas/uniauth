@@ -62,6 +62,7 @@ try {
   writeFileSync(
     join(consumerDir, 'consumer-smoke.mjs'),
     `import {
+  EMAIL_OTP_PROVIDER_ID,
   SessionStatus,
   UNIAUTH_ATTRIBUTION,
   createDefaultAuthPolicy,
@@ -91,6 +92,23 @@ if (result.session.status !== SessionStatus.Active) {
 
 if (!result.isNewUser || !result.isNewIdentity) {
   throw new Error('Expected a new consumer-smoke user and identity.')
+}
+
+const challenge = await service.startEmailOtpSignIn({
+  email: 'otp@example.com',
+  secret: '123456',
+})
+const otpResult = await service.finishEmailOtpSignIn({
+  verificationId: challenge.verificationId,
+  secret: '123456',
+})
+
+if (otpResult.identity.provider !== EMAIL_OTP_PROVIDER_ID) {
+  throw new Error('Expected the email OTP provider identity.')
+}
+
+if (otpResult.session.status !== SessionStatus.Active) {
+  throw new Error('Expected an active email OTP session.')
 }
 `,
   )

@@ -11,6 +11,8 @@ export type AuditEventId = Brand<string, 'AuditEventId'>
 
 export type AuthIdentityProvider = string
 
+export const EMAIL_OTP_PROVIDER_ID = 'email-otp'
+
 export type ExtensibleString<Literal extends string> = Literal | (string & Record<never, never>)
 
 export const AuthIdentityStatus = {
@@ -251,6 +253,28 @@ export interface ConsumeVerificationInput {
   readonly now?: Date
 }
 
+export interface StartEmailOtpSignInInput {
+  readonly email: string
+  readonly secret?: string
+  readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface StartEmailOtpSignInResult {
+  readonly verificationId: VerificationId
+  readonly expiresAt: Date
+  readonly delivery: 'email'
+}
+
+export interface FinishEmailOtpSignInInput {
+  readonly verificationId: VerificationId
+  readonly secret: string
+  readonly now?: Date
+  readonly sessionExpiresAt?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface Clock {
   now(): Date
 }
@@ -266,6 +290,8 @@ export interface IdGenerator {
 
 export interface AuthService {
   signIn(input: SignInInput): Promise<AuthResult>
+  startEmailOtpSignIn(input: StartEmailOtpSignInInput): Promise<StartEmailOtpSignInResult>
+  finishEmailOtpSignIn(input: FinishEmailOtpSignInInput): Promise<AuthResult>
   link(input: LinkInput): Promise<LinkResult>
   unlink(input: UnlinkInput): Promise<void>
   mergeAccounts(input: MergeAccountsInput): Promise<MergeResult>

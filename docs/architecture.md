@@ -15,6 +15,8 @@ identities, and email/phone are optional identity attributes.
 `DefaultAuthService` owns use-case orchestration:
 
 - `signIn`
+- `startEmailOtpSignIn`
+- `finishEmailOtpSignIn`
 - `link`
 - `unlink`
 - `mergeAccounts`
@@ -23,19 +25,23 @@ identities, and email/phone are optional identity attributes.
 - `createVerification`
 - `consumeVerification`
 
-It delegates authorization decisions to `AuthPolicy` and storage/provider work to ports.
+It delegates authorization decisions to `AuthPolicy` and storage/provider/sender work to ports.
 
 ## Ports
 
 Core defines repository ports, provider registry, sender ports, audit log port, and `UnitOfWork`.
+
+Email OTP sign-in uses the `EmailSender` port. Core creates and hashes the verification secret, but
+the application owns the real SMTP, transactional email, or queue adapter.
 
 `UnitOfWork` is intentionally part of v0.1 so storage adapters can provide real transaction
 boundaries for link, unlink, merge, session, and verification flows.
 
 ## Testing Adapter
 
-`@alyldas/uniauth/testing` provides an in-memory implementation for tests, demos, and examples. It is
-not a production persistence adapter.
+`@alyldas/uniauth/testing` provides an in-memory implementation for tests, demos, and examples. It
+includes an in-memory email sender so OTP flows can be exercised without SMTP. It is not a production
+persistence adapter.
 
 ## Repository Shape
 

@@ -60,7 +60,7 @@ writeFileSync(
 writeFileSync(join(workspace, 'package.json'), '{"private":true,"type":"module"}\n')
 writeFileSync(
   join(workspace, 'registry-smoke.mjs'),
-  `import { SessionStatus, UNIAUTH_ATTRIBUTION } from '${packageMetadata.name}'
+  `import { EMAIL_OTP_PROVIDER_ID, SessionStatus, UNIAUTH_ATTRIBUTION } from '${packageMetadata.name}'
 import { createInMemoryAuthKit } from '${packageMetadata.name}/testing'
 
 const { service } = createInMemoryAuthKit()
@@ -79,6 +79,23 @@ if (UNIAUTH_ATTRIBUTION.packageName !== '${packageMetadata.name}') {
 
 if (result.session.status !== SessionStatus.Active) {
   throw new Error('Expected an active local session.')
+}
+
+const challenge = await service.startEmailOtpSignIn({
+  email: 'otp@example.com',
+  secret: '123456',
+})
+const otpResult = await service.finishEmailOtpSignIn({
+  verificationId: challenge.verificationId,
+  secret: '123456',
+})
+
+if (otpResult.identity.provider !== EMAIL_OTP_PROVIDER_ID) {
+  throw new Error('Expected the email OTP provider identity.')
+}
+
+if (otpResult.session.status !== SessionStatus.Active) {
+  throw new Error('Expected an active email OTP session.')
 }
 `,
 )

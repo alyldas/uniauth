@@ -12,6 +12,7 @@ interface PackageMetadata {
 
 interface CoreExports {
   readonly DefaultAuthService: unknown
+  readonly EMAIL_OTP_PROVIDER_ID: string
   readonly UNIAUTH_ATTRIBUTION: AttributionExports
   readonly getUniauthAttributionNotice: (options?: {
     readonly productName?: string
@@ -22,6 +23,7 @@ interface CoreExports {
 
 interface TestingExports {
   readonly createInMemoryAuthKit: unknown
+  readonly InMemoryEmailSender: unknown
   readonly StaticAuthProvider: unknown
 }
 
@@ -56,6 +58,7 @@ describe('package exports', () => {
     const testing = await import('../dist/testing')
 
     expect(core.DefaultAuthService).toBeTypeOf('function')
+    expect(core.EMAIL_OTP_PROVIDER_ID).toBe('email-otp')
     expect(core.createDefaultAuthPolicy).toBeTypeOf('function')
     expect(core.UNIAUTH_ATTRIBUTION).toBeTypeOf('object')
     expect(core.getUniauthAttributionNotice).toBeTypeOf('function')
@@ -64,6 +67,7 @@ describe('package exports', () => {
       `Smoke App uses ${packageMetadata.name}.`,
     )
     expect(testing.createInMemoryAuthKit).toBeTypeOf('function')
+    expect(testing.InMemoryEmailSender).toBeTypeOf('function')
     expect(testing.StaticAuthProvider).toBeTypeOf('function')
   })
 
@@ -72,6 +76,7 @@ describe('package exports', () => {
     const testing = require('../dist/testing/index.cjs') as TestingExports
 
     expect(core.DefaultAuthService).toBeTypeOf('function')
+    expect(core.EMAIL_OTP_PROVIDER_ID).toBe('email-otp')
     expect(core.UNIAUTH_ATTRIBUTION).toBeTypeOf('object')
     expect(core.getUniauthAttributionNotice).toBeTypeOf('function')
     expect(core.UNIAUTH_ATTRIBUTION).toMatchObject({
@@ -83,5 +88,6 @@ describe('package exports', () => {
       'Licensing contact',
     )
     expect(testing.createInMemoryAuthKit).toBeTypeOf('function')
+    expect(testing.InMemoryEmailSender).toBeTypeOf('function')
   })
 })
