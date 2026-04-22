@@ -1,13 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import {
   asAuditEventId,
-  asCredentialId,
   asIdentityId,
   asSessionId,
   asUserId,
   asVerificationId,
   type AuditEventId,
-  type CredentialId,
   type IdGenerator,
   type IdentityId,
   type SessionId,
@@ -19,7 +17,6 @@ export function createRandomIdGenerator(): IdGenerator {
   return {
     userId: () => asUserId(`usr_${randomUUID()}`),
     identityId: () => asIdentityId(`idn_${randomUUID()}`),
-    credentialId: () => asCredentialId(`crd_${randomUUID()}`),
     verificationId: () => asVerificationId(`vrf_${randomUUID()}`),
     sessionId: () => asSessionId(`ses_${randomUUID()}`),
     auditEventId: () => asAuditEventId(`aud_${randomUUID()}`),
@@ -33,7 +30,6 @@ export function createSequentialIdGenerator(prefix = 'test'): IdGenerator {
   return {
     userId: (): UserId => asUserId(next('usr')),
     identityId: (): IdentityId => asIdentityId(next('idn')),
-    credentialId: (): CredentialId => asCredentialId(next('crd')),
     verificationId: (): VerificationId => asVerificationId(next('vrf')),
     sessionId: (): SessionId => asSessionId(next('ses')),
     auditEventId: (): AuditEventId => asAuditEventId(next('aud')),

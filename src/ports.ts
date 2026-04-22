@@ -2,24 +2,20 @@ import type {
   AuditEvent,
   AuthIdentity,
   AuthIdentityProvider,
-  Credential,
-  CredentialId,
   FinishInput,
   IdentityId,
   ProviderIdentityAssertion,
   Session,
   SessionId,
-  StartInput,
-  StartResult,
   User,
   UserId,
   Verification,
   VerificationId,
-} from '../domain/types.js'
+} from './domain/types.js'
+import type { SecretHasher } from './utils/secrets.js'
 
 export interface AuthProvider {
   readonly id: AuthIdentityProvider
-  start(input: StartInput): Promise<StartResult>
   finish(input: FinishInput): Promise<ProviderIdentityAssertion>
 }
 
@@ -43,16 +39,6 @@ export interface IdentityRepo {
     id: IdentityId,
     patch: Partial<Omit<AuthIdentity, 'id' | 'createdAt'>>,
   ): Promise<AuthIdentity>
-}
-
-export interface CredentialRepo {
-  findById(id: CredentialId): Promise<Credential | undefined>
-  listByUserId(userId: UserId): Promise<readonly Credential[]>
-  create(credential: Credential): Promise<Credential>
-  update(
-    id: CredentialId,
-    patch: Partial<Omit<Credential, 'id' | 'createdAt'>>,
-  ): Promise<Credential>
 }
 
 export interface VerificationRepo {
@@ -95,6 +81,7 @@ export interface SmsSender {
 export interface AuthServiceInfrastructure {
   readonly emailSender?: EmailSender
   readonly smsSender?: SmsSender
+  readonly secretHasher?: SecretHasher
 }
 
 export interface ProviderRegistry {
@@ -108,7 +95,6 @@ export interface UnitOfWork {
 export interface AuthServiceRepositories {
   readonly userRepo: UserRepo
   readonly identityRepo: IdentityRepo
-  readonly credentialRepo: CredentialRepo
   readonly verificationRepo: VerificationRepo
   readonly sessionRepo: SessionRepo
   readonly auditLogRepo: AuditLogRepo

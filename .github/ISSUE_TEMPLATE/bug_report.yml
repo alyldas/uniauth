@@ -1,0 +1,71 @@
+name: Bug report
+description: Report a reproducible UniAuth bug.
+title: 'fix: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please keep the report focused on reproducible behavior.
+
+        If this is a security issue, do not disclose takeover, linking, verification, session, token, or secret details in a public issue. Use the private security reporting path from the issue chooser instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: Which `@alyldas/uniauth` version are you using?
+      placeholder: 0.4.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: What happened?
+      placeholder: Describe the observed behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+      placeholder: Describe the expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest code sample, test case, or repository that reproduces the issue.
+      render: ts
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include Node.js, package manager, TypeScript, bundler/test runner, and OS versions.
+      placeholder: |
+        Node.js:
+        npm:
+        TypeScript:
+        OS:
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked that this is not a security vulnerability disclosure.
+          required: true
+        - label: I can reproduce this with the latest published package or current main branch.
+          required: true

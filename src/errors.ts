@@ -37,18 +37,3 @@ export function isUniAuthError(error: unknown): error is UniAuthError {
 export function invalidInput(message = 'Invalid auth input.'): UniAuthError {
   return new UniAuthError(UniAuthErrorCode.InvalidInput, message)
 }
-
-/** @deprecated Use `UniAuthErrorCode` instead. */
-export const UniauthErrorCode = UniAuthErrorCode
-
-/** @deprecated Use `UniAuthErrorCode` instead. */
-export type UniauthErrorCode = UniAuthErrorCode
-
-/** @deprecated Use `UniAuthError` instead. */
-export const UniauthError = UniAuthError
-
-/** @deprecated Use `UniAuthError` instead. */
-export type UniauthError = UniAuthError
-
-/** @deprecated Use `isUniAuthError` instead. */
-export const isUniauthError: typeof isUniAuthError = isUniAuthError

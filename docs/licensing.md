@@ -20,8 +20,6 @@ const metadata = UNIAUTH_ATTRIBUTION
 const notice = getUniAuthAttributionNotice({ productName: 'Example App' })
 ```
 
-The previous `getUniauthAttributionNotice` export remains as a deprecated compatibility alias.
-
 The helper is pure. It does not send telemetry, read environment variables, touch storage, or expose
 anything automatically.
 

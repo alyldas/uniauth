@@ -39,6 +39,20 @@ docs: update release checklist
 Husky installs the local `commit-msg` hook from `npm run prepare` when the project is inside a git
 repository. Outside git, the hook installer exits without changing anything.
 
+## Release Flow
+
+Use Conventional Commits and let Release Please prepare releases. Regular development commits should
+not manually change release metadata.
+
+Release Please owns these files in its release PR:
+
+- `package.json`: package version.
+- `package-lock.json`: lockfile package version.
+- `CHANGELOG.md`: release section and compare links.
+
+After changes land on `main`, Release Please opens or updates the release PR. Merge that release PR
+to let the release workflow create the `v*` tag, GitHub release notes, and GitHub Packages publish.
+
 ## Contributor Licensing
 
 By contributing to this repository, you agree that your contribution may be distributed under the

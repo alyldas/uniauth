@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
-import { OtpChannel, VerificationPurpose, createDefaultAuthPolicy } from '../../src'
-import { createInMemoryAuthKit } from '../../src/testing'
+import { OtpChannel, VerificationPurpose, createDefaultAuthPolicy } from '@alyldas/uniauth'
+import { createInMemoryAuthKit } from '@alyldas/uniauth/testing'
 
 export async function runBasicExample(): Promise<void> {
   const { service } = createInMemoryAuthKit({

@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint'
 
 export default [
   {
-    ignores: ['dist', 'coverage', '.typecheck', 'node_modules', 'package-lock.json'],
+    ignores: ['dist', 'coverage', 'node_modules', 'package-lock.json'],
   },
   ...tseslint.configs.recommended,
   prettier,

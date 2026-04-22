@@ -1,0 +1,60 @@
+name: Feature request
+description: Propose a new capability or integration.
+title: 'feat: '
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for public product/API proposals. Keep provider credentials, private app details, and security-sensitive findings out of public issues.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or integration problem should UniAuth solve?
+      placeholder: Describe the concrete use case.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What API, behavior, or documentation change do you want?
+      placeholder: Describe the proposed change.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Domain model
+        - Auth orchestration
+        - OTP
+        - Provider adapter
+        - Persistence adapter
+        - Documentation
+        - Package/release tooling
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What alternatives or workarounds have you considered?
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: This request does not disclose a security vulnerability.
+          required: true
+        - label: This fits the headless, framework-agnostic core or clearly belongs in a future adapter.
+          required: true

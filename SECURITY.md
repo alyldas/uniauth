@@ -22,6 +22,7 @@ Core is responsible for:
 - policy-driven linking;
 - local session records;
 - verification secret hashing;
+- configurable verification secret hashing for application-owned pepper/key policies;
 - neutral public errors;
 - audit events for sensitive operations.
 

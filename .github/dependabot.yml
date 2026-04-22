@@ -4,8 +4,25 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'npm'
+    groups:
+      dev-dependencies:
+        dependency-type: 'development'
+        patterns:
+          - '*'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'weekly'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'ci'
+    groups:
+      github-actions:
+        patterns:
+          - '*'

@@ -1,0 +1,31 @@
+name: Security note
+description: Read this before reporting security-sensitive behavior.
+title: 'security: '
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not disclose vulnerabilities publicly.
+
+        Do not include account takeover details, bypass steps, provider secrets, OTP/token material, session identifiers, private logs, exploit payloads, or reproduction steps for security bugs in a public issue.
+
+        Use the private security reporting path from the issue chooser or follow `SECURITY.md` instead.
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public disclosure check
+      options:
+        - label: This public issue will not include vulnerability details, exploit steps, secrets, tokens, session data, or private logs.
+          required: true
+
+  - type: textarea
+    id: non-sensitive-context
+    attributes:
+      label: Non-sensitive context
+      description: If this is not a vulnerability disclosure, describe the documentation, policy, or coordination question.
+      placeholder: Keep this public-safe. Do not include exploit details.
+    validations:
+      required: true

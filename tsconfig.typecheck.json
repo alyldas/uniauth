@@ -3,5 +3,5 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["src", "test", "examples", "*.config.ts", "*.config.mjs"]
+  "include": ["src", "test", "*.config.ts", "*.config.mjs"]
 }

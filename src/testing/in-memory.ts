@@ -3,6 +3,7 @@ import {
   type DefaultAuthService,
   type DefaultAuthServiceOptions,
 } from '../application/auth-service.js'
+import { optionalProp } from '../application/optional.js'
 import type { AuthPolicy } from '../application/policy.js'
 import {
   AuthIdentityStatus,
@@ -10,17 +11,15 @@ import {
   type AuthIdentity,
   type AuthIdentityProvider,
   type Clock,
-  type Credential,
   type IdGenerator,
   type Session,
   type User,
   type Verification,
 } from '../domain/types.js'
-import { UniAuthError, UniAuthErrorCode } from '../errors'
+import { UniAuthError, UniAuthErrorCode } from '../errors.js'
 import type {
   AuditLogRepo,
   AuthServiceRepositories,
-  CredentialRepo,
   EmailSender,
   IdentityRepo,
   SessionRepo,
@@ -28,16 +27,16 @@ import type {
   UnitOfWork,
   UserRepo,
   VerificationRepo,
-} from '../ports'
+} from '../ports.js'
 import { createSequentialIdGenerator } from '../utils/ids.js'
 import { normalizeEmail, normalizePhone } from '../utils/normalization.js'
+import type { SecretHasher } from '../utils/secrets.js'
 import { InMemoryProviderRegistry } from './providers.js'
 
 export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   private readonly users = new Map<User['id'], User>()
   private readonly identities = new Map<AuthIdentity['id'], AuthIdentity>()
   private readonly identityKeys = new Map<string, AuthIdentity['id']>()
-  private readonly credentials = new Map<Credential['id'], Credential>()
   private readonly verifications = new Map<Verification['id'], Verification>()
   private readonly sessions = new Map<Session['id'], Session>()
   private readonly auditEvents: AuditEvent[] = []
@@ -117,27 +116,6 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       this.identityKeys.delete(oldKey)
       this.identityKeys.set(newKey, updated.id)
       this.identities.set(updated.id, updated)
-      return updated
-    },
-  }
-
-  readonly credentialRepo: CredentialRepo = {
-    findById: async (id) => this.credentials.get(id),
-    listByUserId: async (userId) =>
-      [...this.credentials.values()].filter((credential) => credential.userId === userId),
-    create: async (credential) => {
-      this.credentials.set(credential.id, credential)
-      return credential
-    },
-    update: async (id, patch) => {
-      const existing = this.credentials.get(id)
-
-      if (!existing) {
-        throw new UniAuthError(UniAuthErrorCode.InvalidInput, 'Credential was not found.')
-      }
-
-      const updated: Credential = { ...existing, ...patch }
-      this.credentials.set(updated.id, updated)
       return updated
     },
   }
@@ -258,6 +236,7 @@ export interface CreateInMemoryAuthKitOptions {
   readonly policy?: AuthPolicy
   readonly clock?: Clock
   readonly idGenerator?: IdGenerator
+  readonly secretHasher?: SecretHasher
   readonly sessionTtlSeconds?: number
   readonly verificationTtlSeconds?: number
 }
@@ -282,12 +261,11 @@ export function createInMemoryAuthKit(options: CreateInMemoryAuthKitOptions = {}
     providerRegistry,
     transaction: store,
     idGenerator,
-    ...(options.policy ? { policy: options.policy } : {}),
-    ...(options.clock ? { clock: options.clock } : {}),
-    ...(options.sessionTtlSeconds ? { sessionTtlSeconds: options.sessionTtlSeconds } : {}),
-    ...(options.verificationTtlSeconds
-      ? { verificationTtlSeconds: options.verificationTtlSeconds }
-      : {}),
+    ...optionalProp('secretHasher', options.secretHasher),
+    ...optionalProp('policy', options.policy),
+    ...optionalProp('clock', options.clock),
+    ...optionalProp('sessionTtlSeconds', options.sessionTtlSeconds),
+    ...optionalProp('verificationTtlSeconds', options.verificationTtlSeconds),
   }
 
   return {
