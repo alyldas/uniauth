@@ -197,8 +197,11 @@ This repository keeps package source and documentation in git. Do not commit gen
 - `node_modules`
 - `*.tgz`
 
-`dist` is created by `npm run build`, `npm run test:exports`, `npm run pack:dry`, and
-`npm run prepare`.
+`dist` is created by `npm run build`, `npm run test:exports`, `npm run test:consumer`,
+`npm run pack:dry`, and `npm run prepare`.
+
+`npm run test:consumer` creates a temporary external npm project, installs the packed tarball, and
+imports `@alyldas/uniauth` plus `@alyldas/uniauth/testing` by package name.
 
 To keep generated `dist` and `coverage` output inside a Node 22 Alpine container, run:
 
@@ -220,8 +223,8 @@ Run the package gate before publishing:
 npm run check
 ```
 
-The gate runs formatting, ESLint, typecheck, 100% coverage, export smoke tests, and
-`npm pack --dry-run`.
+The gate runs formatting, ESLint, typecheck, 100% coverage, export smoke tests, consumer install
+smoke tests, and `npm pack --dry-run`.
 
 The release workflow follows the same Release Please model as `theme-mode`: pushes to `main` update
 a release PR, and merging that PR creates the `v*` tag, GitHub release notes, and GitHub Packages
