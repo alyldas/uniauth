@@ -34,6 +34,64 @@ license, subscription, private contract, or other written permission.
 - It does not include SMTP, SMS, OAuth, Telegram, or MAX SDK implementations in v0.1.
 - It does not silently merge two existing users by email.
 
+## Diagrams
+
+```mermaid
+flowchart LR
+  Provider["AuthProvider<br/>external assertion"] --> Registry["ProviderRegistry<br/>SDK-free lookup"]
+  Registry --> Service["AuthService<br/>signIn / link / unlink / merge"]
+  Policy["AuthPolicy<br/>auto-link / merge / re-auth"] --> Service
+  Service --> Repos["Repositories<br/>users / identities / sessions / verifications"]
+  Service --> Audit["AuditLog<br/>security events"]
+  Service --> Senders["Sender ports<br/>email / SMS"]
+  Testing["@alyldas/uniauth/testing<br/>in-memory kit"] --> Service
+```
+
+```mermaid
+sequenceDiagram
+  participant App
+  participant Provider as AuthProvider
+  participant Service as AuthService
+  participant Policy as AuthPolicy
+  participant Store as Repositories
+  participant Audit
+
+  App->>Provider: finish provider flow
+  Provider-->>App: ProviderIdentityAssertion
+  App->>Service: signIn(assertion)
+  Service->>Store: find exact (provider, providerUserId)
+  alt identity exists
+    Store-->>Service: existing user and identity
+  else new provider identity
+    Service->>Policy: canAutoLink(assertion, candidates)
+    Policy-->>Service: allow or deny
+    Service->>Store: create user or link identity
+  end
+  Service->>Store: create local session
+  Service->>Audit: auth.session_created
+  Service-->>App: neutral AuthResult
+```
+
+```mermaid
+flowchart TB
+  Exact["Exact provider identity wins<br/>(provider, providerUserId)"]:::safe
+  Merge["No silent merge<br/>email/profile hints are not ownership"]:::danger
+  PolicyGate["Auto-link only through explicit policy"]:::warn
+  LastIdentity["Cannot unlink the last active sign-in method"]:::safe
+  Secrets["Verification secrets are stored as hashes"]:::safe
+  Neutral["Public responses stay neutral"]:::safe
+
+  Exact --> PolicyGate
+  Merge --> PolicyGate
+  PolicyGate --> LastIdentity
+  PolicyGate --> Secrets
+  Secrets --> Neutral
+
+  classDef safe fill:#ecfdf5,stroke:#059669,color:#064e3b
+  classDef warn fill:#fffbeb,stroke:#d97706,color:#78350f
+  classDef danger fill:#fef2f2,stroke:#dc2626,color:#7f1d1d
+```
+
 ## Install
 
 Install from GitHub Packages:
