@@ -63,7 +63,7 @@
     "prepare": "npm run hooks:install",
     "test": "vitest run test/*.test.ts",
     "test:exports": "npm run build && vitest run smoke/exports.test.ts",
-    "test:types-package": "attw --pack . --profile esm-only",
+    "test:types-package": "attw --pack . --profile esm-only --quiet",
     "typecheck": "tsc -p tsconfig.typecheck.json && tsc -p examples/tsconfig.json"
   },
   "keywords": [
