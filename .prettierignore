@@ -25,3 +25,6 @@ coverage
 
 # Lockfile formatting is managed by npm.
 package-lock.json
+
+# Release Please owns generated changelog formatting.
+CHANGELOG.md
