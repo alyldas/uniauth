@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/alyldas/uniauth/compare/v0.1.1...v0.2.0) (2026-04-22)
+
+
+### Features
+
+* add email OTP sign-in ([8b3b806](https://github.com/alyldas/uniauth/commit/8b3b806046a2c3c6e814e1f5985dd97f7787b372))
+
 ## [0.1.1](https://github.com/alyldas/uniauth/compare/v0.1.0...v0.1.1) (2026-04-22)
 
 
