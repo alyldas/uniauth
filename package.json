@@ -64,6 +64,7 @@
     "test": "vitest run test/*.test.ts",
     "test:consumer": "node scripts/consumer-smoke.mjs",
     "test:exports": "npm run build && vitest run smoke/exports.test.ts",
+    "test:registry": "node scripts/registry-smoke.mjs",
     "typecheck": "tsc -p tsconfig.typecheck.json"
   },
   "keywords": [
