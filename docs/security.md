@@ -10,8 +10,9 @@
 - The last active identity cannot be unlinked under the default policy.
 - Merge is an explicit operation and disabled by default.
 - Verification secrets are stored as hashes.
-- Email OTP start responses are neutral and do not expose whether an account exists.
-- Email OTP finish consumes a sign-in verification once before creating a local session.
+- OTP start responses are neutral and do not expose whether an account exists.
+- OTP finish consumes a sign-in verification once before creating a local session.
+- Phone OTP uses the same verification lifecycle as email OTP.
 - Public errors avoid exposing which user owns an identity.
 
 ## Policy Matrix
@@ -36,6 +37,12 @@
 - Email OTP account enumeration through start-flow responses.
 - Email OTP replay through consumed verification reuse.
 - Email OTP plaintext persistence in verification storage.
+
+## Threats Covered in v0.3
+
+- Divergent email and phone OTP behavior through duplicated flow code.
+- Phone OTP replay through consumed verification reuse.
+- Phone OTP plaintext persistence in verification storage.
 
 ## Out of Scope for Core
 

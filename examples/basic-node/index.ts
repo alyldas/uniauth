@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { createDefaultAuthPolicy } from '../../src'
+import { OtpChannel, VerificationPurpose, createDefaultAuthPolicy } from '../../src'
 import { createInMemoryAuthKit } from '../../src/testing'
 
 export async function runBasicExample(): Promise<void> {
@@ -7,11 +7,13 @@ export async function runBasicExample(): Promise<void> {
     policy: createDefaultAuthPolicy({ allowAutoLink: false }),
   })
 
-  const challenge = await service.startEmailOtpSignIn({
-    email: 'alice@example.com',
+  const challenge = await service.startOtpChallenge({
+    purpose: VerificationPurpose.SignIn,
+    channel: OtpChannel.Email,
+    target: 'alice@example.com',
     secret: '123456',
   })
-  const result = await service.finishEmailOtpSignIn({
+  const result = await service.finishOtpSignIn({
     verificationId: challenge.verificationId,
     secret: '123456',
   })

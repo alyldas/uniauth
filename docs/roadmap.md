@@ -16,33 +16,39 @@
 - Consume-once finish flow that creates a local session.
 - In-memory email sender for tests, demos, and examples.
 
-## v0.3 - Additional Local Auth Methods
+## v0.3 - Generic OTP Challenges
+
+- Shared `startOtpChallenge`, `finishOtpChallenge`, and `finishOtpSignIn` API.
+- Email OTP wrappers backed by the shared challenge lifecycle.
+- Phone OTP sign-in over the `SmsSender` port.
+- In-memory SMS sender for tests, demos, and examples.
+
+## v0.4 - Additional Local Auth Methods
 
 - Email magic link.
-- Phone OTP.
 - Password credential with Argon2id.
 - Rate limit integration ports.
 
-## v0.4 - Messenger Providers
+## v0.5 - Messenger Providers
 
 - Telegram Mini App `initData` contracts and reference implementation.
 - MAX WebApp `initData` contracts and reference implementation.
 
-## v0.5 - OAuth / OIDC Layer
+## v0.6 - OAuth / OIDC Layer
 
 - Generic OAuth/OIDC adapter contract.
 - Trusted provider policy.
 - Provider profile mapping into `ProviderIdentityAssertion`.
 - Optional Better Auth and Auth.js bridge adapters.
 
-## v0.6 - Reference Persistence
+## v0.7 - Reference Persistence
 
 - Postgres reference storage.
 - SQL schema example.
 - Transactional merge flow.
 - Indexes and constraints.
 
-## v0.7 - Production Hardening
+## v0.8 - Production Hardening
 
 - Threat model documentation.
 - Anti-takeover tests.
@@ -54,7 +60,7 @@
 ## Examples Backlog
 
 - Link and unlink flow.
-- Email OTP wiring.
+- OTP wiring.
 - OAuth adapter wiring.
 - Telegram and MAX adapter wiring.
 

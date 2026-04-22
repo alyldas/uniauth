@@ -63,8 +63,11 @@ try {
     join(consumerDir, 'consumer-smoke.mjs'),
     `import {
   EMAIL_OTP_PROVIDER_ID,
+  OtpChannel,
+  PHONE_OTP_PROVIDER_ID,
   SessionStatus,
   UNIAUTH_ATTRIBUTION,
+  VerificationPurpose,
   createDefaultAuthPolicy,
 } from '${packageMetadata.name}'
 import { createInMemoryAuthKit } from '${packageMetadata.name}/testing'
@@ -109,6 +112,25 @@ if (otpResult.identity.provider !== EMAIL_OTP_PROVIDER_ID) {
 
 if (otpResult.session.status !== SessionStatus.Active) {
   throw new Error('Expected an active email OTP session.')
+}
+
+const phoneChallenge = await service.startOtpChallenge({
+  purpose: VerificationPurpose.SignIn,
+  channel: OtpChannel.Phone,
+  target: '+15551234567',
+  secret: '654321',
+})
+const phoneResult = await service.finishOtpSignIn({
+  verificationId: phoneChallenge.verificationId,
+  secret: '654321',
+})
+
+if (phoneResult.identity.provider !== PHONE_OTP_PROVIDER_ID) {
+  throw new Error('Expected the phone OTP provider identity.')
+}
+
+if (phoneResult.session.status !== SessionStatus.Active) {
+  throw new Error('Expected an active phone OTP session.')
 }
 `,
   )

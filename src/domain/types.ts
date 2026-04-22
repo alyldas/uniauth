@@ -12,6 +12,7 @@ export type AuditEventId = Brand<string, 'AuditEventId'>
 export type AuthIdentityProvider = string
 
 export const EMAIL_OTP_PROVIDER_ID = 'email-otp'
+export const PHONE_OTP_PROVIDER_ID = 'phone-otp'
 
 export type ExtensibleString<Literal extends string> = Literal | (string & Record<never, never>)
 
@@ -47,6 +48,13 @@ export const VerificationStatus = {
 } as const
 
 export type VerificationStatus = (typeof VerificationStatus)[keyof typeof VerificationStatus]
+
+export const OtpChannel = {
+  Email: 'email',
+  Phone: 'phone',
+} as const
+
+export type OtpChannel = ExtensibleString<(typeof OtpChannel)[keyof typeof OtpChannel]>
 
 export const SessionStatus = {
   Active: 'active',
@@ -253,6 +261,39 @@ export interface ConsumeVerificationInput {
   readonly now?: Date
 }
 
+export interface StartOtpChallengeInput {
+  readonly purpose: VerificationPurpose
+  readonly channel: OtpChannel
+  readonly target: string
+  readonly secret?: string
+  readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface StartOtpChallengeResult {
+  readonly verificationId: VerificationId
+  readonly expiresAt: Date
+  readonly delivery: OtpChannel
+}
+
+export interface FinishOtpChallengeInput {
+  readonly verificationId: VerificationId
+  readonly secret: string
+  readonly purpose?: VerificationPurpose
+  readonly channel?: OtpChannel
+  readonly now?: Date
+}
+
+export interface FinishOtpSignInInput {
+  readonly verificationId: VerificationId
+  readonly secret: string
+  readonly channel?: OtpChannel
+  readonly now?: Date
+  readonly sessionExpiresAt?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface StartEmailOtpSignInInput {
   readonly email: string
   readonly secret?: string
@@ -290,6 +331,9 @@ export interface IdGenerator {
 
 export interface AuthService {
   signIn(input: SignInInput): Promise<AuthResult>
+  startOtpChallenge(input: StartOtpChallengeInput): Promise<StartOtpChallengeResult>
+  finishOtpChallenge(input: FinishOtpChallengeInput): Promise<Verification>
+  finishOtpSignIn(input: FinishOtpSignInInput): Promise<AuthResult>
   startEmailOtpSignIn(input: StartEmailOtpSignInInput): Promise<StartEmailOtpSignInResult>
   finishEmailOtpSignIn(input: FinishEmailOtpSignInInput): Promise<AuthResult>
   link(input: LinkInput): Promise<LinkResult>
