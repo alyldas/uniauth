@@ -6,10 +6,10 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-ready-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-@alyldas%2Funiauth-24292f?logo=github)](https://github.com/alyldas/uniauth/pkgs/npm/uniauth)
 
-`@alyldas/uniauth` is a headless identity orchestration core for TypeScript and Node.js.
+`@alyldas/uniauth` is an ESM-only headless identity orchestration core for TypeScript and Node.js.
 
-It models users, identities, credentials, verifications, sessions, account linking policy,
-and storage/provider ports without owning UI, HTTP routes, cookies, an ORM, or a hosted auth service.
+It models users, identities, verifications, sessions, account linking policy, and storage/provider
+ports without owning UI, HTTP routes, cookies, an ORM, or a hosted auth service.
 
 The package is source-available under the PolyForm Strict License 1.0.0. Commercial use,
 redistribution, making changes, or creating new works based on the software require a separate paid
@@ -17,7 +17,7 @@ license, subscription, private contract, or other written permission.
 
 ## What This Package Does
 
-- Models `User`, `AuthIdentity`, `Credential`, `Verification`, and `Session` separately.
+- Models `User`, `AuthIdentity`, `Verification`, and `Session` separately.
 - Treats email and phone as optional identity attributes, not mandatory user fields.
 - Orchestrates `signIn`, `link`, `unlink`, `mergeAccounts`, verification, and session revocation.
 - Starts and finishes generic OTP challenges over email or phone through sender ports.
@@ -125,10 +125,12 @@ import {
   UniAuthErrorCode,
   VerificationPurpose,
   createDefaultAuthPolicy,
+  createHmacSecretHasher,
   isUniAuthError,
   type AuthProvider,
   type AuthService,
   type ProviderIdentityAssertion,
+  type SecretHasher,
 } from '@alyldas/uniauth'
 ```
 
@@ -178,12 +180,9 @@ try {
 }
 ```
 
-The previous `UniauthError`, `UniauthErrorCode`, and `isUniauthError` exports remain as deprecated
-compatibility aliases.
-
 OTP sign-in is still headless: `startOtpChallenge` creates a hashed verification secret and sends
 the plain code through the configured sender port; `finishOtpSignIn` consumes the code once and
-creates a local session. Email-specific methods remain as compatibility wrappers.
+creates a local session. Email-specific methods are convenience wrappers over the shared OTP path.
 
 ```ts
 const { service } = createInMemoryAuthKit()
@@ -219,6 +218,51 @@ const emailResult = await service.finishEmailOtpSignIn({
 console.log(emailResult.identity.provider === EMAIL_OTP_PROVIDER_ID)
 ```
 
+OTP delivery is outside the storage transaction. `startOtpChallenge` first persists the hashed
+verification record, then calls the configured sender port. If the sender rejects, the pending
+verification remains in storage until it is consumed, expires, or is cleaned up by your adapter.
+This keeps external SMTP/SMS/queue side effects out of `UnitOfWork`; applications that need retry or
+dead-letter behavior should implement it in their sender adapter.
+
+Verification hashing is pluggable. The default hasher keeps the package usable out of the box, while
+production OTP deployments should provide an app-owned pepper through `createHmacSecretHasher` or a
+custom `SecretHasher` implementation:
+
+```ts
+import { createHmacSecretHasher } from '@alyldas/uniauth'
+import { createInMemoryAuthKit } from '@alyldas/uniauth/testing'
+
+const secretPepper = process.env.UNIAUTH_SECRET_PEPPER
+
+if (!secretPepper) {
+  throw new Error('UNIAUTH_SECRET_PEPPER is required.')
+}
+
+const { service } = createInMemoryAuthKit({
+  secretHasher: createHmacSecretHasher({
+    pepper: secretPepper,
+  }),
+})
+```
+
+The package never reads environment variables by itself; application bootstrap code owns secret
+loading and rotation policy.
+
+## Adapter Author Guide
+
+Storage adapters should preserve these invariants:
+
+- Keep `User` and `AuthIdentity` as separate records.
+- Enforce uniqueness for `(provider, providerUserId)`.
+- Run link, unlink, merge, session, and verification writes inside the provided transaction boundary.
+- Store verification secrets only through the configured `SecretHasher`.
+- Do not infer ownership from email, phone, or provider profile metadata outside `AuthPolicy`.
+- Keep sender side effects outside storage transactions.
+
+Provider adapters should return a normalized `ProviderIdentityAssertion` from `finish()`. Raw
+provider payloads should stay adapter-owned or be reduced to explicit `metadata`; core does not
+persist raw provider profiles.
+
 ## Entry Points
 
 - `@alyldas/uniauth`: public domain types, service implementation, policy API, ports, errors, and utilities.
@@ -239,8 +283,6 @@ const notice = getUniAuthAttributionNotice({ productName: 'Example App' })
 
 The helper does not send telemetry, read environment variables, touch storage, or expose anything
 automatically.
-
-The previous `getUniauthAttributionNotice` export remains as a deprecated compatibility alias.
 
 For commercial licensing, paid subscription terms, written agreements, or attribution questions,
 contact `alyldas@ya.ru`.
@@ -263,19 +305,19 @@ This repository keeps package source and documentation in git. Do not commit gen
 
 - `dist`
 - `coverage`
-- `.typecheck`
 - `node_modules`
 - `*.tgz`
 
-`dist` is created by `npm run build`, `npm run test:exports`, `npm run test:consumer`,
-`npm run pack:dry`, and `npm run prepare`.
+`dist` is created by `npm run build`, `npm run test:exports`, and npm pack based commands
+(`npm run test:types-package`, `npm run pack:dry`, release publish) through `prepack`.
+`npm run prepare` only installs local Husky hooks when the project is inside a git repository.
 
-`npm run test:consumer` creates a temporary external npm project, installs the packed tarball, and
-imports `@alyldas/uniauth` plus `@alyldas/uniauth/testing` by package name.
+`npm run lint:package` runs `publint` against the built package metadata, entry points, exports,
+type declarations, and published file set.
 
-`npm run test:registry` creates a temporary external npm project and installs the published package
-from GitHub Packages. It requires `NODE_AUTH_TOKEN`, `GITHUB_TOKEN`, or an authenticated `gh` CLI
-session with `read:packages`.
+`npm run test:types-package` runs `attw --pack . --profile esm-only` to verify package type
+resolution from the packed tarball across modern ESM TypeScript consumer resolution modes. CommonJS
+`require` is intentionally outside the support target for this ESM-only package.
 
 To keep generated `dist` and `coverage` output inside a Node 22 Alpine container, run:
 
@@ -297,19 +339,25 @@ Run the package gate before publishing:
 npm run check
 ```
 
-The gate runs formatting, ESLint, typecheck, 100% coverage, export smoke tests, consumer install
-smoke tests, and `npm pack --dry-run`.
+The gate runs formatting, ESLint, typecheck, 100% coverage, export smoke tests, package lint,
+package type-resolution checks, and `npm pack --dry-run`.
 
 The release workflow follows the same Release Please model as `theme-mode`: pushes to `main` update
 a release PR, and merging that PR creates the `v*` tag, GitHub release notes, and GitHub Packages
 publish. This repository uses the `RELEASE_PLEASE_TOKEN` secret for release PR automation and
 `GITHUB_TOKEN` for package publishing.
 
-After a release is published, verify the registry package:
+Normal feature, fix, refactor, docs, and test commits do not manually change release metadata.
+Release Please owns these files in its release PR:
 
-```sh
-npm run test:registry
-```
+- `package.json`: package version.
+- `package-lock.json`: lockfile package version.
+- `CHANGELOG.md`: release section and compare links.
+
+Only bypass that rule for an intentional manual release process.
+
+After a release is published, verify the package page and GitHub Packages artifact manually against
+the generated release notes and local `npm pack --dry-run` output.
 
 ## Contributing
 

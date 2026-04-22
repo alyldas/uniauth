@@ -10,9 +10,13 @@
 - The last active identity cannot be unlinked under the default policy.
 - Merge is an explicit operation and disabled by default.
 - Verification secrets are stored as hashes.
+- Verification hashing can be replaced through `SecretHasher`; production OTP flows should use an
+  application-owned pepper or stronger storage-specific hasher.
 - OTP start responses are neutral and do not expose whether an account exists.
 - OTP finish consumes a sign-in verification once before creating a local session.
 - Phone OTP uses the same verification lifecycle as email OTP.
+- OTP delivery failures do not expose account state; the app-owned sender adapter decides retry,
+  dead-letter, and cleanup behavior.
 - Public errors avoid exposing which user owns an identity.
 
 ## Policy Matrix
@@ -31,12 +35,15 @@
 - Losing the last usable sign-in method.
 - Verification token persistence in plaintext.
 - Provider identity reuse across users.
+- Plaintext verification secret persistence.
 
 ## Threats Covered in v0.2
 
 - Email OTP account enumeration through start-flow responses.
 - Email OTP replay through consumed verification reuse.
 - Email OTP plaintext persistence in verification storage.
+- Weak OTP hash deployments can be hardened with `createHmacSecretHasher` or a custom
+  `SecretHasher`.
 
 ## Threats Covered in v0.3
 
@@ -50,4 +57,6 @@
 - CSRF controls.
 - Provider SDK signature verification.
 - SMTP/SMS delivery security.
+- SMTP/SMS retry, bounce handling, and dead-letter queues.
 - Database migrations and production SQL constraints.
+- Application secret loading, pepper rotation, and key management.

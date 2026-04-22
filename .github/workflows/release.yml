@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Run Release Please
         id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           release-type: node
@@ -43,7 +43,7 @@ jobs:
       - name: Validate release tag
         if: ${{ steps.release.outputs.release_created == 'true' }}
         run: |
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          PACKAGE_VERSION="$(npm pkg get version | tr -d '\"')"
           RELEASE_TAG="${{ steps.release.outputs.tag_name }}"
 
           if [ "$RELEASE_TAG" != "v$PACKAGE_VERSION" ]; then
