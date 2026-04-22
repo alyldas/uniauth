@@ -203,6 +203,10 @@ This repository keeps package source and documentation in git. Do not commit gen
 `npm run test:consumer` creates a temporary external npm project, installs the packed tarball, and
 imports `@alyldas/uniauth` plus `@alyldas/uniauth/testing` by package name.
 
+`npm run test:registry` creates a temporary external npm project and installs the published package
+from GitHub Packages. It requires `NODE_AUTH_TOKEN`, `GITHUB_TOKEN`, or an authenticated `gh` CLI
+session with `read:packages`.
+
 To keep generated `dist` and `coverage` output inside a Node 22 Alpine container, run:
 
 ```sh
@@ -228,7 +232,14 @@ smoke tests, and `npm pack --dry-run`.
 
 The release workflow follows the same Release Please model as `theme-mode`: pushes to `main` update
 a release PR, and merging that PR creates the `v*` tag, GitHub release notes, and GitHub Packages
-publish. Configure `RELEASE_PLEASE_TOKEN` as a repository secret before enabling releases.
+publish. This repository uses the `RELEASE_PLEASE_TOKEN` secret for release PR automation and
+`GITHUB_TOKEN` for package publishing.
+
+After a release is published, verify the registry package:
+
+```sh
+npm run test:registry
+```
 
 ## Contributing
 
