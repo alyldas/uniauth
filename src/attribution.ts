@@ -23,7 +23,7 @@ function normalizeRepositoryUrl(url: string): string {
   return url.replace(/^git\+/, '').replace(/\.git$/, '')
 }
 
-export interface UniauthAttributionDetails {
+export interface UniAuthAttributionDetails {
   readonly packageName: string
   readonly displayName: string
   readonly author: string
@@ -34,7 +34,7 @@ export interface UniauthAttributionDetails {
   readonly contactEmail: string
 }
 
-export interface UniauthAttributionNoticeOptions {
+export interface UniAuthAttributionNoticeOptions {
   readonly productName?: string
   readonly includeLicense?: boolean
   readonly includeContact?: boolean
@@ -53,9 +53,9 @@ export const UNIAUTH_ATTRIBUTION = {
   notice: `This product uses ${packageMetadata.name}.`,
   repositoryUrl: normalizeRepositoryUrl(packageMetadata.repository.url),
   contactEmail: packageMetadata.author.email,
-} as const satisfies UniauthAttributionDetails
+} as const satisfies UniAuthAttributionDetails
 
-export function getUniauthAttributionNotice(options: UniauthAttributionNoticeOptions = {}): string {
+export function getUniAuthAttributionNotice(options: UniAuthAttributionNoticeOptions = {}): string {
   const productName = options.productName?.trim()
   const subject = productName ? `${productName} uses` : 'This product uses'
   const parts = [`${subject} ${UNIAUTH_ATTRIBUTION.packageName}.`, UNIAUTH_ATTRIBUTION.copyright]
@@ -70,3 +70,13 @@ export function getUniauthAttributionNotice(options: UniauthAttributionNoticeOpt
 
   return parts.join(' ')
 }
+
+/** @deprecated Use `UniAuthAttributionDetails` instead. */
+export type UniauthAttributionDetails = UniAuthAttributionDetails
+
+/** @deprecated Use `UniAuthAttributionNoticeOptions` instead. */
+export type UniauthAttributionNoticeOptions = UniAuthAttributionNoticeOptions
+
+/** @deprecated Use `getUniAuthAttributionNotice` instead. */
+export const getUniauthAttributionNotice: typeof getUniAuthAttributionNotice =
+  getUniAuthAttributionNotice

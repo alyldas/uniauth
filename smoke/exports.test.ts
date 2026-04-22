@@ -15,12 +15,31 @@ interface CoreExports {
   readonly EMAIL_OTP_PROVIDER_ID: string
   readonly OtpChannel: { readonly Email: string; readonly Phone: string }
   readonly PHONE_OTP_PROVIDER_ID: string
+  readonly UniAuthError: new (
+    code: string,
+    message: string,
+    details?: Record<string, unknown>,
+  ) => Error
+  readonly UniAuthErrorCode: { readonly InvalidInput: string }
   readonly UNIAUTH_ATTRIBUTION: AttributionExports
+  readonly getUniAuthAttributionNotice: (options?: {
+    readonly productName?: string
+    readonly includeLicense?: boolean
+    readonly includeContact?: boolean
+  }) => string
   readonly getUniauthAttributionNotice: (options?: {
     readonly productName?: string
     readonly includeLicense?: boolean
     readonly includeContact?: boolean
   }) => string
+  readonly isUniAuthError: (error: unknown) => boolean
+  readonly isUniauthError: (error: unknown) => boolean
+  readonly UniauthError: new (
+    code: string,
+    message: string,
+    details?: Record<string, unknown>,
+  ) => Error
+  readonly UniauthErrorCode: { readonly InvalidInput: string }
 }
 
 interface TestingExports {
@@ -64,11 +83,17 @@ describe('package exports', () => {
     expect(core.EMAIL_OTP_PROVIDER_ID).toBe('email-otp')
     expect(core.OtpChannel.Phone).toBe('phone')
     expect(core.PHONE_OTP_PROVIDER_ID).toBe('phone-otp')
+    expect(core.UniAuthError).toBeTypeOf('function')
+    expect(core.UniAuthErrorCode.InvalidInput).toBe('invalid_input')
+    expect(
+      core.isUniAuthError(new core.UniAuthError(core.UniAuthErrorCode.InvalidInput, 'x')),
+    ).toBe(true)
     expect(core.createDefaultAuthPolicy).toBeTypeOf('function')
     expect(core.UNIAUTH_ATTRIBUTION).toBeTypeOf('object')
-    expect(core.getUniauthAttributionNotice).toBeTypeOf('function')
+    expect(core.getUniAuthAttributionNotice).toBeTypeOf('function')
+    expect(core.getUniauthAttributionNotice).toBe(core.getUniAuthAttributionNotice)
     expect(core.UNIAUTH_ATTRIBUTION.license).toBe(packageLicense)
-    expect(core.getUniauthAttributionNotice({ productName: 'Smoke App' })).toContain(
+    expect(core.getUniAuthAttributionNotice({ productName: 'Smoke App' })).toContain(
       `Smoke App uses ${packageMetadata.name}.`,
     )
     expect(testing.createInMemoryAuthKit).toBeTypeOf('function')
@@ -85,14 +110,18 @@ describe('package exports', () => {
     expect(core.EMAIL_OTP_PROVIDER_ID).toBe('email-otp')
     expect(core.OtpChannel).toMatchObject({ Email: 'email', Phone: 'phone' })
     expect(core.PHONE_OTP_PROVIDER_ID).toBe('phone-otp')
+    expect(core.UniAuthError).toBeTypeOf('function')
+    expect(core.UniauthError).toBe(core.UniAuthError)
+    expect(core.UniauthErrorCode).toBe(core.UniAuthErrorCode)
+    expect(core.isUniauthError).toBe(core.isUniAuthError)
     expect(core.UNIAUTH_ATTRIBUTION).toBeTypeOf('object')
-    expect(core.getUniauthAttributionNotice).toBeTypeOf('function')
+    expect(core.getUniAuthAttributionNotice).toBeTypeOf('function')
     expect(core.UNIAUTH_ATTRIBUTION).toMatchObject({
       contactEmail: packageMetadata.author.email,
       license: packageLicense,
       packageName: packageMetadata.name,
     })
-    expect(core.getUniauthAttributionNotice({ includeContact: false })).not.toContain(
+    expect(core.getUniAuthAttributionNotice({ includeContact: false })).not.toContain(
       'Licensing contact',
     )
     expect(testing.createInMemoryAuthKit).toBeTypeOf('function')

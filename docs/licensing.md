@@ -14,11 +14,13 @@ See [LICENSE](../LICENSE), [NOTICE](../NOTICE), and [COMMERCIAL.md](../COMMERCIA
 Notices, or acknowledgements screens:
 
 ```ts
-import { UNIAUTH_ATTRIBUTION, getUniauthAttributionNotice } from '@alyldas/uniauth'
+import { UNIAUTH_ATTRIBUTION, getUniAuthAttributionNotice } from '@alyldas/uniauth'
 
 const metadata = UNIAUTH_ATTRIBUTION
-const notice = getUniauthAttributionNotice({ productName: 'Example App' })
+const notice = getUniAuthAttributionNotice({ productName: 'Example App' })
 ```
+
+The previous `getUniauthAttributionNotice` export remains as a deprecated compatibility alias.
 
 The helper is pure. It does not send telemetry, read environment variables, touch storage, or expose
 anything automatically.

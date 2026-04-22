@@ -6,11 +6,11 @@ import {
   OtpChannel,
   PHONE_OTP_PROVIDER_ID,
   createDefaultAuthPolicy,
-  getUniauthAttributionNotice,
-  isUniauthError,
+  getUniAuthAttributionNotice,
+  isUniAuthError,
   SessionStatus,
   UNIAUTH_ATTRIBUTION,
-  UniauthErrorCode,
+  UniAuthErrorCode,
   VerificationPurpose,
   VerificationStatus,
   addSeconds,
@@ -56,11 +56,11 @@ describe('DefaultAuthService', () => {
     expect(UNIAUTH_ATTRIBUTION.packageName).toBe(packageMetadata.name)
     expect(UNIAUTH_ATTRIBUTION.contactEmail).toBe(packageMetadata.author.email)
     expect(UNIAUTH_ATTRIBUTION.license).toBe(packageLicense)
-    expect(getUniauthAttributionNotice()).toBe(
+    expect(getUniAuthAttributionNotice()).toBe(
       `This product uses ${packageMetadata.name}. ${UNIAUTH_ATTRIBUTION.copyright} License: ${packageLicense}. Licensing contact: ${packageMetadata.author.email}.`,
     )
     expect(
-      getUniauthAttributionNotice({
+      getUniAuthAttributionNotice({
         includeContact: false,
         includeLicense: false,
         productName: 'Example App',
@@ -142,7 +142,7 @@ describe('DefaultAuthService', () => {
       .unlink({ userId: result.user.id, identityId: result.identity.id, now })
       .catch((caught: unknown) => caught)
 
-    expect(error).toMatchObject({ code: UniauthErrorCode.LastIdentity })
+    expect(error).toMatchObject({ code: UniAuthErrorCode.LastIdentity })
   })
 
   it('rejects linking an identity already attached to another user without leaking ownership', async () => {
@@ -169,13 +169,13 @@ describe('DefaultAuthService', () => {
       })
       .catch((caught: unknown) => caught)
 
-    expect(isUniauthError(error)).toBe(true)
+    expect(isUniAuthError(error)).toBe(true)
 
-    if (!isUniauthError(error)) {
-      throw new Error('Expected a UniauthError.')
+    if (!isUniAuthError(error)) {
+      throw new Error('Expected a UniAuthError.')
     }
 
-    expect(error.code).toBe(UniauthErrorCode.IdentityAlreadyLinked)
+    expect(error.code).toBe(UniAuthErrorCode.IdentityAlreadyLinked)
     expect(error.message).not.toContain('another user')
     expect(error.message).not.toContain('account')
   })
@@ -205,7 +205,7 @@ describe('DefaultAuthService', () => {
       .catch((caught: unknown) => caught)
 
     expect(invalidSecretError).toMatchObject({
-      code: UniauthErrorCode.VerificationInvalidSecret,
+      code: UniAuthErrorCode.VerificationInvalidSecret,
     })
 
     const consumed = await service.consumeVerification({
@@ -224,7 +224,7 @@ describe('DefaultAuthService', () => {
       .catch((caught: unknown) => caught)
 
     expect(consumedAgainError).toMatchObject({
-      code: UniauthErrorCode.VerificationConsumed,
+      code: UniAuthErrorCode.VerificationConsumed,
     })
   })
 
@@ -282,7 +282,7 @@ describe('DefaultAuthService', () => {
       .catch((caught: unknown) => caught)
 
     expect(wrongSecret).toMatchObject({
-      code: UniauthErrorCode.VerificationInvalidSecret,
+      code: UniAuthErrorCode.VerificationInvalidSecret,
     })
     expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Pending)
 
@@ -309,7 +309,7 @@ describe('DefaultAuthService', () => {
       .catch((caught: unknown) => caught)
 
     expect(consumedAgain).toMatchObject({
-      code: UniauthErrorCode.VerificationConsumed,
+      code: UniAuthErrorCode.VerificationConsumed,
     })
 
     const generated = await service.startEmailOtpSignIn({
@@ -429,12 +429,12 @@ describe('DefaultAuthService', () => {
       await serviceWithoutEmailSender
         .startEmailOtpSignIn({ email: 'alice@example.com', now })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(
       await serviceWithoutEmailSender
         .startEmailOtpSignIn({ email: '   ', now })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(
       await serviceWithoutEmailSender
         .finishEmailOtpSignIn({
@@ -443,7 +443,7 @@ describe('DefaultAuthService', () => {
           now,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.VerificationNotFound })
+    ).toMatchObject({ code: UniAuthErrorCode.VerificationNotFound })
 
     const { service, store } = createInMemoryAuthKit()
     const linkVerification = await service.createVerification({
@@ -460,7 +460,7 @@ describe('DefaultAuthService', () => {
       })
       .catch((caught: unknown) => caught)
 
-    expect(wrongPurpose).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(wrongPurpose).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Pending)
   })
 
@@ -478,7 +478,7 @@ describe('DefaultAuthService', () => {
           now,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(
       await serviceWithoutSmsSender
         .startOtpChallenge({
@@ -488,7 +488,7 @@ describe('DefaultAuthService', () => {
           now,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(
       await serviceWithoutSmsSender
         .startOtpChallenge({
@@ -498,7 +498,7 @@ describe('DefaultAuthService', () => {
           now,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(
       await serviceWithoutSmsSender
         .startOtpChallenge({
@@ -508,7 +508,7 @@ describe('DefaultAuthService', () => {
           now,
         })
         .catch((caught: unknown) => caught),
-    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
 
     const { service, store } = createInMemoryAuthKit()
     const challenge = await service.startOtpChallenge({
@@ -528,7 +528,7 @@ describe('DefaultAuthService', () => {
       })
       .catch((caught: unknown) => caught)
 
-    expect(wrongChannel).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(wrongChannel).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Pending)
 
     const rawVerification = await service.createVerification({
@@ -545,7 +545,7 @@ describe('DefaultAuthService', () => {
       })
       .catch((caught: unknown) => caught)
 
-    expect(notOtpChallenge).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(notOtpChallenge).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(store.listVerifications()[1]?.status).toBe(VerificationStatus.Pending)
   })
 
@@ -569,7 +569,7 @@ describe('DefaultAuthService', () => {
       })
       .catch((caught: unknown) => caught)
 
-    expect(deniedMergeError).toMatchObject({ code: UniauthErrorCode.PolicyDenied })
+    expect(deniedMergeError).toMatchObject({ code: UniAuthErrorCode.PolicyDenied })
 
     const allowedKit = createInMemoryAuthKit({
       policy: createDefaultAuthPolicy({ allowMergeAccounts: true, requireReAuthFor: [] }),

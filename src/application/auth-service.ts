@@ -39,7 +39,7 @@ import {
   VerificationPurpose,
   VerificationStatus,
 } from '../domain/types.js'
-import { UniauthError, UniauthErrorCode, invalidInput } from '../errors'
+import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors'
 import type { AuthPolicy, AuthPolicyAction } from './policy.js'
 import { defaultAuthPolicy } from './policy.js'
 import type {
@@ -231,7 +231,7 @@ export class DefaultAuthService implements AuthService {
           identityId: exactIdentity.id,
           metadata: { reason: 'identity-already-linked' },
         })
-        throw new UniauthError(UniauthErrorCode.IdentityAlreadyLinked, 'Identity cannot be linked.')
+        throw new UniAuthError(UniAuthErrorCode.IdentityAlreadyLinked, 'Identity cannot be linked.')
       }
 
       const identity = await this.createIdentityFromAssertion(user, assertion, now)
@@ -254,7 +254,7 @@ export class DefaultAuthService implements AuthService {
       const identity = await this.getActiveIdentity(input.identityId)
 
       if (identity.userId !== user.id) {
-        throw new UniauthError(UniauthErrorCode.IdentityNotFound, 'Identity was not found.')
+        throw new UniAuthError(UniAuthErrorCode.IdentityNotFound, 'Identity was not found.')
       }
 
       const activeIdentities = (await this.repos.identityRepo.listByUserId(user.id)).filter(
@@ -274,13 +274,13 @@ export class DefaultAuthService implements AuthService {
         })
         const code =
           activeIdentities.length <= 1
-            ? UniauthErrorCode.LastIdentity
-            : UniauthErrorCode.PolicyDenied
+            ? UniAuthErrorCode.LastIdentity
+            : UniAuthErrorCode.PolicyDenied
         const message =
           activeIdentities.length <= 1
             ? 'Cannot unlink the last active identity.'
             : 'Auth policy denied this action.'
-        throw new UniauthError(code, message)
+        throw new UniAuthError(code, message)
       }
 
       await this.repos.identityRepo.update(identity.id, {
@@ -322,7 +322,7 @@ export class DefaultAuthService implements AuthService {
           userId: targetUser.id,
           metadata: { reason: 'merge-denied', sourceUserId: sourceUser.id },
         })
-        throw new UniauthError(UniauthErrorCode.PolicyDenied, 'Auth policy denied this action.')
+        throw new UniAuthError(UniAuthErrorCode.PolicyDenied, 'Auth policy denied this action.')
       }
 
       const movedIdentityIds: IdentityId[] = []
@@ -370,7 +370,7 @@ export class DefaultAuthService implements AuthService {
       const session = await this.repos.sessionRepo.findById(sessionId)
 
       if (!session) {
-        throw new UniauthError(UniauthErrorCode.SessionNotFound, 'Session was not found.')
+        throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
       }
 
       await this.repos.sessionRepo.update(session.id, {
@@ -521,7 +521,7 @@ export class DefaultAuthService implements AuthService {
     const verification = await this.repos.verificationRepo.findById(input.verificationId)
 
     if (!verification) {
-      throw new UniauthError(UniauthErrorCode.VerificationNotFound, 'Verification was not found.')
+      throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
     }
 
     if (input.purpose && verification.purpose !== input.purpose) {
@@ -675,23 +675,23 @@ export class DefaultAuthService implements AuthService {
     const verification = await this.repos.verificationRepo.findById(input.verificationId)
 
     if (!verification) {
-      throw new UniauthError(UniauthErrorCode.VerificationNotFound, 'Verification was not found.')
+      throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
     }
 
     if (verification.status === VerificationStatus.Consumed) {
-      throw new UniauthError(
-        UniauthErrorCode.VerificationConsumed,
+      throw new UniAuthError(
+        UniAuthErrorCode.VerificationConsumed,
         'Verification has already been consumed.',
       )
     }
 
     if (verification.expiresAt.getTime() <= now.getTime()) {
-      throw new UniauthError(UniauthErrorCode.VerificationExpired, 'Verification has expired.')
+      throw new UniAuthError(UniAuthErrorCode.VerificationExpired, 'Verification has expired.')
     }
 
     if (!verifySecret(input.secret, verification.secretHash)) {
-      throw new UniauthError(
-        UniauthErrorCode.VerificationInvalidSecret,
+      throw new UniAuthError(
+        UniAuthErrorCode.VerificationInvalidSecret,
         'Verification secret is invalid.',
       )
     }
@@ -721,13 +721,13 @@ export class DefaultAuthService implements AuthService {
     }
 
     if (!this.providerRegistry) {
-      throw new UniauthError(UniauthErrorCode.ProviderNotFound, 'Auth provider was not found.')
+      throw new UniAuthError(UniAuthErrorCode.ProviderNotFound, 'Auth provider was not found.')
     }
 
     const provider = await this.providerRegistry.get(input.provider)
 
     if (!provider) {
-      throw new UniauthError(UniauthErrorCode.ProviderNotFound, 'Auth provider was not found.')
+      throw new UniAuthError(UniAuthErrorCode.ProviderNotFound, 'Auth provider was not found.')
     }
 
     return this.normalizeAssertion(await provider.finish(input.finishInput))
@@ -886,7 +886,7 @@ export class DefaultAuthService implements AuthService {
         userId,
         metadata: { reason: 're-auth-required', action },
       })
-      throw new UniauthError(UniauthErrorCode.ReAuthRequired, 'Recent authentication is required.')
+      throw new UniAuthError(UniAuthErrorCode.ReAuthRequired, 'Recent authentication is required.')
     }
   }
 
@@ -894,7 +894,7 @@ export class DefaultAuthService implements AuthService {
     const user = await this.repos.userRepo.findById(userId)
 
     if (!user || user.disabledAt) {
-      throw new UniauthError(UniauthErrorCode.UserNotFound, 'User was not found.')
+      throw new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
     }
 
     return user
@@ -904,7 +904,7 @@ export class DefaultAuthService implements AuthService {
     const identity = await this.repos.identityRepo.findById(identityId)
 
     if (!identity || !this.isActiveIdentity(identity)) {
-      throw new UniauthError(UniauthErrorCode.IdentityNotFound, 'Identity was not found.')
+      throw new UniAuthError(UniAuthErrorCode.IdentityNotFound, 'Identity was not found.')
     }
 
     return identity
