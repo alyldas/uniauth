@@ -1,10 +1,10 @@
 # Uniauth
 
-[![CI](docs/badges/ci.svg)](.github/workflows/ci.yml)
-[![Version](docs/badges/version.svg)](CHANGELOG.md)
-[![License](docs/badges/license.svg)](LICENSE)
-[![TypeScript](docs/badges/typescript.svg)](tsconfig.json)
-[![Registry](docs/badges/registry.svg)](package.json)
+[![CI](https://github.com/alyldas/uniauth/actions/workflows/ci.yml/badge.svg)](https://github.com/alyldas/uniauth/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/github/package-json/v/alyldas/uniauth?label=version)](package.json)
+[![License](https://img.shields.io/badge/license-PolyForm%20Strict%201.0.0-blue)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-ready-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-@alyldas%2Funiauth-24292f?logo=github)](https://github.com/alyldas/uniauth/pkgs/npm/uniauth)
 
 `@alyldas/uniauth` is a headless identity orchestration core for TypeScript and Node.js.
 
