@@ -24,6 +24,7 @@ import type {
   EmailSender,
   IdentityRepo,
   SessionRepo,
+  SmsSender,
   UnitOfWork,
   UserRepo,
   VerificationRepo,
@@ -235,6 +236,24 @@ export class InMemoryEmailSender implements EmailSender {
   }
 }
 
+export interface InMemorySmsMessage {
+  readonly to: string
+  readonly text: string
+  readonly metadata?: Record<string, unknown>
+}
+
+export class InMemorySmsSender implements SmsSender {
+  private readonly messages: InMemorySmsMessage[] = []
+
+  async sendSms(input: InMemorySmsMessage): Promise<void> {
+    this.messages.push(input)
+  }
+
+  listMessages(): readonly InMemorySmsMessage[] {
+    return [...this.messages]
+  }
+}
+
 export interface CreateInMemoryAuthKitOptions {
   readonly policy?: AuthPolicy
   readonly clock?: Clock
@@ -248,15 +267,18 @@ export function createInMemoryAuthKit(options: CreateInMemoryAuthKitOptions = {}
   readonly store: InMemoryAuthStore
   readonly providerRegistry: InMemoryProviderRegistry
   readonly emailSender: InMemoryEmailSender
+  readonly smsSender: InMemorySmsSender
   readonly idGenerator: IdGenerator
 } {
   const store = new InMemoryAuthStore()
   const providerRegistry = new InMemoryProviderRegistry()
   const emailSender = new InMemoryEmailSender()
+  const smsSender = new InMemorySmsSender()
   const idGenerator = options.idGenerator ?? createSequentialIdGenerator()
   const serviceOptions: DefaultAuthServiceOptions = {
     repos: store,
     emailSender,
+    smsSender,
     providerRegistry,
     transaction: store,
     idGenerator,
@@ -273,6 +295,7 @@ export function createInMemoryAuthKit(options: CreateInMemoryAuthKitOptions = {}
     store,
     providerRegistry,
     emailSender,
+    smsSender,
     idGenerator,
   }
 }

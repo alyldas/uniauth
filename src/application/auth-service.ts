@@ -1,6 +1,8 @@
 import {
   AuthIdentityStatus,
   EMAIL_OTP_PROVIDER_ID,
+  OtpChannel,
+  PHONE_OTP_PROVIDER_ID,
   SessionStatus,
   type AuditEvent,
   type AuditEventType,
@@ -14,6 +16,8 @@ import {
   type CreateVerificationResult,
   type FinishEmailOtpSignInInput,
   type FinishInput,
+  type FinishOtpChallengeInput,
+  type FinishOtpSignInInput,
   type IdGenerator,
   type IdentityId,
   type LinkInput,
@@ -26,6 +30,8 @@ import {
   type SignInInput,
   type StartEmailOtpSignInInput,
   type StartEmailOtpSignInResult,
+  type StartOtpChallengeInput,
+  type StartOtpChallengeResult,
   type UnlinkInput,
   type User,
   type UserId,
@@ -41,6 +47,7 @@ import type {
   AuthServiceRepositories,
   EmailSender,
   ProviderRegistry,
+  SmsSender,
   UnitOfWork,
 } from '../ports'
 import { createRandomIdGenerator } from '../utils/ids.js'
@@ -51,6 +58,8 @@ import { addSeconds, systemClock } from '../utils/time.js'
 const DEFAULT_SESSION_TTL_SECONDS = 60 * 60 * 24 * 30
 const DEFAULT_VERIFICATION_TTL_SECONDS = 60 * 10
 const DEFAULT_EMAIL_OTP_SUBJECT = 'Your sign-in code'
+const DEFAULT_SMS_OTP_PREFIX = 'Your sign-in code is'
+type SupportedOtpChannel = typeof OtpChannel.Email | typeof OtpChannel.Phone
 
 const immediateUnitOfWork: UnitOfWork = {
   run: (operation) => operation(),
@@ -70,6 +79,7 @@ export interface DefaultAuthServiceOptions extends AuthServiceInfrastructure {
 export class DefaultAuthService implements AuthService {
   private readonly repos: AuthServiceRepositories
   private readonly emailSender: EmailSender | undefined
+  private readonly smsSender: SmsSender | undefined
   private readonly policy: AuthPolicy
   private readonly providerRegistry: ProviderRegistry | undefined
   private readonly transaction: UnitOfWork
@@ -81,6 +91,7 @@ export class DefaultAuthService implements AuthService {
   constructor(options: DefaultAuthServiceOptions) {
     this.repos = options.repos
     this.emailSender = options.emailSender
+    this.smsSender = options.smsSender
     this.policy = options.policy ?? defaultAuthPolicy
     this.providerRegistry = options.providerRegistry
     this.transaction = options.transaction ?? immediateUnitOfWork
@@ -102,80 +113,99 @@ export class DefaultAuthService implements AuthService {
     })
   }
 
-  async startEmailOtpSignIn(input: StartEmailOtpSignInInput): Promise<StartEmailOtpSignInResult> {
-    const email = normalizeEmail(input.email)
-
-    if (!email) {
-      throw invalidInput('Email is required.')
-    }
-
-    if (!this.emailSender) {
-      throw invalidInput('Email sender is required for email OTP sign-in.')
-    }
-
-    const created = await this.createVerification({
-      purpose: VerificationPurpose.SignIn,
-      target: email,
-      secret: input.secret ?? generateOtpSecret(),
-      ...(input.ttlSeconds ? { ttlSeconds: input.ttlSeconds } : {}),
-      ...(input.now ? { now: input.now } : {}),
-      metadata: {
-        ...input.metadata,
-        channel: 'email',
-        provider: EMAIL_OTP_PROVIDER_ID,
-      },
+  async startOtpChallenge(input: StartOtpChallengeInput): Promise<StartOtpChallengeResult> {
+    const now = input.now ?? this.clock.now()
+    const target = this.normalizeOtpTarget(input.channel, input.target)
+    const config = this.otpChannelConfig(input.channel)
+    const created = await this.transaction.run(async () => {
+      return this.createVerificationRecord({
+        purpose: input.purpose,
+        target,
+        secret: input.secret ?? generateOtpSecret(),
+        ...(input.ttlSeconds !== undefined ? { ttlSeconds: input.ttlSeconds } : {}),
+        now,
+        metadata: {
+          ...input.metadata,
+          channel: input.channel,
+          provider: config.provider,
+        },
+      })
     })
 
-    await this.emailSender.sendEmail({
-      to: created.verification.target,
-      subject: DEFAULT_EMAIL_OTP_SUBJECT,
-      text: `Your sign-in code is ${created.secret}.`,
-      metadata: {
-        verificationId: created.verification.id,
-        purpose: created.verification.purpose,
-        delivery: 'email',
-      },
-    })
+    await config.send(created)
 
     return {
       verificationId: created.verification.id,
       expiresAt: created.verification.expiresAt,
-      delivery: 'email',
+      delivery: input.channel,
     }
   }
 
-  async finishEmailOtpSignIn(input: FinishEmailOtpSignInInput): Promise<AuthResult> {
+  async finishOtpChallenge(input: FinishOtpChallengeInput): Promise<Verification> {
     return this.transaction.run(async () => {
       const now = input.now ?? this.clock.now()
-      const verification = await this.repos.verificationRepo.findById(input.verificationId)
-
-      if (!verification) {
-        throw new UniauthError(UniauthErrorCode.VerificationNotFound, 'Verification was not found.')
-      }
-
-      if (verification.purpose !== VerificationPurpose.SignIn) {
-        throw invalidInput('Verification cannot be used for email OTP sign-in.')
-      }
-
-      const consumed = await this.consumeVerificationRecord({
+      const consumed = await this.consumeOtpChallengeRecord({
         verificationId: input.verificationId,
         secret: input.secret,
+        ...(input.purpose ? { purpose: input.purpose } : {}),
+        ...(input.channel ? { channel: input.channel } : {}),
         now,
+        context: 'OTP challenge',
+      })
+
+      return consumed.verification
+    })
+  }
+
+  async finishOtpSignIn(input: FinishOtpSignInInput): Promise<AuthResult> {
+    return this.transaction.run(async () => {
+      const now = input.now ?? this.clock.now()
+      const consumed = await this.consumeOtpChallengeRecord({
+        verificationId: input.verificationId,
+        secret: input.secret,
+        purpose: VerificationPurpose.SignIn,
+        ...(input.channel ? { channel: input.channel } : {}),
+        now,
+        context: 'OTP sign-in',
       })
 
       return this.signInWithAssertion(
-        this.normalizeAssertion({
-          provider: EMAIL_OTP_PROVIDER_ID,
-          providerUserId: consumed.target,
-          email: consumed.target,
-          emailVerified: true,
-        }),
+        this.assertionFromOtpVerification(consumed.verification, consumed.channel),
         {
           now,
           ...(input.sessionExpiresAt ? { sessionExpiresAt: input.sessionExpiresAt } : {}),
           ...(input.metadata ? { metadata: input.metadata } : {}),
         },
       )
+    })
+  }
+
+  async startEmailOtpSignIn(input: StartEmailOtpSignInInput): Promise<StartEmailOtpSignInResult> {
+    const started = await this.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: input.email,
+      ...(input.secret !== undefined ? { secret: input.secret } : {}),
+      ...(input.ttlSeconds !== undefined ? { ttlSeconds: input.ttlSeconds } : {}),
+      ...(input.now ? { now: input.now } : {}),
+      ...(input.metadata ? { metadata: input.metadata } : {}),
+    })
+
+    return {
+      verificationId: started.verificationId,
+      expiresAt: started.expiresAt,
+      delivery: OtpChannel.Email,
+    }
+  }
+
+  async finishEmailOtpSignIn(input: FinishEmailOtpSignInInput): Promise<AuthResult> {
+    return this.finishOtpSignIn({
+      verificationId: input.verificationId,
+      secret: input.secret,
+      channel: OtpChannel.Email,
+      ...(input.now ? { now: input.now } : {}),
+      ...(input.sessionExpiresAt ? { sessionExpiresAt: input.sessionExpiresAt } : {}),
+      ...(input.metadata ? { metadata: input.metadata } : {}),
     })
   }
 
@@ -370,30 +400,181 @@ export class DefaultAuthService implements AuthService {
   async createVerification(input: CreateVerificationInput): Promise<CreateVerificationResult> {
     return this.transaction.run(async () => {
       const now = input.now ?? this.clock.now()
-      const secret = input.secret ?? generateSecret()
-      const verification: Verification = {
-        id: this.idGenerator.verificationId(),
-        purpose: input.purpose,
-        target: normalizeTarget(input.target),
-        secretHash: hashSecret(secret),
-        status: VerificationStatus.Pending,
-        createdAt: now,
-        expiresAt: addSeconds(now, input.ttlSeconds ?? this.verificationTtlSeconds),
-        ...(input.metadata ? { metadata: input.metadata } : {}),
-      }
-
-      const created = await this.repos.verificationRepo.create(verification)
-      await this.audit('auth.verification_created', now, {
-        metadata: { verificationId: created.id, purpose: created.purpose },
-      })
-
-      return { verification: created, secret }
+      return this.createVerificationRecord({ ...input, now })
     })
   }
 
   async consumeVerification(input: ConsumeVerificationInput): Promise<Verification> {
     return this.transaction.run(async () => {
       return this.consumeVerificationRecord(input)
+    })
+  }
+
+  private async createVerificationRecord(
+    input: CreateVerificationInput & { readonly now: Date },
+  ): Promise<CreateVerificationResult> {
+    const secret = input.secret ?? generateSecret()
+    const verification: Verification = {
+      id: this.idGenerator.verificationId(),
+      purpose: input.purpose,
+      target: normalizeTarget(input.target),
+      secretHash: hashSecret(secret),
+      status: VerificationStatus.Pending,
+      createdAt: input.now,
+      expiresAt: addSeconds(input.now, input.ttlSeconds ?? this.verificationTtlSeconds),
+      ...(input.metadata ? { metadata: input.metadata } : {}),
+    }
+
+    const created = await this.repos.verificationRepo.create(verification)
+    await this.audit('auth.verification_created', input.now, {
+      metadata: { verificationId: created.id, purpose: created.purpose },
+    })
+
+    return { verification: created, secret }
+  }
+
+  private normalizeOtpTarget(channel: OtpChannel, target: string): string {
+    const normalized =
+      channel === OtpChannel.Email
+        ? normalizeEmail(target)
+        : channel === OtpChannel.Phone
+          ? normalizePhone(target)
+          : normalizeTarget(target)
+
+    if (normalized) {
+      return normalized
+    }
+
+    if (channel === OtpChannel.Email) {
+      throw invalidInput('Email is required.')
+    }
+
+    if (channel === OtpChannel.Phone) {
+      throw invalidInput('Phone is required.')
+    }
+
+    throw invalidInput('OTP target is required.')
+  }
+
+  private otpChannelConfig(channel: OtpChannel): {
+    readonly provider: string
+    send(created: CreateVerificationResult): Promise<void>
+  } {
+    if (channel === OtpChannel.Email) {
+      if (!this.emailSender) {
+        throw invalidInput('Email sender is required for email OTP challenges.')
+      }
+
+      const emailSender = this.emailSender
+
+      return {
+        provider: EMAIL_OTP_PROVIDER_ID,
+        send: async (created) => {
+          await emailSender.sendEmail({
+            to: created.verification.target,
+            subject: DEFAULT_EMAIL_OTP_SUBJECT,
+            text: `Your sign-in code is ${created.secret}.`,
+            metadata: {
+              verificationId: created.verification.id,
+              purpose: created.verification.purpose,
+              delivery: OtpChannel.Email,
+            },
+          })
+        },
+      }
+    }
+
+    if (channel === OtpChannel.Phone) {
+      if (!this.smsSender) {
+        throw invalidInput('SMS sender is required for phone OTP challenges.')
+      }
+
+      const smsSender = this.smsSender
+
+      return {
+        provider: PHONE_OTP_PROVIDER_ID,
+        send: async (created) => {
+          await smsSender.sendSms({
+            to: created.verification.target,
+            text: `${DEFAULT_SMS_OTP_PREFIX} ${created.secret}.`,
+            metadata: {
+              verificationId: created.verification.id,
+              purpose: created.verification.purpose,
+              delivery: OtpChannel.Phone,
+            },
+          })
+        },
+      }
+    }
+
+    throw invalidInput('OTP channel is not supported.')
+  }
+
+  private async consumeOtpChallengeRecord(input: {
+    readonly verificationId: Verification['id']
+    readonly secret: string
+    readonly purpose?: VerificationPurpose
+    readonly channel?: OtpChannel
+    readonly now: Date
+    readonly context: string
+  }): Promise<{ readonly verification: Verification; readonly channel: SupportedOtpChannel }> {
+    const verification = await this.repos.verificationRepo.findById(input.verificationId)
+
+    if (!verification) {
+      throw new UniauthError(UniauthErrorCode.VerificationNotFound, 'Verification was not found.')
+    }
+
+    if (input.purpose && verification.purpose !== input.purpose) {
+      throw invalidInput(`Verification cannot be used for ${input.context}.`)
+    }
+
+    const channel = this.otpChannelFromVerification(verification)
+
+    if (!channel) {
+      throw invalidInput(`Verification cannot be used for ${input.context}.`)
+    }
+
+    if (input.channel && channel !== input.channel) {
+      throw invalidInput(`Verification cannot be used for ${input.context}.`)
+    }
+
+    const consumed = await this.consumeVerificationRecord({
+      verificationId: input.verificationId,
+      secret: input.secret,
+      now: input.now,
+    })
+
+    return { verification: consumed, channel }
+  }
+
+  private otpChannelFromVerification(verification: Verification): SupportedOtpChannel | undefined {
+    const channel = verification.metadata?.channel
+
+    if (channel === OtpChannel.Email || channel === OtpChannel.Phone) {
+      return channel
+    }
+
+    return undefined
+  }
+
+  private assertionFromOtpVerification(
+    verification: Verification,
+    channel: SupportedOtpChannel,
+  ): ProviderIdentityAssertion {
+    if (channel === OtpChannel.Email) {
+      return this.normalizeAssertion({
+        provider: EMAIL_OTP_PROVIDER_ID,
+        providerUserId: verification.target,
+        email: verification.target,
+        emailVerified: true,
+      })
+    }
+
+    return this.normalizeAssertion({
+      provider: PHONE_OTP_PROVIDER_ID,
+      providerUserId: verification.target,
+      phone: verification.target,
+      phoneVerified: true,
     })
   }
 

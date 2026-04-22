@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   DefaultAuthService,
   EMAIL_OTP_PROVIDER_ID,
+  OtpChannel,
+  PHONE_OTP_PROVIDER_ID,
   createDefaultAuthPolicy,
   getUniauthAttributionNotice,
   isUniauthError,
@@ -264,7 +266,7 @@ describe('DefaultAuthService', () => {
       status: VerificationStatus.Pending,
       metadata: {
         requestId: 'req-1',
-        channel: 'email',
+        channel: OtpChannel.Email,
         provider: EMAIL_OTP_PROVIDER_ID,
       },
     })
@@ -331,6 +333,93 @@ describe('DefaultAuthService', () => {
     expect(generatedFinished.session.expiresAt).toEqual(addSeconds(now, 60))
   })
 
+  it('reuses generic OTP challenges for email and phone sign-in channels', async () => {
+    const { emailSender, service, smsSender, store } = createInMemoryAuthKit()
+
+    const emailLinkChallenge = await service.startOtpChallenge({
+      purpose: VerificationPurpose.Link,
+      channel: OtpChannel.Email,
+      target: ' Link@Example.com ',
+      secret: '111111',
+      now,
+    })
+    const consumedEmailLink = await service.finishOtpChallenge({
+      verificationId: emailLinkChallenge.verificationId,
+      secret: '111111',
+      purpose: VerificationPurpose.Link,
+      channel: OtpChannel.Email,
+      now,
+    })
+
+    expect(emailLinkChallenge.delivery).toBe(OtpChannel.Email)
+    expect(consumedEmailLink.status).toBe(VerificationStatus.Consumed)
+    expect(emailSender.listMessages()[0]).toMatchObject({
+      to: 'link@example.com',
+      text: 'Your sign-in code is 111111.',
+    })
+
+    const clockFallbackChallenge = await service.startOtpChallenge({
+      purpose: VerificationPurpose.Link,
+      channel: OtpChannel.Email,
+      target: 'clock@example.com',
+      secret: '222222',
+    })
+    const clockFallbackConsumed = await service.finishOtpChallenge({
+      verificationId: clockFallbackChallenge.verificationId,
+      secret: '222222',
+      purpose: VerificationPurpose.Link,
+      channel: OtpChannel.Email,
+    })
+
+    expect(clockFallbackConsumed.status).toBe(VerificationStatus.Consumed)
+
+    const phoneChallenge = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Phone,
+      target: ' +1 (555) 123-4567 ',
+      secret: '654321',
+      metadata: { requestId: 'req-phone' },
+      now,
+    })
+
+    expect(phoneChallenge).toEqual({
+      verificationId: phoneChallenge.verificationId,
+      expiresAt: new Date('2026-01-01T00:10:00.000Z'),
+      delivery: OtpChannel.Phone,
+    })
+    expect(smsSender.listMessages()[0]).toMatchObject({
+      to: '+15551234567',
+      text: 'Your sign-in code is 654321.',
+      metadata: {
+        verificationId: phoneChallenge.verificationId,
+        purpose: VerificationPurpose.SignIn,
+        delivery: OtpChannel.Phone,
+      },
+    })
+    expect(store.listVerifications()[2]).toMatchObject({
+      id: phoneChallenge.verificationId,
+      target: '+15551234567',
+      metadata: {
+        requestId: 'req-phone',
+        channel: OtpChannel.Phone,
+        provider: PHONE_OTP_PROVIDER_ID,
+      },
+    })
+
+    const phoneResult = await service.finishOtpSignIn({
+      verificationId: phoneChallenge.verificationId,
+      secret: '654321',
+      metadata: { flow: 'phone-otp' },
+      now,
+    })
+
+    expect(phoneResult.identity.provider).toBe(PHONE_OTP_PROVIDER_ID)
+    expect(phoneResult.identity.providerUserId).toBe('+15551234567')
+    expect(phoneResult.identity.phone).toBe('+15551234567')
+    expect(phoneResult.identity.phoneVerified).toBe(true)
+    expect(phoneResult.session.status).toBe(SessionStatus.Active)
+  })
+
   it('rejects invalid email OTP sign-in starts and wrong verification purposes', async () => {
     const serviceWithoutEmailSender = new DefaultAuthService({
       repos: new InMemoryAuthStore(),
@@ -373,6 +462,91 @@ describe('DefaultAuthService', () => {
 
     expect(wrongPurpose).toMatchObject({ code: UniauthErrorCode.InvalidInput })
     expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Pending)
+  })
+
+  it('rejects invalid generic OTP challenge usage without consuming secrets', async () => {
+    const serviceWithoutSmsSender = new DefaultAuthService({
+      repos: new InMemoryAuthStore(),
+    })
+
+    expect(
+      await serviceWithoutSmsSender
+        .startOtpChallenge({
+          purpose: VerificationPurpose.SignIn,
+          channel: OtpChannel.Phone,
+          target: '+15551234567',
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(
+      await serviceWithoutSmsSender
+        .startOtpChallenge({
+          purpose: VerificationPurpose.SignIn,
+          channel: 'push',
+          target: 'alice',
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(
+      await serviceWithoutSmsSender
+        .startOtpChallenge({
+          purpose: VerificationPurpose.SignIn,
+          channel: 'push',
+          target: '   ',
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(
+      await serviceWithoutSmsSender
+        .startOtpChallenge({
+          purpose: VerificationPurpose.SignIn,
+          channel: OtpChannel.Phone,
+          target: '   ',
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+
+    const { service, store } = createInMemoryAuthKit()
+    const challenge = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: 'alice@example.com',
+      secret: '123456',
+      now,
+    })
+    const wrongChannel = await service
+      .finishOtpChallenge({
+        verificationId: challenge.verificationId,
+        secret: '123456',
+        purpose: VerificationPurpose.SignIn,
+        channel: OtpChannel.Phone,
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(wrongChannel).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Pending)
+
+    const rawVerification = await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'raw@example.com',
+      secret: '123456',
+      now,
+    })
+    const notOtpChallenge = await service
+      .finishOtpChallenge({
+        verificationId: rawVerification.verification.id,
+        secret: '123456',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(notOtpChallenge).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(store.listVerifications()[1]?.status).toBe(VerificationStatus.Pending)
   })
 
   it('requires explicit merge policy and moves identities only through mergeAccounts', async () => {
