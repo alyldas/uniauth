@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/alyldas/uniauth/compare/v0.2.0...v0.3.0) (2026-04-22)
+
+
+### Features
+
+* add generic OTP challenges ([ed568f8](https://github.com/alyldas/uniauth/commit/ed568f8ce4b96d4caa58139c606c223621bd77af))
+
 ## [0.2.0](https://github.com/alyldas/uniauth/compare/v0.1.1...v0.2.0) (2026-04-22)
 
 
