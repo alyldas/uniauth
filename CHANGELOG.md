@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/alyldas/uniauth/compare/v0.1.0...v0.1.1) (2026-04-22)
+
+
+### Bug Fixes
+
+* add registry smoke release verification ([8f5edd8](https://github.com/alyldas/uniauth/commit/8f5edd8ba5b8d93a8b73dced097bc8edfa55a478))
+
 ## 0.1.0 (2026-04-22)
 
 
