@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/alyldas/uniauth/compare/v0.3.0...v0.4.0) (2026-04-22)
+
+
+### Features
+
+* add UniAuth-cased API names ([c69c7f6](https://github.com/alyldas/uniauth/commit/c69c7f64005caaf3bd18e7b02dfa9cd3c900e47e))
+
 ## [0.3.0](https://github.com/alyldas/uniauth/compare/v0.2.0...v0.3.0) (2026-04-22)
 
 
