@@ -1,9 +1,13 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
 
 const SECRET_HASH_PREFIX = 'sha256:'
 
 export function generateSecret(byteLength = 32): string {
   return randomBytes(byteLength).toString('base64url')
+}
+
+export function generateOtpSecret(length = 6): string {
+  return Array.from({ length }, () => randomInt(10).toString()).join('')
 }
 
 export function hashSecret(secret: string): string {

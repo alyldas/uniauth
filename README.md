@@ -20,6 +20,7 @@ license, subscription, private contract, or other written permission.
 - Models `User`, `AuthIdentity`, `Credential`, `Verification`, and `Session` separately.
 - Treats email and phone as optional identity attributes, not mandatory user fields.
 - Orchestrates `signIn`, `link`, `unlink`, `mergeAccounts`, verification, and session revocation.
+- Starts and finishes email OTP sign-in through the headless `EmailSender` port.
 - Creates local session records after successful sign-in.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
 - Exposes ports for repositories, providers, sender infrastructure, audit logs, and transactions.
@@ -31,7 +32,8 @@ license, subscription, private contract, or other written permission.
 - It does not ship frontend pages or UI components.
 - It does not include Express, Fastify, Nest, Nuxt, or Next handlers in core.
 - It does not generate one mandatory ORM schema.
-- It does not include SMTP, SMS, OAuth, Telegram, or MAX SDK implementations in v0.1.
+- It does not include SMTP, SMS, OAuth, Telegram, or MAX SDK implementations in core.
+- It does not send email by itself; email OTP uses the `EmailSender` port you provide.
 - It does not silently merge two existing users by email.
 
 ## Diagrams
@@ -97,7 +99,7 @@ flowchart TB
 Install from GitHub Packages:
 
 ```sh
-npm install @alyldas/uniauth@0.1.0
+npm install @alyldas/uniauth
 ```
 
 Configure the GitHub Packages registry for the package scope:
@@ -116,6 +118,7 @@ Core imports come from the root entry point:
 ```ts
 import {
   DefaultAuthService,
+  EMAIL_OTP_PROVIDER_ID,
   createDefaultAuthPolicy,
   type AuthProvider,
   type AuthService,
@@ -126,7 +129,11 @@ import {
 Testing helpers come from the explicit testing entry point:
 
 ```ts
-import { createInMemoryAuthKit, StaticAuthProvider } from '@alyldas/uniauth/testing'
+import {
+  InMemoryEmailSender,
+  StaticAuthProvider,
+  createInMemoryAuthKit,
+} from '@alyldas/uniauth/testing'
 ```
 
 There are no root side effects. Importing the package does not register providers, touch storage,
@@ -152,10 +159,31 @@ const result = await service.signIn({
 })
 ```
 
+Email OTP sign-in is still headless: `startEmailOtpSignIn` creates a hashed verification secret and
+sends the plain code through the configured `EmailSender`; `finishEmailOtpSignIn` consumes the code
+once and creates a local session.
+
+```ts
+const { service } = createInMemoryAuthKit()
+
+const challenge = await service.startEmailOtpSignIn({
+  email: 'alice@example.com',
+  secret: '123456',
+})
+
+const result = await service.finishEmailOtpSignIn({
+  verificationId: challenge.verificationId,
+  secret: '123456',
+})
+
+console.log(result.identity.provider === EMAIL_OTP_PROVIDER_ID)
+```
+
 ## Entry Points
 
 - `@alyldas/uniauth`: public domain types, service implementation, policy API, ports, errors, and utilities.
-- `@alyldas/uniauth/testing`: in-memory store, provider registry, static provider, and test kit.
+- `@alyldas/uniauth/testing`: in-memory store, provider registry, static provider, in-memory email
+  sender, and test kit.
 
 ## Attribution
 

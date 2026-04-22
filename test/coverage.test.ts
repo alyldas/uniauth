@@ -17,6 +17,7 @@ import {
   asVerificationId,
   createAuthService,
   createDefaultAuthPolicy,
+  generateOtpSecret,
   createRandomIdGenerator,
   createSequentialIdGenerator,
   generateSecret,
@@ -113,9 +114,11 @@ describe('coverage support paths', () => {
     expect(normalizeTarget(' +1 (555) 123-4567 ')).toBe('+15551234567')
 
     const generatedSecret = generateSecret(8)
+    const generatedOtpSecret = generateOtpSecret()
     const secretHash = hashSecret('secret')
 
     expect(generatedSecret).toBeTypeOf('string')
+    expect(generatedOtpSecret).toMatch(/^\d{6}$/)
     expect(verifySecret('secret', secretHash)).toBe(true)
     expect(verifySecret('secret', 'plaintext')).toBe(false)
     expect(verifySecret('secret', 'sha256:short')).toBe(false)

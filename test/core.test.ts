@@ -1,6 +1,8 @@
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 import {
+  DefaultAuthService,
+  EMAIL_OTP_PROVIDER_ID,
   createDefaultAuthPolicy,
   getUniauthAttributionNotice,
   isUniauthError,
@@ -9,9 +11,11 @@ import {
   UniauthErrorCode,
   VerificationPurpose,
   VerificationStatus,
+  addSeconds,
+  asVerificationId,
   type ProviderIdentityAssertion,
 } from '../src'
-import { createInMemoryAuthKit, StaticAuthProvider } from '../src/testing'
+import { InMemoryAuthStore, createInMemoryAuthKit, StaticAuthProvider } from '../src/testing'
 
 interface PackageMetadata {
   readonly name: string
@@ -220,6 +224,155 @@ describe('DefaultAuthService', () => {
     expect(consumedAgainError).toMatchObject({
       code: UniauthErrorCode.VerificationConsumed,
     })
+  })
+
+  it('starts and finishes email OTP sign-in without exposing account state', async () => {
+    const { emailSender, service, store } = createInMemoryAuthKit()
+
+    const started = await service.startEmailOtpSignIn({
+      email: ' Alice@Example.com ',
+      secret: '123456',
+      metadata: { requestId: 'req-1' },
+      now,
+    })
+
+    expect(started).toEqual({
+      verificationId: started.verificationId,
+      expiresAt: new Date('2026-01-01T00:10:00.000Z'),
+      delivery: 'email',
+    })
+    expect(started).not.toHaveProperty('isNewUser')
+    expect(started).not.toHaveProperty('user')
+
+    const [message] = emailSender.listMessages()
+    const [storedVerification] = store.listVerifications()
+
+    expect(message).toMatchObject({
+      to: 'alice@example.com',
+      subject: 'Your sign-in code',
+      text: 'Your sign-in code is 123456.',
+    })
+    expect(message?.metadata).toMatchObject({
+      verificationId: started.verificationId,
+      purpose: VerificationPurpose.SignIn,
+      delivery: 'email',
+    })
+    expect(storedVerification).toMatchObject({
+      id: started.verificationId,
+      purpose: VerificationPurpose.SignIn,
+      target: 'alice@example.com',
+      status: VerificationStatus.Pending,
+      metadata: {
+        requestId: 'req-1',
+        channel: 'email',
+        provider: EMAIL_OTP_PROVIDER_ID,
+      },
+    })
+    expect(storedVerification?.secretHash).not.toBe('123456')
+    expect(storedVerification?.secretHash).toMatch(/^sha256:/)
+
+    const wrongSecret = await service
+      .finishEmailOtpSignIn({
+        verificationId: started.verificationId,
+        secret: '000000',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(wrongSecret).toMatchObject({
+      code: UniauthErrorCode.VerificationInvalidSecret,
+    })
+    expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Pending)
+
+    const finished = await service.finishEmailOtpSignIn({
+      verificationId: started.verificationId,
+      secret: '123456',
+      metadata: { flow: 'otp' },
+      now,
+    })
+
+    expect(finished.isNewUser).toBe(true)
+    expect(finished.identity.provider).toBe(EMAIL_OTP_PROVIDER_ID)
+    expect(finished.identity.providerUserId).toBe('alice@example.com')
+    expect(finished.identity.email).toBe('alice@example.com')
+    expect(finished.session.status).toBe(SessionStatus.Active)
+    expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Consumed)
+
+    const consumedAgain = await service
+      .finishEmailOtpSignIn({
+        verificationId: started.verificationId,
+        secret: '123456',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(consumedAgain).toMatchObject({
+      code: UniauthErrorCode.VerificationConsumed,
+    })
+
+    const generated = await service.startEmailOtpSignIn({
+      email: 'bob@example.com',
+      ttlSeconds: 30,
+    })
+    const generatedMessage = emailSender.listMessages()[1]
+    const generatedSecret = generatedMessage?.text.match(/\d{6}/)?.[0]
+
+    if (!generatedSecret) {
+      throw new Error('Expected generated OTP secret in the email message.')
+    }
+
+    const generatedFinished = await service.finishEmailOtpSignIn({
+      verificationId: generated.verificationId,
+      secret: generatedSecret,
+      sessionExpiresAt: addSeconds(now, 60),
+    })
+
+    expect(generated.delivery).toBe('email')
+    expect(generatedFinished.session.expiresAt).toEqual(addSeconds(now, 60))
+  })
+
+  it('rejects invalid email OTP sign-in starts and wrong verification purposes', async () => {
+    const serviceWithoutEmailSender = new DefaultAuthService({
+      repos: new InMemoryAuthStore(),
+    })
+
+    expect(
+      await serviceWithoutEmailSender
+        .startEmailOtpSignIn({ email: 'alice@example.com', now })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(
+      await serviceWithoutEmailSender
+        .startEmailOtpSignIn({ email: '   ', now })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(
+      await serviceWithoutEmailSender
+        .finishEmailOtpSignIn({
+          verificationId: asVerificationId('missing'),
+          secret: '123456',
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniauthErrorCode.VerificationNotFound })
+
+    const { service, store } = createInMemoryAuthKit()
+    const linkVerification = await service.createVerification({
+      purpose: VerificationPurpose.Link,
+      target: 'alice@example.com',
+      secret: '123456',
+      now,
+    })
+    const wrongPurpose = await service
+      .finishEmailOtpSignIn({
+        verificationId: linkVerification.verification.id,
+        secret: '123456',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(wrongPurpose).toMatchObject({ code: UniauthErrorCode.InvalidInput })
+    expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Pending)
   })
 
   it('requires explicit merge policy and moves identities only through mergeAccounts', async () => {

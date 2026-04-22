@@ -7,14 +7,13 @@ export async function runBasicExample(): Promise<void> {
     policy: createDefaultAuthPolicy({ allowAutoLink: false }),
   })
 
-  const result = await service.signIn({
-    assertion: {
-      provider: 'email-otp',
-      providerUserId: 'alice@example.com',
-      email: 'alice@example.com',
-      emailVerified: true,
-      displayName: 'Alice',
-    },
+  const challenge = await service.startEmailOtpSignIn({
+    email: 'alice@example.com',
+    secret: '123456',
+  })
+  const result = await service.finishEmailOtpSignIn({
+    verificationId: challenge.verificationId,
+    secret: '123456',
   })
 
   console.log({

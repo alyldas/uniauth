@@ -1,5 +1,6 @@
 import {
   AuthIdentityStatus,
+  EMAIL_OTP_PROVIDER_ID,
   SessionStatus,
   type AuditEvent,
   type AuditEventType,
@@ -11,6 +12,7 @@ import {
   type CreateSessionInput,
   type CreateVerificationInput,
   type CreateVerificationResult,
+  type FinishEmailOtpSignInInput,
   type FinishInput,
   type IdGenerator,
   type IdentityId,
@@ -22,10 +24,13 @@ import {
   type Session,
   type SessionId,
   type SignInInput,
+  type StartEmailOtpSignInInput,
+  type StartEmailOtpSignInResult,
   type UnlinkInput,
   type User,
   type UserId,
   type Verification,
+  VerificationPurpose,
   VerificationStatus,
 } from '../domain/types.js'
 import { UniauthError, UniauthErrorCode, invalidInput } from '../errors'
@@ -34,16 +39,18 @@ import { defaultAuthPolicy } from './policy.js'
 import type {
   AuthServiceInfrastructure,
   AuthServiceRepositories,
+  EmailSender,
   ProviderRegistry,
   UnitOfWork,
 } from '../ports'
 import { createRandomIdGenerator } from '../utils/ids.js'
 import { normalizeEmail, normalizePhone, normalizeTarget } from '../utils/normalization.js'
-import { generateSecret, hashSecret, verifySecret } from '../utils/secrets.js'
+import { generateOtpSecret, generateSecret, hashSecret, verifySecret } from '../utils/secrets.js'
 import { addSeconds, systemClock } from '../utils/time.js'
 
 const DEFAULT_SESSION_TTL_SECONDS = 60 * 60 * 24 * 30
 const DEFAULT_VERIFICATION_TTL_SECONDS = 60 * 10
+const DEFAULT_EMAIL_OTP_SUBJECT = 'Your sign-in code'
 
 const immediateUnitOfWork: UnitOfWork = {
   run: (operation) => operation(),
@@ -62,6 +69,7 @@ export interface DefaultAuthServiceOptions extends AuthServiceInfrastructure {
 
 export class DefaultAuthService implements AuthService {
   private readonly repos: AuthServiceRepositories
+  private readonly emailSender: EmailSender | undefined
   private readonly policy: AuthPolicy
   private readonly providerRegistry: ProviderRegistry | undefined
   private readonly transaction: UnitOfWork
@@ -72,6 +80,7 @@ export class DefaultAuthService implements AuthService {
 
   constructor(options: DefaultAuthServiceOptions) {
     this.repos = options.repos
+    this.emailSender = options.emailSender
     this.policy = options.policy ?? defaultAuthPolicy
     this.providerRegistry = options.providerRegistry
     this.transaction = options.transaction ?? immediateUnitOfWork
@@ -85,88 +94,88 @@ export class DefaultAuthService implements AuthService {
     return this.transaction.run(async () => {
       const now = input.now ?? this.clock.now()
       const assertion = await this.resolveAssertion(input)
-      const exactIdentity = await this.repos.identityRepo.findByProviderUserId(
-        assertion.provider,
-        assertion.providerUserId,
-      )
-
-      if (exactIdentity && this.isActiveIdentity(exactIdentity)) {
-        const user = await this.getActiveUser(exactIdentity.userId)
-        const session = await this.createSessionRecord({
-          userId: user.id,
-          now,
-          ...(input.sessionExpiresAt ? { expiresAt: input.sessionExpiresAt } : {}),
-          ...(input.metadata ? { metadata: input.metadata } : {}),
-        })
-        await this.audit('auth.sign_in', now, {
-          userId: user.id,
-          identityId: exactIdentity.id,
-          sessionId: session.id,
-          metadata: { mode: 'exact' },
-        })
-
-        return {
-          user,
-          identity: exactIdentity,
-          session,
-          isNewUser: false,
-          isNewIdentity: false,
-        }
-      }
-
-      const autoLinkTarget = await this.findAutoLinkTarget(assertion)
-
-      if (autoLinkTarget) {
-        const identity = await this.createIdentityFromAssertion(autoLinkTarget, assertion, now)
-        const session = await this.createSessionRecord({
-          userId: autoLinkTarget.id,
-          now,
-          ...(input.sessionExpiresAt ? { expiresAt: input.sessionExpiresAt } : {}),
-          ...(input.metadata ? { metadata: input.metadata } : {}),
-        })
-        await this.audit('auth.identity_linked', now, {
-          userId: autoLinkTarget.id,
-          identityId: identity.id,
-          metadata: { mode: 'auto-link' },
-        })
-        await this.audit('auth.sign_in', now, {
-          userId: autoLinkTarget.id,
-          identityId: identity.id,
-          sessionId: session.id,
-          metadata: { mode: 'auto-link' },
-        })
-
-        return {
-          user: autoLinkTarget,
-          identity,
-          session,
-          isNewUser: false,
-          isNewIdentity: true,
-        }
-      }
-
-      const user = await this.createUserFromAssertion(assertion, now)
-      const identity = await this.createIdentityFromAssertion(user, assertion, now)
-      const session = await this.createSessionRecord({
-        userId: user.id,
+      return this.signInWithAssertion(assertion, {
         now,
-        ...(input.sessionExpiresAt ? { expiresAt: input.sessionExpiresAt } : {}),
+        ...(input.sessionExpiresAt ? { sessionExpiresAt: input.sessionExpiresAt } : {}),
         ...(input.metadata ? { metadata: input.metadata } : {}),
       })
-      await this.audit('auth.sign_in', now, {
-        userId: user.id,
-        identityId: identity.id,
-        sessionId: session.id,
-        metadata: { mode: 'new-user' },
+    })
+  }
+
+  async startEmailOtpSignIn(input: StartEmailOtpSignInInput): Promise<StartEmailOtpSignInResult> {
+    const email = normalizeEmail(input.email)
+
+    if (!email) {
+      throw invalidInput('Email is required.')
+    }
+
+    if (!this.emailSender) {
+      throw invalidInput('Email sender is required for email OTP sign-in.')
+    }
+
+    const created = await this.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: email,
+      secret: input.secret ?? generateOtpSecret(),
+      ...(input.ttlSeconds ? { ttlSeconds: input.ttlSeconds } : {}),
+      ...(input.now ? { now: input.now } : {}),
+      metadata: {
+        ...input.metadata,
+        channel: 'email',
+        provider: EMAIL_OTP_PROVIDER_ID,
+      },
+    })
+
+    await this.emailSender.sendEmail({
+      to: created.verification.target,
+      subject: DEFAULT_EMAIL_OTP_SUBJECT,
+      text: `Your sign-in code is ${created.secret}.`,
+      metadata: {
+        verificationId: created.verification.id,
+        purpose: created.verification.purpose,
+        delivery: 'email',
+      },
+    })
+
+    return {
+      verificationId: created.verification.id,
+      expiresAt: created.verification.expiresAt,
+      delivery: 'email',
+    }
+  }
+
+  async finishEmailOtpSignIn(input: FinishEmailOtpSignInInput): Promise<AuthResult> {
+    return this.transaction.run(async () => {
+      const now = input.now ?? this.clock.now()
+      const verification = await this.repos.verificationRepo.findById(input.verificationId)
+
+      if (!verification) {
+        throw new UniauthError(UniauthErrorCode.VerificationNotFound, 'Verification was not found.')
+      }
+
+      if (verification.purpose !== VerificationPurpose.SignIn) {
+        throw invalidInput('Verification cannot be used for email OTP sign-in.')
+      }
+
+      const consumed = await this.consumeVerificationRecord({
+        verificationId: input.verificationId,
+        secret: input.secret,
+        now,
       })
 
-      return {
-        user,
-        identity,
-        session,
-        isNewUser: true,
-        isNewIdentity: true,
-      }
+      return this.signInWithAssertion(
+        this.normalizeAssertion({
+          provider: EMAIL_OTP_PROVIDER_ID,
+          providerUserId: consumed.target,
+          email: consumed.target,
+          emailVerified: true,
+        }),
+        {
+          now,
+          ...(input.sessionExpiresAt ? { sessionExpiresAt: input.sessionExpiresAt } : {}),
+          ...(input.metadata ? { metadata: input.metadata } : {}),
+        },
+      )
     })
   }
 
@@ -384,41 +393,137 @@ export class DefaultAuthService implements AuthService {
 
   async consumeVerification(input: ConsumeVerificationInput): Promise<Verification> {
     return this.transaction.run(async () => {
-      const now = input.now ?? this.clock.now()
-      const verification = await this.repos.verificationRepo.findById(input.verificationId)
-
-      if (!verification) {
-        throw new UniauthError(UniauthErrorCode.VerificationNotFound, 'Verification was not found.')
-      }
-
-      if (verification.status === VerificationStatus.Consumed) {
-        throw new UniauthError(
-          UniauthErrorCode.VerificationConsumed,
-          'Verification has already been consumed.',
-        )
-      }
-
-      if (verification.expiresAt.getTime() <= now.getTime()) {
-        throw new UniauthError(UniauthErrorCode.VerificationExpired, 'Verification has expired.')
-      }
-
-      if (!verifySecret(input.secret, verification.secretHash)) {
-        throw new UniauthError(
-          UniauthErrorCode.VerificationInvalidSecret,
-          'Verification secret is invalid.',
-        )
-      }
-
-      const consumed = await this.repos.verificationRepo.update(verification.id, {
-        status: VerificationStatus.Consumed,
-        consumedAt: now,
-      })
-      await this.audit('auth.verification_consumed', now, {
-        metadata: { verificationId: consumed.id, purpose: consumed.purpose },
-      })
-
-      return consumed
+      return this.consumeVerificationRecord(input)
     })
+  }
+
+  private async signInWithAssertion(
+    assertion: ProviderIdentityAssertion,
+    input: {
+      readonly now: Date
+      readonly sessionExpiresAt?: Date
+      readonly metadata?: Record<string, unknown>
+    },
+  ): Promise<AuthResult> {
+    const exactIdentity = await this.repos.identityRepo.findByProviderUserId(
+      assertion.provider,
+      assertion.providerUserId,
+    )
+
+    if (exactIdentity && this.isActiveIdentity(exactIdentity)) {
+      const user = await this.getActiveUser(exactIdentity.userId)
+      const session = await this.createSessionRecord({
+        userId: user.id,
+        now: input.now,
+        ...(input.sessionExpiresAt ? { expiresAt: input.sessionExpiresAt } : {}),
+        ...(input.metadata ? { metadata: input.metadata } : {}),
+      })
+      await this.audit('auth.sign_in', input.now, {
+        userId: user.id,
+        identityId: exactIdentity.id,
+        sessionId: session.id,
+        metadata: { mode: 'exact' },
+      })
+
+      return {
+        user,
+        identity: exactIdentity,
+        session,
+        isNewUser: false,
+        isNewIdentity: false,
+      }
+    }
+
+    const autoLinkTarget = await this.findAutoLinkTarget(assertion)
+
+    if (autoLinkTarget) {
+      const identity = await this.createIdentityFromAssertion(autoLinkTarget, assertion, input.now)
+      const session = await this.createSessionRecord({
+        userId: autoLinkTarget.id,
+        now: input.now,
+        ...(input.sessionExpiresAt ? { expiresAt: input.sessionExpiresAt } : {}),
+        ...(input.metadata ? { metadata: input.metadata } : {}),
+      })
+      await this.audit('auth.identity_linked', input.now, {
+        userId: autoLinkTarget.id,
+        identityId: identity.id,
+        metadata: { mode: 'auto-link' },
+      })
+      await this.audit('auth.sign_in', input.now, {
+        userId: autoLinkTarget.id,
+        identityId: identity.id,
+        sessionId: session.id,
+        metadata: { mode: 'auto-link' },
+      })
+
+      return {
+        user: autoLinkTarget,
+        identity,
+        session,
+        isNewUser: false,
+        isNewIdentity: true,
+      }
+    }
+
+    const user = await this.createUserFromAssertion(assertion, input.now)
+    const identity = await this.createIdentityFromAssertion(user, assertion, input.now)
+    const session = await this.createSessionRecord({
+      userId: user.id,
+      now: input.now,
+      ...(input.sessionExpiresAt ? { expiresAt: input.sessionExpiresAt } : {}),
+      ...(input.metadata ? { metadata: input.metadata } : {}),
+    })
+    await this.audit('auth.sign_in', input.now, {
+      userId: user.id,
+      identityId: identity.id,
+      sessionId: session.id,
+      metadata: { mode: 'new-user' },
+    })
+
+    return {
+      user,
+      identity,
+      session,
+      isNewUser: true,
+      isNewIdentity: true,
+    }
+  }
+
+  private async consumeVerificationRecord(input: ConsumeVerificationInput): Promise<Verification> {
+    const now = input.now ?? this.clock.now()
+    const verification = await this.repos.verificationRepo.findById(input.verificationId)
+
+    if (!verification) {
+      throw new UniauthError(UniauthErrorCode.VerificationNotFound, 'Verification was not found.')
+    }
+
+    if (verification.status === VerificationStatus.Consumed) {
+      throw new UniauthError(
+        UniauthErrorCode.VerificationConsumed,
+        'Verification has already been consumed.',
+      )
+    }
+
+    if (verification.expiresAt.getTime() <= now.getTime()) {
+      throw new UniauthError(UniauthErrorCode.VerificationExpired, 'Verification has expired.')
+    }
+
+    if (!verifySecret(input.secret, verification.secretHash)) {
+      throw new UniauthError(
+        UniauthErrorCode.VerificationInvalidSecret,
+        'Verification secret is invalid.',
+      )
+    }
+
+    const consumed = await this.repos.verificationRepo.update(verification.id, {
+      status: VerificationStatus.Consumed,
+      consumedAt: now,
+    })
+    await this.audit('auth.verification_consumed', now, {
+      metadata: { verificationId: consumed.id, purpose: consumed.purpose },
+    })
+
+    return consumed
   }
 
   private async resolveAssertion(input: {
