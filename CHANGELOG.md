@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/alyldas/uniauth/compare/v0.4.0...v0.5.0) (2026-04-22)
+
+
+### Features
+
+* simplify auth core API and package hygiene ([169ebd9](https://github.com/alyldas/uniauth/commit/169ebd93b5244803c7eb0534f8d63fd771f97624))
+
 ## [0.4.0](https://github.com/alyldas/uniauth/compare/v0.3.0...v0.4.0) (2026-04-22)
 
 
