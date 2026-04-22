@@ -6,6 +6,13 @@
 ### Features
 
 * simplify auth core API and package hygiene ([169ebd9](https://github.com/alyldas/uniauth/commit/169ebd93b5244803c7eb0534f8d63fd771f97624))
+* split auth orchestration into focused account, sign-in, session, OTP, verification, and support modules
+* remove the credential/start-provider surface from the public API before 1.0.0
+* add configurable verification secret hashing with SHA-256 default and HMAC-SHA-256 helper
+* keep internal helpers private with positive and negative package export smoke coverage
+* switch published output to ESM-only and remove custom consumer/registry smoke scripts
+* tighten package checks with `publint`, `attw`, `npm pack --dry-run`, local Docker, and CI coverage
+* document adapter authoring, release hygiene, licensing, issue templates, and solo-repo branch protection
 
 ## [0.4.0](https://github.com/alyldas/uniauth/compare/v0.3.0...v0.4.0) (2026-04-22)
 
