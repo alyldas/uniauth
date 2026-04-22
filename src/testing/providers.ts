@@ -1,9 +1,5 @@
-import type {
-  AuthIdentityProvider,
-  ProviderIdentityAssertion,
-  StartResult,
-} from '../domain/types.js'
-import type { AuthProvider, ProviderRegistry } from '../ports'
+import type { AuthIdentityProvider, ProviderIdentityAssertion } from '../domain/types.js'
+import type { AuthProvider, ProviderRegistry } from '../ports.js'
 
 export class StaticAuthProvider implements AuthProvider {
   readonly id: AuthIdentityProvider
@@ -12,10 +8,6 @@ export class StaticAuthProvider implements AuthProvider {
   constructor(id: AuthIdentityProvider, assertion: Omit<ProviderIdentityAssertion, 'provider'>) {
     this.id = id
     this.assertion = { provider: id, ...assertion }
-  }
-
-  async start(): Promise<StartResult> {
-    return { kind: 'noop' }
   }
 
   async finish(): Promise<ProviderIdentityAssertion> {

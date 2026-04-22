@@ -4,7 +4,6 @@ export type Brand<Value, Name extends string> = Value & { readonly [brand]: Name
 
 export type UserId = Brand<string, 'UserId'>
 export type IdentityId = Brand<string, 'IdentityId'>
-export type CredentialId = Brand<string, 'CredentialId'>
 export type VerificationId = Brand<string, 'VerificationId'>
 export type SessionId = Brand<string, 'SessionId'>
 export type AuditEventId = Brand<string, 'AuditEventId'>
@@ -22,14 +21,6 @@ export const AuthIdentityStatus = {
 } as const
 
 export type AuthIdentityStatus = (typeof AuthIdentityStatus)[keyof typeof AuthIdentityStatus]
-
-export const CredentialType = {
-  Password: 'password',
-  Passkey: 'passkey',
-  ProviderSecret: 'provider-secret',
-} as const
-
-export type CredentialType = ExtensibleString<(typeof CredentialType)[keyof typeof CredentialType]>
 
 export const VerificationPurpose = {
   SignIn: 'sign-in',
@@ -91,18 +82,6 @@ export interface AuthIdentity {
   readonly metadata?: Record<string, unknown>
 }
 
-export interface Credential {
-  readonly id: CredentialId
-  readonly userId: UserId
-  readonly identityId?: IdentityId
-  readonly type: CredentialType
-  readonly secretHash: string
-  readonly createdAt: Date
-  readonly updatedAt: Date
-  readonly disabledAt?: Date
-  readonly metadata?: Record<string, unknown>
-}
-
 export interface Verification {
   readonly id: VerificationId
   readonly purpose: VerificationPurpose
@@ -134,20 +113,6 @@ export interface ProviderIdentityAssertion {
   readonly phone?: string
   readonly phoneVerified?: boolean
   readonly displayName?: string
-  readonly metadata?: Record<string, unknown>
-  readonly rawProfile?: unknown
-}
-
-export interface StartInput {
-  readonly redirectUrl?: string
-  readonly state?: string
-  readonly metadata?: Record<string, unknown>
-}
-
-export interface StartResult {
-  readonly kind: 'redirect' | 'challenge' | 'noop'
-  readonly url?: string
-  readonly challengeId?: string
   readonly metadata?: Record<string, unknown>
 }
 
@@ -305,7 +270,7 @@ export interface StartEmailOtpSignInInput {
 export interface StartEmailOtpSignInResult {
   readonly verificationId: VerificationId
   readonly expiresAt: Date
-  readonly delivery: 'email'
+  readonly delivery: typeof OtpChannel.Email
 }
 
 export interface FinishEmailOtpSignInInput {
@@ -323,7 +288,6 @@ export interface Clock {
 export interface IdGenerator {
   userId(): UserId
   identityId(): IdentityId
-  credentialId(): CredentialId
   verificationId(): VerificationId
   sessionId(): SessionId
   auditEventId(): AuditEventId
@@ -352,10 +316,6 @@ export function asUserId(value: string): UserId {
 
 export function asIdentityId(value: string): IdentityId {
   return value as IdentityId
-}
-
-export function asCredentialId(value: string): CredentialId {
-  return value as CredentialId
 }
 
 export function asVerificationId(value: string): VerificationId {

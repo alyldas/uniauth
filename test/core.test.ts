@@ -1,5 +1,5 @@
-import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
+import packageJson from '../package.json'
 import {
   DefaultAuthService,
   EMAIL_OTP_PROVIDER_ID,
@@ -15,6 +15,8 @@ import {
   VerificationStatus,
   addSeconds,
   asVerificationId,
+  createHmacSecretHasher,
+  type EmailSender,
   type ProviderIdentityAssertion,
 } from '../src'
 import { InMemoryAuthStore, createInMemoryAuthKit, StaticAuthProvider } from '../src/testing'
@@ -35,7 +37,7 @@ function formatPackageLicenseName(license: string): string {
     .replaceAll('-', ' ')
 }
 
-const packageMetadata = createRequire(import.meta.url)('../package.json') as PackageMetadata
+const packageMetadata = packageJson as PackageMetadata
 const packageLicense = formatPackageLicenseName(packageMetadata.license)
 const now = new Date('2026-01-01T00:00:00.000Z')
 
@@ -82,6 +84,23 @@ describe('DefaultAuthService', () => {
     expect(store.listIdentities()).toHaveLength(1)
     expect(store.listSessions()).toHaveLength(1)
     expect(store.listAuditEvents().map((event) => event.type)).toContain('auth.session_created')
+  })
+
+  it('honors explicit zero TTL options in the in-memory testing kit', async () => {
+    const { service } = createInMemoryAuthKit({
+      clock: { now: () => now },
+      sessionTtlSeconds: 0,
+      verificationTtlSeconds: 0,
+    })
+
+    const result = await service.signIn({ assertion: assertion() })
+    const verification = await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'ttl@example.com',
+    })
+
+    expect(result.session.expiresAt).toEqual(now)
+    expect(verification.verification.expiresAt).toEqual(now)
   })
 
   it('uses exact provider identity match before any profile matching', async () => {
@@ -226,6 +245,42 @@ describe('DefaultAuthService', () => {
     expect(consumedAgainError).toMatchObject({
       code: UniAuthErrorCode.VerificationConsumed,
     })
+
+    const blankTargetError = await service
+      .createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: '   ',
+        secret: '123456',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(blankTargetError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(store.listVerifications()).toHaveLength(1)
+  })
+
+  it('uses a configured secret hasher for verification storage', async () => {
+    const { service, store } = createInMemoryAuthKit({
+      secretHasher: createHmacSecretHasher({ pepper: 'test-pepper' }),
+    })
+
+    const created = await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'Alice@Example.com',
+      secret: '123456',
+      now,
+    })
+
+    expect(created.verification.secretHash).toMatch(/^hmac-sha256:/)
+    expect(store.listVerifications()[0]?.secretHash).toBe(created.verification.secretHash)
+
+    const consumed = await service.consumeVerification({
+      verificationId: created.verification.id,
+      secret: '123456',
+      now,
+    })
+
+    expect(consumed.status).toBe(VerificationStatus.Consumed)
   })
 
   it('starts and finishes email OTP sign-in without exposing account state', async () => {
@@ -331,6 +386,40 @@ describe('DefaultAuthService', () => {
 
     expect(generated.delivery).toBe('email')
     expect(generatedFinished.session.expiresAt).toEqual(addSeconds(now, 60))
+  })
+
+  it('keeps a pending OTP verification when app-owned delivery fails', async () => {
+    const store = new InMemoryAuthStore()
+    const failingEmailSender: EmailSender = {
+      sendEmail: async () => {
+        throw new Error('Delivery failed.')
+      },
+    }
+    const service = new DefaultAuthService({
+      repos: store,
+      emailSender: failingEmailSender,
+    })
+
+    const error = await service
+      .startEmailOtpSignIn({
+        email: 'delivery@example.com',
+        secret: '123456',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(error).toBeInstanceOf(Error)
+    expect(store.listVerifications()).toHaveLength(1)
+    expect(store.listVerifications()[0]).toMatchObject({
+      purpose: VerificationPurpose.SignIn,
+      target: 'delivery@example.com',
+      status: VerificationStatus.Pending,
+      metadata: {
+        channel: OtpChannel.Email,
+        provider: EMAIL_OTP_PROVIDER_ID,
+      },
+    })
+    expect(store.listVerifications()[0]?.secretHash).not.toBe('123456')
   })
 
   it('reuses generic OTP challenges for email and phone sign-in channels', async () => {

@@ -1,4 +1,8 @@
-import packageJson from '../package.json'
+declare const __UNIAUTH_PACKAGE_NAME__: string
+declare const __UNIAUTH_PACKAGE_LICENSE__: string
+declare const __UNIAUTH_PACKAGE_AUTHOR_NAME__: string
+declare const __UNIAUTH_PACKAGE_AUTHOR_EMAIL__: string
+declare const __UNIAUTH_PACKAGE_REPOSITORY_URL__: string
 
 interface PackageMetadata {
   readonly name: string
@@ -40,7 +44,17 @@ export interface UniAuthAttributionNoticeOptions {
   readonly includeContact?: boolean
 }
 
-const packageMetadata = packageJson as PackageMetadata
+const packageMetadata = {
+  name: __UNIAUTH_PACKAGE_NAME__,
+  license: __UNIAUTH_PACKAGE_LICENSE__,
+  author: {
+    name: __UNIAUTH_PACKAGE_AUTHOR_NAME__,
+    email: __UNIAUTH_PACKAGE_AUTHOR_EMAIL__,
+  },
+  repository: {
+    url: __UNIAUTH_PACKAGE_REPOSITORY_URL__,
+  },
+} as const satisfies PackageMetadata
 const displayName = packageMetadata.name.replace(/^@[^/]+\//, '')
 const displayLicense = formatPackageLicenseName(packageMetadata.license)
 
@@ -70,13 +84,3 @@ export function getUniAuthAttributionNotice(options: UniAuthAttributionNoticeOpt
 
   return parts.join(' ')
 }
-
-/** @deprecated Use `UniAuthAttributionDetails` instead. */
-export type UniauthAttributionDetails = UniAuthAttributionDetails
-
-/** @deprecated Use `UniAuthAttributionNoticeOptions` instead. */
-export type UniauthAttributionNoticeOptions = UniAuthAttributionNoticeOptions
-
-/** @deprecated Use `getUniAuthAttributionNotice` instead. */
-export const getUniauthAttributionNotice: typeof getUniAuthAttributionNotice =
-  getUniAuthAttributionNotice
