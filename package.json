@@ -1,0 +1,91 @@
+{
+  "name": "@alyldas/uniauth",
+  "version": "0.1.0",
+  "description": "Headless identity orchestration core for TypeScript and Node.js.",
+  "type": "module",
+  "license": "PolyForm-Strict-1.0.0",
+  "author": {
+    "name": "alyldas",
+    "email": "alyldas@ya.ru"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alyldas/uniauth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alyldas/uniauth/issues"
+  },
+  "homepage": "https://github.com/alyldas/uniauth#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "examples",
+    "docs/architecture.md",
+    "docs/comparison.md",
+    "docs/licensing.md",
+    "docs/roadmap.md",
+    "docs/security.md",
+    "docs/badges",
+    "README.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "COMMERCIAL.md",
+    "NOTICE",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "require": "./dist/testing/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.build.json",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run coverage && npm run test:exports && npm run pack:dry",
+    "check:compose": "docker compose run --rm --build check",
+    "check:docker": "docker build --target check -t alyldas-uniauth-check .",
+    "coverage": "vitest run test/*.test.ts --coverage",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "hooks:install": "node scripts/install-husky.cjs",
+    "lint": "eslint .",
+    "pack:dry": "npm pack --dry-run",
+    "prepare": "npm run build && npm run hooks:install",
+    "test": "vitest run test/*.test.ts",
+    "test:exports": "npm run build && vitest run smoke/exports.test.ts",
+    "typecheck": "tsc -p tsconfig.typecheck.json"
+  },
+  "keywords": [
+    "auth",
+    "authentication",
+    "identity",
+    "account-linking",
+    "typescript"
+  ],
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "@types/node": "^25.0.0",
+    "@vitest/coverage-v8": "^4.0.0",
+    "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.0.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^6.0.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

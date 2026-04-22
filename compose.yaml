@@ -1,0 +1,10 @@
+# Convenience wrapper for running the package gate in the pinned Node image.
+# The service does not mount the working tree, so generated files stay inside the container.
+services:
+  check:
+    image: alyldas-uniauth-check
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: source
+    command: npm run check

@@ -1,0 +1,303 @@
+import { createRequire } from 'node:module'
+import { describe, expect, it } from 'vitest'
+import {
+  createDefaultAuthPolicy,
+  getUniauthAttributionNotice,
+  isUniauthError,
+  SessionStatus,
+  UNIAUTH_ATTRIBUTION,
+  UniauthErrorCode,
+  VerificationPurpose,
+  VerificationStatus,
+  type ProviderIdentityAssertion,
+} from '../src'
+import { createInMemoryAuthKit, StaticAuthProvider } from '../src/testing'
+
+interface PackageMetadata {
+  readonly name: string
+  readonly license: string
+  readonly author: {
+    readonly name: string
+    readonly email: string
+  }
+}
+
+function formatPackageLicenseName(license: string): string {
+  return license
+    .replace(/^PolyForm-/, 'PolyForm ')
+    .replace(/-(\d+\.\d+\.\d+)$/, ' License $1')
+    .replaceAll('-', ' ')
+}
+
+const packageMetadata = createRequire(import.meta.url)('../package.json') as PackageMetadata
+const packageLicense = formatPackageLicenseName(packageMetadata.license)
+const now = new Date('2026-01-01T00:00:00.000Z')
+
+function assertion(input: Partial<ProviderIdentityAssertion> = {}): ProviderIdentityAssertion {
+  return {
+    provider: input.provider ?? 'email',
+    providerUserId: input.providerUserId ?? 'alice',
+    email: input.email ?? 'Alice@Example.com',
+    emailVerified: input.emailVerified ?? true,
+    displayName: input.displayName ?? 'Alice',
+    ...(input.phone ? { phone: input.phone } : {}),
+    ...(input.phoneVerified !== undefined ? { phoneVerified: input.phoneVerified } : {}),
+  }
+}
+
+describe('DefaultAuthService', () => {
+  it('exports stable attribution metadata and an About/Legal notice helper', () => {
+    expect(UNIAUTH_ATTRIBUTION.packageName).toBe(packageMetadata.name)
+    expect(UNIAUTH_ATTRIBUTION.contactEmail).toBe(packageMetadata.author.email)
+    expect(UNIAUTH_ATTRIBUTION.license).toBe(packageLicense)
+    expect(getUniauthAttributionNotice()).toBe(
+      `This product uses ${packageMetadata.name}. ${UNIAUTH_ATTRIBUTION.copyright} License: ${packageLicense}. Licensing contact: ${packageMetadata.author.email}.`,
+    )
+    expect(
+      getUniauthAttributionNotice({
+        includeContact: false,
+        includeLicense: false,
+        productName: 'Example App',
+      }),
+    ).toBe(`Example App uses ${packageMetadata.name}. ${UNIAUTH_ATTRIBUTION.copyright}`)
+  })
+
+  it('creates a local user, identity, and session for a new sign-in', async () => {
+    const { service, store } = createInMemoryAuthKit()
+
+    const result = await service.signIn({ assertion: assertion(), now })
+
+    expect(result.isNewUser).toBe(true)
+    expect(result.isNewIdentity).toBe(true)
+    expect(result.user.email).toBe('alice@example.com')
+    expect(result.identity.email).toBe('alice@example.com')
+    expect(result.session.status).toBe(SessionStatus.Active)
+    expect(store.listUsers()).toHaveLength(1)
+    expect(store.listIdentities()).toHaveLength(1)
+    expect(store.listSessions()).toHaveLength(1)
+    expect(store.listAuditEvents().map((event) => event.type)).toContain('auth.session_created')
+  })
+
+  it('uses exact provider identity match before any profile matching', async () => {
+    const { service, store } = createInMemoryAuthKit()
+
+    const first = await service.signIn({ assertion: assertion(), now })
+    const second = await service.signIn({
+      assertion: assertion({ email: 'different@example.com' }),
+      now,
+    })
+
+    expect(second.isNewUser).toBe(false)
+    expect(second.isNewIdentity).toBe(false)
+    expect(second.user.id).toBe(first.user.id)
+    expect(store.listUsers()).toHaveLength(1)
+    expect(store.listIdentities()).toHaveLength(1)
+    expect(store.listSessions()).toHaveLength(2)
+  })
+
+  it('does not silently merge users by verified email under the default policy', async () => {
+    const { service, store } = createInMemoryAuthKit()
+
+    const emailUser = await service.signIn({ assertion: assertion(), now })
+    const oauthUser = await service.signIn({
+      assertion: assertion({ provider: 'oauth', providerUserId: 'oauth-alice' }),
+      now,
+    })
+
+    expect(oauthUser.isNewUser).toBe(true)
+    expect(oauthUser.user.id).not.toBe(emailUser.user.id)
+    expect(store.listUsers()).toHaveLength(2)
+    expect(store.listIdentities()).toHaveLength(2)
+  })
+
+  it('auto-links only when the policy explicitly allows it', async () => {
+    const { service, store } = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({ allowAutoLink: true }),
+    })
+
+    const emailUser = await service.signIn({ assertion: assertion(), now })
+    const oauthUser = await service.signIn({
+      assertion: assertion({ provider: 'oauth', providerUserId: 'oauth-alice' }),
+      now,
+    })
+
+    expect(oauthUser.isNewUser).toBe(false)
+    expect(oauthUser.isNewIdentity).toBe(true)
+    expect(oauthUser.user.id).toBe(emailUser.user.id)
+    expect(store.listUsers()).toHaveLength(1)
+    expect(store.listIdentities()).toHaveLength(2)
+  })
+
+  it('rejects unlinking the last active identity', async () => {
+    const { service } = createInMemoryAuthKit()
+    const result = await service.signIn({ assertion: assertion(), now })
+
+    const error = await service
+      .unlink({ userId: result.user.id, identityId: result.identity.id, now })
+      .catch((caught: unknown) => caught)
+
+    expect(error).toMatchObject({ code: UniauthErrorCode.LastIdentity })
+  })
+
+  it('rejects linking an identity already attached to another user without leaking ownership', async () => {
+    const { service } = createInMemoryAuthKit()
+    const first = await service.signIn({ assertion: assertion(), now })
+    const second = await service.signIn({
+      assertion: assertion({
+        provider: 'email',
+        providerUserId: 'bob',
+        email: 'bob@example.com',
+        displayName: 'Bob',
+      }),
+      now,
+    })
+
+    const error = await service
+      .link({
+        userId: second.user.id,
+        assertion: assertion({
+          provider: first.identity.provider,
+          providerUserId: first.identity.providerUserId,
+        }),
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(isUniauthError(error)).toBe(true)
+
+    if (!isUniauthError(error)) {
+      throw new Error('Expected a UniauthError.')
+    }
+
+    expect(error.code).toBe(UniauthErrorCode.IdentityAlreadyLinked)
+    expect(error.message).not.toContain('another user')
+    expect(error.message).not.toContain('account')
+  })
+
+  it('stores verification secrets only as hashes and consumes valid secrets once', async () => {
+    const { service, store } = createInMemoryAuthKit()
+
+    const created = await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'Alice@Example.com',
+      secret: '123456',
+      now,
+    })
+
+    expect(created.secret).toBe('123456')
+    expect(created.verification.target).toBe('alice@example.com')
+    expect(created.verification.secretHash).not.toBe('123456')
+    expect(created.verification.secretHash).toMatch(/^sha256:/)
+    expect(store.listVerifications()[0]?.secretHash).toBe(created.verification.secretHash)
+
+    const invalidSecretError = await service
+      .consumeVerification({
+        verificationId: created.verification.id,
+        secret: 'wrong',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(invalidSecretError).toMatchObject({
+      code: UniauthErrorCode.VerificationInvalidSecret,
+    })
+
+    const consumed = await service.consumeVerification({
+      verificationId: created.verification.id,
+      secret: '123456',
+      now,
+    })
+
+    expect(consumed.status).toBe(VerificationStatus.Consumed)
+    const consumedAgainError = await service
+      .consumeVerification({
+        verificationId: created.verification.id,
+        secret: '123456',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(consumedAgainError).toMatchObject({
+      code: UniauthErrorCode.VerificationConsumed,
+    })
+  })
+
+  it('requires explicit merge policy and moves identities only through mergeAccounts', async () => {
+    const deniedKit = createInMemoryAuthKit()
+    const deniedSource = await deniedKit.service.signIn({
+      assertion: assertion({ providerUserId: 'source', email: 'source@example.com' }),
+      now,
+    })
+    const deniedTarget = await deniedKit.service.signIn({
+      assertion: assertion({ providerUserId: 'target', email: 'target@example.com' }),
+      now,
+    })
+
+    const deniedMergeError = await deniedKit.service
+      .mergeAccounts({
+        sourceUserId: deniedSource.user.id,
+        targetUserId: deniedTarget.user.id,
+        reAuthenticatedAt: now,
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(deniedMergeError).toMatchObject({ code: UniauthErrorCode.PolicyDenied })
+
+    const allowedKit = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({ allowMergeAccounts: true, requireReAuthFor: [] }),
+    })
+    const source = await allowedKit.service.signIn({
+      assertion: assertion({ providerUserId: 'source', email: 'source@example.com' }),
+      now,
+    })
+    const target = await allowedKit.service.signIn({
+      assertion: assertion({ providerUserId: 'target', email: 'target@example.com' }),
+      now,
+    })
+
+    const merged = await allowedKit.service.mergeAccounts({
+      sourceUserId: source.user.id,
+      targetUserId: target.user.id,
+      now,
+    })
+
+    expect(merged.movedIdentityIds).toEqual([source.identity.id])
+    expect(merged.sourceUser.disabledAt).toEqual(now)
+    expect(
+      allowedKit.store
+        .listIdentities()
+        .filter((identity) => identity.id === source.identity.id)
+        .map((identity) => identity.userId),
+    ).toEqual([target.user.id])
+    expect(
+      allowedKit.store
+        .listSessions()
+        .filter((session) => session.userId === source.user.id)
+        .map((session) => session.status),
+    ).toEqual([SessionStatus.Revoked])
+  })
+
+  it('resolves assertions through a provider registry when requested', async () => {
+    const { providerRegistry, service } = createInMemoryAuthKit()
+    const provider = new StaticAuthProvider('telegram', {
+      providerUserId: 'pending',
+      displayName: 'Pending User',
+    })
+
+    provider.setAssertion({
+      providerUserId: 'tg-1',
+      displayName: 'Telegram User',
+    })
+    providerRegistry.register(provider)
+
+    const result = await service.signIn({
+      provider: 'telegram',
+      finishInput: { payload: { initData: 'signed' } },
+      now,
+    })
+
+    expect(result.identity.provider).toBe('telegram')
+    expect(result.user.displayName).toBe('Telegram User')
+  })
+})

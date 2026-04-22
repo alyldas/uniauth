@@ -1,0 +1,28 @@
+# Dependencies are installed inside the Docker image with `npm ci`.
+node_modules
+
+# Local build and coverage output should not be copied into the Docker context.
+dist
+coverage
+.typecheck
+
+# Husky runtime files are local git-hook plumbing, not package inputs.
+.husky/_
+
+# Git metadata and CI config are not needed for the package check image.
+.git
+.github
+
+# Local editor state.
+.idea
+.vscode
+
+# Local npm package archives.
+*.tgz
+
+# OS metadata.
+.DS_Store
+
+# Local environment files. Keep real secrets out of Docker build context.
+.env
+.env.*
