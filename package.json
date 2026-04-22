@@ -1,6 +1,6 @@
 {
   "name": "@alyldas/uniauth",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Headless identity orchestration core for TypeScript and Node.js.",
   "type": "module",
   "license": "PolyForm-Strict-1.0.0",
