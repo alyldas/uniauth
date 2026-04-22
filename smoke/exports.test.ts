@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 import packageJson from '../package.json'
 
@@ -47,5 +48,20 @@ describe('package exports', () => {
     expect(testing.InMemoryEmailSender).toBeTypeOf('function')
     expect(testing.InMemorySmsSender).toBeTypeOf('function')
     expect(testing.StaticAuthProvider).toBeTypeOf('function')
+  })
+
+  it('keeps internal application helpers private', () => {
+    const privateOptionalSubpath = `${packageMetadata.name}/application/optional.js`
+    const result = spawnSync(
+      process.execPath,
+      ['--input-type=module', '--eval', `await import(${JSON.stringify(privateOptionalSubpath)})`],
+      {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+      },
+    )
+
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED')
   })
 })
