@@ -81,6 +81,12 @@ map the signed user into `ProviderIdentityAssertion`, and leave bot setup, front
 HTTP transport, cookies, and persistence to the application. Raw launch payloads are not copied into
 assertion metadata.
 
+OAuth/OIDC providers use the same `AuthProvider` boundary. Core reads an authorization-code finish
+input, delegates code exchange and profile fetching to an application-owned client, maps the
+validated profile into `ProviderIdentityAssertion`, and leaves authorization URL creation, callback
+routes, state and nonce validation, redirect URI policy, provider secrets, HTTP clients, and token
+storage outside core.
+
 Delivery happens after the verification record has been created inside `UnitOfWork`. If a sender
 fails, the pending verification stays in storage until normal expiry or adapter cleanup; core does
 not roll back storage after an external delivery side effect fails.
