@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/alyldas/uniauth/compare/v0.9.0...v0.10.0) (2026-04-23)
+
+
+### Features
+
+* add Postgres reference persistence ([0423f65](https://github.com/alyldas/uniauth/commit/0423f65a3d7004be83725d2ae9dba85773df9ff2))
+
 ## [0.9.0](https://github.com/alyldas/uniauth/compare/v0.8.0...v0.9.0) (2026-04-23)
 
 
