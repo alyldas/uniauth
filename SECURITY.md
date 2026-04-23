@@ -34,4 +34,4 @@ Core is not responsible for:
 - SMTP/SMS transport security;
 - database migration hardening.
 
-See [Security model](docs/security.md) for the v0.1 threat model.
+See [Security model](docs/security.md) for the current threat model and versioned hardening notes.
