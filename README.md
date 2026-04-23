@@ -32,6 +32,7 @@ license, subscription, private contract, or other written permission.
 - Exposes ports for repositories, providers, sender infrastructure, rate limits, password hashing,
   audit logs, and transactions.
 - Ships an in-memory testing implementation through `@alyldas/uniauth/testing`.
+- Ships a reference Postgres persistence adapter through `@alyldas/uniauth/postgres`.
 
 ## What It Does Not Do
 
@@ -170,6 +171,16 @@ import {
 } from '@alyldas/uniauth/testing'
 ```
 
+Reference persistence helpers come from the Postgres entry point:
+
+```ts
+import {
+  POSTGRES_AUTH_SCHEMA_SQL,
+  applyPostgresAuthSchema,
+  createPostgresAuthStore,
+} from '@alyldas/uniauth/postgres'
+```
+
 There are no root side effects. Importing the package does not register providers, touch storage,
 create sessions, read environment variables, or mutate global state.
 
@@ -214,6 +225,9 @@ launch data. See [Messenger providers](docs/messenger-providers.md).
 
 OAuth/OIDC providers use an SDK-free client contract for authorization-code finish flows. See
 [OAuth / OIDC providers](docs/oauth-oidc.md).
+
+Reference Postgres persistence lives in a separate subpath so the core API stays ORM-free and does
+not take a hard runtime dependency on `pg`. See [Postgres persistence](docs/postgres.md).
 
 Public error helpers use the `UniAuth` brand casing:
 
@@ -398,6 +412,7 @@ persist raw provider profiles.
 ## Entry Points
 
 - `@alyldas/uniauth`: public domain types, service implementation, policy API, ports, errors, and utilities.
+- `@alyldas/uniauth/postgres`: reference Postgres repositories, schema helper, and transaction wiring.
 - `@alyldas/uniauth/testing`: in-memory store, provider registry, static provider, in-memory email
   and SMS senders, and test kit.
 
@@ -431,6 +446,7 @@ contact `alyldas@ya.ru`.
 - [Local auth flows](docs/local-auth.md)
 - [Messenger providers](docs/messenger-providers.md)
 - [OAuth / OIDC providers](docs/oauth-oidc.md)
+- [Postgres persistence](docs/postgres.md)
 - [Comparison](docs/comparison.md)
 - [Licensing and attribution](docs/licensing.md)
 - [Roadmap](docs/roadmap.md)

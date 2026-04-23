@@ -104,6 +104,13 @@ includes in-memory email and SMS senders, a rate limiter, and a deterministic pa
 local auth flows can be exercised without SMTP, SMS, Redis, or password-hashing runtime setup. It is
 not a production persistence adapter.
 
+## Reference Persistence
+
+`@alyldas/uniauth/postgres` provides a reference Postgres implementation for the repository ports and
+`UnitOfWork`. It accepts an application-owned `pg.Pool`-compatible object instead of bundling a
+database driver into the root package. Schema rollout and migrations remain application-owned even
+though the package also ships a reference SQL schema helper for bootstrap and tests.
+
 ## Adapter Requirements
 
 Storage adapters should:
