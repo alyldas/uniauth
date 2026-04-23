@@ -13,6 +13,11 @@ updates:
         dependency-type: 'development'
         patterns:
           - '*'
+    # Keep Node runtime types on the minimum supported Node.js major.
+    ignore:
+      - dependency-name: '@types/node'
+        update-types:
+          - 'version-update:semver-major'
 
   - package-ecosystem: 'github-actions'
     directory: '/'

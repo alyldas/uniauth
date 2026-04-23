@@ -24,7 +24,7 @@ npm run check
 ```
 
 This matches the CI class of checks for the package: format check, lint, typecheck, 100% coverage,
-export smoke tests, and `npm pack --dry-run`.
+export smoke tests, package lint, package type-resolution checks, and `npm pack --dry-run`.
 
 ## Commit Messages
 
@@ -52,6 +52,18 @@ Release Please owns these files in its release PR:
 
 After changes land on `main`, Release Please opens or updates the release PR. Merge that release PR
 to let the release workflow create the `v*` tag, GitHub release notes, and GitHub Packages publish.
+
+## Dependency Policy
+
+Runtime-facing dependency updates must match the supported runtime contract. The package currently
+supports Node.js 22 and newer, and CI verifies the minimum supported runtime in `node:22-alpine`.
+
+Keep `@types/node` on the minimum supported Node.js major line. Do not merge major `@types/node`
+updates until `engines.node`, Docker, CI, examples, and docs intentionally move to the same minimum
+Node.js major.
+
+Dependabot may update regular development tooling within its configured groups. Review major updates
+as compatibility work, not routine maintenance.
 
 ## Changelog Policy
 

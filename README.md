@@ -113,6 +113,8 @@ local npm config or CI secrets; do not commit tokens.
 
 ## Runtime Contract
 
+The package targets modern ESM TypeScript consumers on Node.js 22 or newer.
+
 Core imports come from the root entry point:
 
 ```ts
@@ -355,6 +357,10 @@ Release Please owns these files in its release PR:
 - `CHANGELOG.md`: release section and compare links.
 
 Only bypass that rule for an intentional manual release process.
+
+Follow the changelog and merge policy in [CONTRIBUTING.md](CONTRIBUTING.md): regular feature and API
+PRs should preserve useful Conventional Commits, while Release Please PRs can stay single release
+commits.
 
 After a release is published, verify the package page and GitHub Packages artifact manually against
 the generated release notes and local `npm pack --dry-run` output.
