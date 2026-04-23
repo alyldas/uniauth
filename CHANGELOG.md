@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/alyldas/uniauth/compare/v0.8.0...v0.9.0) (2026-04-23)
+
+
+### Features
+
+* add trusted provider policy hooks ([d308ae2](https://github.com/alyldas/uniauth/commit/d308ae21aae6b0ff1fd8e34a7ecafa31baaa55a4))
+
 ## [0.8.0](https://github.com/alyldas/uniauth/compare/v0.7.0...v0.8.0) (2026-04-23)
 
 
