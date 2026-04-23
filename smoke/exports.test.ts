@@ -22,6 +22,7 @@ describe('package exports', () => {
 
   it('loads the public ESM entry points', async () => {
     const core = await import('../dist')
+    const postgres = await import('../dist/postgres')
     const testing = await import('../dist/testing')
 
     expect(core.AuditEventType.SignIn).toBe('auth.sign_in')
@@ -59,6 +60,9 @@ describe('package exports', () => {
     expect(core.getUniAuthAttributionNotice({ productName: 'Smoke App' })).toContain(
       `Smoke App uses ${packageMetadata.name}.`,
     )
+    expect(postgres.POSTGRES_AUTH_SCHEMA_SQL).toContain('create table if not exists uniauth_users')
+    expect(postgres.applyPostgresAuthSchema).toBeTypeOf('function')
+    expect(postgres.createPostgresAuthStore).toBeTypeOf('function')
     expect(testing.createInMemoryAuthKit).toBeTypeOf('function')
     expect(testing.InMemoryEmailSender).toBeTypeOf('function')
     expect(testing.InMemoryPasswordHasher).toBeTypeOf('function')
@@ -86,6 +90,7 @@ describe('package exports', () => {
     for (const privateProviderSubpath of [
       `${packageMetadata.name}/providers/messenger.js`,
       `${packageMetadata.name}/providers/oauth-oidc.js`,
+      `${packageMetadata.name}/postgres/store.js`,
     ]) {
       const result = spawnSync(
         process.execPath,

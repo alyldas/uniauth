@@ -42,6 +42,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./postgres": {
+      "types": "./dist/postgres.d.ts",
+      "import": "./dist/postgres/index.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"
@@ -83,6 +87,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.0.0",
     "husky": "^9.1.7",
+    "pg-mem": "^3.0.14",
     "prettier": "^3.0.0",
     "publint": "^0.3.18",
     "tsup": "^8.0.0",

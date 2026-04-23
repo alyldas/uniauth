@@ -75,22 +75,30 @@ Tracking issues: #33, #34, #35, #36.
 
 Tracking issues: #37, #49.
 
-## Next Release
-
-### v0.9 - Reference Persistence and OAuth Policy Follow-Up
+### v0.9 - Trusted Provider Policy
 
 - Trusted provider policy hooks.
+- Provider trust context on assertions and linked identities.
+- Backward-compatible policy extension point for explicit link decisions.
+- Policy and docs alignment for post-OAuth account-linking trust decisions.
+
+Tracking issues: #38.
+
+## Next Release
+
+### v0.10 - Reference Persistence
+
 - Postgres reference storage.
 - SQL schema example.
 - Transactional merge flow.
 - Indexes and constraints.
 - In-memory testing kit decomposition aligned with reference persistence boundaries.
 
-Tracking issues: #38, #40, #41, #42, #47.
+Tracking issues: #40, #41, #42, #47.
 
 ## Planned
 
-### v0.10 - Production Hardening and Integration Backlog
+### v0.11 - Production Hardening and Integration Backlog
 
 - Threat model documentation.
 - Production email and phone normalization design.

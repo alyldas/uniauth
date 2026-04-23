@@ -15,6 +15,7 @@ export default defineConfig({
   define: attributionDefines,
   entry: {
     index: 'src/index.ts',
+    'postgres/index': 'src/postgres.ts',
     'testing/index': 'src/testing/index.ts',
   },
   format: ['esm'],

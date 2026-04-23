@@ -6,6 +6,6 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "files": ["src/index.ts", "src/testing/index.ts"],
+  "files": ["src/index.ts", "src/postgres.ts", "src/testing/index.ts"],
   "include": []
 }
