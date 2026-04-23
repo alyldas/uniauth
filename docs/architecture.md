@@ -87,6 +87,8 @@ validated profile into `ProviderIdentityAssertion`, and leaves authorization URL
 routes, state and nonce validation, redirect URI policy, provider secrets, HTTP clients, and token
 storage outside core. If provider tokens must survive beyond profile fetch, applications should keep
 them in app-owned persistence keyed by local auth/session state, not inside core assertions.
+Applications can additionally attach normalized trust context to assertions so `AuthPolicy` can make
+auto-link, explicit-link, and merge decisions without receiving raw SDK objects.
 
 Delivery happens after the verification record has been created inside `UnitOfWork`. If a sender
 fails, the pending verification stays in storage until normal expiry or adapter cleanup; core does
@@ -117,6 +119,8 @@ Provider adapters should expose `finish()` and return a `ProviderIdentityAsserti
 own provider SDK setup, redirect routes, raw provider payload storage, or application secrets.
 Provider-specific signature validation can live in a small reference adapter when it does not force
 SDK, framework, or storage dependencies into the core package.
+When provider trust matters, adapters should emit a small `trust` object with stable string
+signals instead of leaking provider SDK payloads into core policy hooks.
 
 ## Provider Adapter Layout
 

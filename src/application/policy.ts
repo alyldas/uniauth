@@ -19,6 +19,11 @@ export interface AutoLinkContext {
   readonly existingIdentities: readonly AuthIdentity[]
 }
 
+export interface LinkIdentityContext {
+  readonly user: User
+  readonly assertion: ProviderIdentityAssertion
+}
+
 export interface UnlinkIdentityContext {
   readonly user: User
   readonly identity: AuthIdentity
@@ -29,6 +34,8 @@ export interface MergeUsersContext {
   readonly sourceUser: User
   readonly targetUser: User
   readonly sourceIdentityCount: number
+  readonly sourceIdentities: readonly AuthIdentity[]
+  readonly targetIdentities: readonly AuthIdentity[]
 }
 
 export interface ReAuthContext {
@@ -40,6 +47,7 @@ export interface ReAuthContext {
 
 export interface AuthPolicy {
   canAutoLink(context: AutoLinkContext): MaybePromise<boolean>
+  canLinkIdentity?(context: LinkIdentityContext): MaybePromise<boolean>
   canUnlinkIdentity(context: UnlinkIdentityContext): MaybePromise<boolean>
   canMergeUsers(context: MergeUsersContext): MaybePromise<boolean>
   requiresReAuth(context: ReAuthContext): MaybePromise<boolean>
@@ -61,6 +69,9 @@ export function createDefaultAuthPolicy(options: DefaultAuthPolicyOptions = {}):
   return {
     canAutoLink(): boolean {
       return options.allowAutoLink === true
+    },
+    canLinkIdentity(): boolean {
+      return true
     },
     canUnlinkIdentity(context): boolean {
       return context.activeIdentityCount > 1

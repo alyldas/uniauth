@@ -100,6 +100,12 @@ describe('public utility coverage', () => {
       }),
     ).toBe(false)
     expect(
+      defaultPolicy.canLinkIdentity!({
+        user: user(),
+        assertion: assertion(),
+      }),
+    ).toBe(true)
+    expect(
       defaultPolicy.canUnlinkIdentity({
         user: user(),
         identity: identity(),
@@ -118,6 +124,8 @@ describe('public utility coverage', () => {
         sourceUser: user('source'),
         targetUser: user('target'),
         sourceIdentityCount: 1,
+        sourceIdentities: [],
+        targetIdentities: [],
       }),
     ).toBe(false)
     expect(
@@ -162,6 +170,8 @@ describe('public utility coverage', () => {
         sourceUser: user('source'),
         targetUser: user('target'),
         sourceIdentityCount: 1,
+        sourceIdentities: [],
+        targetIdentities: [],
       }),
     ).toBe(true)
 

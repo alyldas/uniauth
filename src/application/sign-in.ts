@@ -14,7 +14,9 @@ import {
   type AuthIdentity,
   type AuthResult,
   type FinishInput,
+  ProviderTrustLevel,
   type ProviderIdentityAssertion,
+  type ProviderTrustContext,
   type Session,
   type SignInInput,
   type User,
@@ -216,7 +218,50 @@ export function normalizeAssertion(
         }
       : {}),
     ...optionalProp('displayName', displayName),
+    ...optionalProp('trust', normalizeProviderTrust(assertion.trust)),
     ...optionalProp('metadata', assertion.metadata),
+  }
+}
+
+function normalizeProviderTrust(
+  trust: ProviderIdentityAssertion['trust'],
+): ProviderTrustContext | undefined {
+  if (!trust) {
+    return undefined
+  }
+
+  if (typeof trust.level !== 'string') {
+    throw invalidInput('Provider trust level must be a string.')
+  }
+
+  const level = trust.level.trim() as ProviderTrustLevel
+
+  if (
+    level !== ProviderTrustLevel.Trusted &&
+    level !== ProviderTrustLevel.Neutral &&
+    level !== ProviderTrustLevel.Untrusted
+  ) {
+    throw invalidInput('Provider trust level must be trusted, neutral, or untrusted.')
+  }
+
+  if (trust.signals !== undefined && !Array.isArray(trust.signals)) {
+    throw invalidInput('Provider trust signals must be an array of strings.')
+  }
+
+  const signals = trust.signals
+    ?.map((signal) => {
+      if (typeof signal !== 'string') {
+        throw invalidInput('Provider trust signals must be an array of strings.')
+      }
+
+      return signal.trim()
+    })
+    .filter((signal) => signal.length > 0)
+
+  return {
+    level,
+    ...(signals && signals.length > 0 ? { signals: [...new Set(signals)] } : {}),
+    ...optionalProp('metadata', trust.metadata),
   }
 }
 
@@ -301,6 +346,7 @@ export async function createIdentityFromAssertion(
     ...(assertion.phone
       ? { phone: assertion.phone, phoneVerified: assertion.phoneVerified === true }
       : {}),
+    ...optionalProp('trust', assertion.trust),
     ...optionalProp('metadata', assertion.metadata),
   }
 

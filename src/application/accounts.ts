@@ -24,6 +24,7 @@ import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
 
 const PolicyDenialReason = {
   IdentityAlreadyLinked: 'identity-already-linked',
+  LinkDenied: 'link-denied',
   UnlinkDenied: 'unlink-denied',
   MergeDenied: 'merge-denied',
 } as const
@@ -51,6 +52,20 @@ export async function link(runtime: AuthServiceRuntime, input: LinkInput): Promi
         metadata: { reason: PolicyDenialReason.IdentityAlreadyLinked },
       })
       throw new UniAuthError(UniAuthErrorCode.IdentityAlreadyLinked, 'Identity cannot be linked.')
+    }
+
+    const allowed =
+      (await runtime.policy.canLinkIdentity?.({
+        user,
+        assertion,
+      })) ?? true
+
+    if (!allowed) {
+      await audit(runtime, AuditEventType.PolicyDenied, now, {
+        userId: user.id,
+        metadata: { reason: PolicyDenialReason.LinkDenied, provider: assertion.provider },
+      })
+      throw new UniAuthError(UniAuthErrorCode.PolicyDenied, 'Auth policy denied this action.')
     }
 
     const identity = await createIdentityFromAssertion(runtime, user, assertion, now)
@@ -137,10 +152,15 @@ export async function mergeAccounts(
     const sourceIdentities = (await runtime.repos.identityRepo.listByUserId(sourceUser.id)).filter(
       isActiveIdentity,
     )
+    const targetIdentities = (await runtime.repos.identityRepo.listByUserId(targetUser.id)).filter(
+      isActiveIdentity,
+    )
     const allowed = await runtime.policy.canMergeUsers({
       sourceUser,
       targetUser,
       sourceIdentityCount: sourceIdentities.length,
+      sourceIdentities,
+      targetIdentities,
     })
 
     if (!allowed) {
