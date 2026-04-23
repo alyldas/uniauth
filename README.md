@@ -8,8 +8,8 @@
 
 `@alyldas/uniauth` is an ESM-only headless identity orchestration core for TypeScript and Node.js.
 
-It models users, identities, verifications, sessions, account linking policy, and storage/provider
-ports without owning UI, HTTP routes, cookies, an ORM, or a hosted auth service.
+It models users, identities, credentials, verifications, sessions, account linking policy, and
+storage/provider ports without owning UI, HTTP routes, cookies, an ORM, or a hosted auth service.
 
 The package is source-available under the PolyForm Strict License 1.0.0. Commercial use,
 redistribution, making changes, or creating new works based on the software require a separate paid
@@ -17,13 +17,18 @@ license, subscription, private contract, or other written permission.
 
 ## What This Package Does
 
-- Models `User`, `AuthIdentity`, `Verification`, and `Session` separately.
+- Models `User`, `AuthIdentity`, `Credential`, `Verification`, and `Session` separately.
 - Treats email and phone as optional identity attributes, not mandatory user fields.
 - Orchestrates `signIn`, `link`, `unlink`, `mergeAccounts`, verification, and session revocation.
 - Starts and finishes generic OTP challenges over email or phone through sender ports.
+- Starts and finishes email magic-link sign-in on the shared verification lifecycle.
+- Hashes password credentials through a password hasher port, stores them through a credential repo,
+  and signs in with a local password identity.
+- Starts and finishes email password recovery on the shared verification lifecycle.
 - Creates local session records after successful sign-in.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
-- Exposes ports for repositories, providers, sender infrastructure, audit logs, and transactions.
+- Exposes ports for repositories, providers, sender infrastructure, rate limits, password hashing,
+  audit logs, and transactions.
 - Ships an in-memory testing implementation through `@alyldas/uniauth/testing`.
 
 ## What It Does Not Do
@@ -33,7 +38,11 @@ license, subscription, private contract, or other written permission.
 - It does not include Express, Fastify, Nest, Nuxt, or Next handlers in core.
 - It does not generate one mandatory ORM schema.
 - It does not include SMTP, SMS gateway, OAuth, Telegram, or MAX SDK implementations in core.
-- It does not send messages by itself; OTP delivery uses sender ports you provide.
+- It does not send messages by itself; OTP, magic-link, and recovery delivery use sender ports you
+  provide.
+- It does not bundle a password hashing runtime; password hashing uses a `PasswordHasher` adapter you
+  provide.
+- It does not ship a production Redis, database, or edge rate limiter.
 - It does not silently merge two existing users by email.
 
 ## Diagrams
@@ -43,7 +52,8 @@ flowchart LR
   Provider["AuthProvider<br/>external assertion"] --> Registry["ProviderRegistry<br/>SDK-free lookup"]
   Registry --> Service["AuthService<br/>signIn / link / unlink / merge"]
   Policy["AuthPolicy<br/>auto-link / merge / re-auth"] --> Service
-  Service --> Repos["Repositories<br/>users / identities / sessions / verifications"]
+  RateLimiter["RateLimiter<br/>attempt buckets"] --> Service
+  Service --> Repos["Repositories<br/>users / identities / credentials / sessions / verifications"]
   Service --> Audit["AuditLog<br/>security events"]
   Service --> Senders["Sender ports<br/>email / SMS"]
   Testing["@alyldas/uniauth/testing<br/>in-memory kit"] --> Service
@@ -121,9 +131,11 @@ Core imports come from the root entry point:
 ```ts
 import {
   DefaultAuthService,
+  EMAIL_MAGIC_LINK_PROVIDER_ID,
   EMAIL_OTP_PROVIDER_ID,
   OtpChannel,
-  PHONE_OTP_PROVIDER_ID,
+  PASSWORD_PROVIDER_ID,
+  RateLimitAction,
   UniAuthError,
   UniAuthErrorCode,
   VerificationPurpose,
@@ -132,7 +144,11 @@ import {
   isUniAuthError,
   type AuthProvider,
   type AuthService,
+  type EmailMagicLink,
+  type EmailPasswordRecoveryLink,
+  type PasswordHasher,
   type ProviderIdentityAssertion,
+  type RateLimiter,
   type SecretHasher,
 } from '@alyldas/uniauth'
 ```
@@ -142,6 +158,8 @@ Testing helpers come from the explicit testing entry point:
 ```ts
 import {
   InMemoryEmailSender,
+  InMemoryPasswordHasher,
+  InMemoryRateLimiter,
   InMemorySmsSender,
   StaticAuthProvider,
   createInMemoryAuthKit,
@@ -183,42 +201,127 @@ try {
 }
 ```
 
+Rate limiting is optional and app-owned. Core calls a `RateLimiter` port before security-sensitive
+attempts and turns a denied decision into a stable `UniAuthErrorCode.RateLimited` error without
+creating users, sessions, or consuming OTP verifications.
+
+```ts
+const rateLimiter: RateLimiter = {
+  async consume(input) {
+    if (input.action === RateLimitAction.OtpStart) {
+      return { allowed: false, retryAfterSeconds: 60 }
+    }
+
+    return { allowed: true }
+  },
+}
+
+const { service } = createInMemoryAuthKit({ rateLimiter })
+```
+
 OTP sign-in is still headless: `startOtpChallenge` creates a hashed verification secret and sends
 the plain code through the configured sender port; `finishOtpSignIn` consumes the code once and
-creates a local session. Email-specific methods are convenience wrappers over the shared OTP path.
+creates a local session. Email and phone OTP both use this unified API.
 
 ```ts
 const { service } = createInMemoryAuthKit()
 
 const challenge = await service.startOtpChallenge({
   purpose: VerificationPurpose.SignIn,
-  channel: OtpChannel.Phone,
-  target: '+15551234567',
+  channel: OtpChannel.Email,
+  target: 'alice@example.com',
   secret: '123456',
 })
 
 const result = await service.finishOtpSignIn({
   verificationId: challenge.verificationId,
   secret: '123456',
+  channel: OtpChannel.Email,
 })
 
-console.log(result.identity.provider === PHONE_OTP_PROVIDER_ID)
+console.log(result.identity.provider === EMAIL_OTP_PROVIDER_ID)
 ```
 
-The email wrapper uses the same shared OTP challenge path:
+Core-owned verification routing fields, such as `provider` and `channel`, are stored separately
+from app-owned `metadata`.
+
+OTP generation and the built-in email subject are configurable through service options. A
+per-request `secret` still wins over the configured generator.
 
 ```ts
-const emailChallenge = await service.startEmailOtpSignIn({
+const { service } = createInMemoryAuthKit({
+  emailOtpSubject: 'Your Example App code',
+  otpSecretLength: 8,
+  otpSecretGenerator: ({ target }) => `app-owned-code-for:${target}`,
+})
+```
+
+Email magic links also use the same hashed verification lifecycle. Core does not own your route,
+domain, redirect handling, or cookie transport; the application provides a `createLink` function and
+an `EmailSender`.
+
+```ts
+const magicLink = await service.startEmailMagicLinkSignIn({
   email: 'alice@example.com',
-  secret: '123456',
+  createLink(input: EmailMagicLink) {
+    return `/auth/magic?verification=${input.verificationId}&token=${input.secret}`
+  },
 })
 
-const emailResult = await service.finishEmailOtpSignIn({
-  verificationId: emailChallenge.verificationId,
-  secret: '123456',
+const magicResult = await service.finishEmailMagicLinkSignIn({
+  verificationId: magicLink.verificationId,
+  secret: 'token-from-request',
 })
 
-console.log(emailResult.identity.provider === EMAIL_OTP_PROVIDER_ID)
+console.log(magicResult.identity.provider === EMAIL_MAGIC_LINK_PROVIDER_ID)
+```
+
+Password credentials use a dedicated `CredentialRepo` and a `PasswordHasher` port. Production apps
+should provide an adapter backed by their chosen password hashing runtime and parameters; the
+in-memory testing kit only ships a deterministic test hasher.
+
+```ts
+const passwordHasher: PasswordHasher = {
+  async hash(password) {
+    return hashPassword(password)
+  },
+  async verify(password, passwordHash) {
+    return verifyPassword(passwordHash, password)
+  },
+}
+
+const { service } = createInMemoryAuthKit({ passwordHasher })
+
+await service.setPassword({
+  userId,
+  email: 'alice@example.com',
+  password: 'new password from settings form',
+})
+
+const passwordResult = await service.signInWithPassword({
+  email: 'alice@example.com',
+  password: 'password from sign-in form',
+})
+
+console.log(passwordResult.identity.provider === PASSWORD_PROVIDER_ID)
+```
+
+Password recovery is an email verification flow. Core creates a hashed recovery secret and calls
+your `createLink` function; your application owns the route and reset form.
+
+```ts
+const recovery = await service.startEmailPasswordRecovery({
+  email: 'alice@example.com',
+  createLink(input: EmailPasswordRecoveryLink) {
+    return `/auth/recovery?verification=${input.verificationId}&token=${input.secret}`
+  },
+})
+
+await service.finishEmailPasswordRecovery({
+  verificationId: recovery.verificationId,
+  secret: 'token-from-request',
+  newPassword: 'new password from reset form',
+})
 ```
 
 OTP delivery is outside the storage transaction. `startOtpChallenge` first persists the hashed
@@ -299,6 +402,7 @@ contact `alyldas@ya.ru`.
 - [Development](docs/development.md)
 - [Architecture](docs/architecture.md)
 - [Security model](docs/security.md)
+- [Local auth flows](docs/local-auth.md)
 - [Comparison](docs/comparison.md)
 - [Licensing and attribution](docs/licensing.md)
 - [Roadmap](docs/roadmap.md)

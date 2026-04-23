@@ -21,7 +21,7 @@
 ### v0.3 - Generic OTP Challenges
 
 - Shared `startOtpChallenge`, `finishOtpChallenge`, and `finishOtpSignIn` API.
-- Email OTP wrappers backed by the shared challenge lifecycle.
+- Email OTP sign-in backed by the shared challenge lifecycle.
 - Phone OTP sign-in over the `SmsSender` port.
 - In-memory SMS sender for tests, demos, and examples.
 
@@ -51,9 +51,12 @@
 
 ### v0.6 - Local Auth Hardening
 
-- Email magic link.
-- Password credential with Argon2id.
-- Rate limit integration ports.
+- Email magic link on the shared verification lifecycle.
+- Password credential with an app-owned `PasswordHasher` port.
+- Rate limit integration ports for provider sign-in, OTP, magic-link, password, and recovery
+  attempts.
+- Unified OTP sign-in API without email-specific wrappers.
+- Configurable OTP code generation and email OTP subject.
 - Shared verification lifecycle tests for magic link, OTP, and password recovery.
 - Public docs for choosing local auth flows without leaking account state.
 
@@ -81,6 +84,8 @@
 ### v0.10 - Production Hardening
 
 - Threat model documentation.
+- Production email and phone normalization design.
+- OTP delivery orchestration, retry, queue, and dead-letter boundary design.
 - Anti-takeover tests.
 - Merge idempotency tests.
 - Audit coverage.
