@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/alyldas/uniauth/compare/v0.7.0...v0.8.0) (2026-04-23)
+
+
+### Features
+
+* add OAuth OIDC provider contract ([b4a1c37](https://github.com/alyldas/uniauth/commit/b4a1c370673056417b1730133fa05c696c2909a8))
+
 ## [0.7.0](https://github.com/alyldas/uniauth/compare/v0.6.0...v0.7.0) (2026-04-23)
 
 
