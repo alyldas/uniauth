@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/alyldas/uniauth/compare/v0.10.0...v0.11.0) (2026-04-23)
+
+
+### Features
+
+* harden transactional account merge flow ([8b718ac](https://github.com/alyldas/uniauth/commit/8b718ac0949b2d9a840bd417320cf33b693d39f2))
+
 ## [0.10.0](https://github.com/alyldas/uniauth/compare/v0.9.0...v0.10.0) (2026-04-23)
 
 
