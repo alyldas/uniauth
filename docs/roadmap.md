@@ -58,8 +58,6 @@
 - Shared verification lifecycle tests for magic link, OTP, and password recovery.
 - Public docs for choosing local auth flows without leaking account state.
 
-## Next Release
-
 ### v0.7 - Messenger Providers
 
 - Telegram Mini App `initData` contracts and reference implementation.
@@ -69,7 +67,7 @@
 
 Tracking issues: #33, #34, #35, #36.
 
-## Planned
+## Next Release
 
 ### v0.8 - OAuth / OIDC Layer
 
@@ -80,6 +78,8 @@ Tracking issues: #33, #34, #35, #36.
 - Optional Better Auth and Auth.js bridge adapters.
 
 Tracking issues: #37, #38, #39, #49.
+
+## Planned
 
 ### v0.9 - Reference Persistence
 
