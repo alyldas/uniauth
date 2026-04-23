@@ -85,7 +85,8 @@ OAuth/OIDC providers use the same `AuthProvider` boundary. Core reads an authori
 input, delegates code exchange and profile fetching to an application-owned client, maps the
 validated profile into `ProviderIdentityAssertion`, and leaves authorization URL creation, callback
 routes, state and nonce validation, redirect URI policy, provider secrets, HTTP clients, and token
-storage outside core.
+storage outside core. If provider tokens must survive beyond profile fetch, applications should keep
+them in app-owned persistence keyed by local auth/session state, not inside core assertions.
 
 Delivery happens after the verification record has been created inside `UnitOfWork`. If a sender
 fails, the pending verification stays in storage until normal expiry or adapter cleanup; core does
