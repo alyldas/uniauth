@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import packageJson from '../package.json'
 import {
+  AuditEventType,
   DefaultAuthService,
   EMAIL_OTP_PROVIDER_ID,
   OtpChannel,
@@ -83,7 +84,9 @@ describe('DefaultAuthService', () => {
     expect(store.listUsers()).toHaveLength(1)
     expect(store.listIdentities()).toHaveLength(1)
     expect(store.listSessions()).toHaveLength(1)
-    expect(store.listAuditEvents().map((event) => event.type)).toContain('auth.session_created')
+    expect(store.listAuditEvents().map((event) => event.type)).toContain(
+      AuditEventType.SessionCreated,
+    )
   })
 
   it('honors explicit zero TTL options in the in-memory testing kit', async () => {
@@ -286,8 +289,10 @@ describe('DefaultAuthService', () => {
   it('starts and finishes email OTP sign-in without exposing account state', async () => {
     const { emailSender, service, store } = createInMemoryAuthKit()
 
-    const started = await service.startEmailOtpSignIn({
-      email: ' Alice@Example.com ',
+    const started = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: ' Alice@Example.com ',
       secret: '123456',
       metadata: { requestId: 'req-1' },
       now,
@@ -318,20 +323,21 @@ describe('DefaultAuthService', () => {
       id: started.verificationId,
       purpose: VerificationPurpose.SignIn,
       target: 'alice@example.com',
+      provider: EMAIL_OTP_PROVIDER_ID,
+      channel: OtpChannel.Email,
       status: VerificationStatus.Pending,
       metadata: {
         requestId: 'req-1',
-        channel: OtpChannel.Email,
-        provider: EMAIL_OTP_PROVIDER_ID,
       },
     })
     expect(storedVerification?.secretHash).not.toBe('123456')
     expect(storedVerification?.secretHash).toMatch(/^sha256:/)
 
     const wrongSecret = await service
-      .finishEmailOtpSignIn({
+      .finishOtpSignIn({
         verificationId: started.verificationId,
         secret: '000000',
+        channel: OtpChannel.Email,
         now,
       })
       .catch((caught: unknown) => caught)
@@ -341,9 +347,10 @@ describe('DefaultAuthService', () => {
     })
     expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Pending)
 
-    const finished = await service.finishEmailOtpSignIn({
+    const finished = await service.finishOtpSignIn({
       verificationId: started.verificationId,
       secret: '123456',
+      channel: OtpChannel.Email,
       metadata: { flow: 'otp' },
       now,
     })
@@ -356,9 +363,10 @@ describe('DefaultAuthService', () => {
     expect(store.listVerifications()[0]?.status).toBe(VerificationStatus.Consumed)
 
     const consumedAgain = await service
-      .finishEmailOtpSignIn({
+      .finishOtpSignIn({
         verificationId: started.verificationId,
         secret: '123456',
+        channel: OtpChannel.Email,
         now,
       })
       .catch((caught: unknown) => caught)
@@ -367,8 +375,10 @@ describe('DefaultAuthService', () => {
       code: UniAuthErrorCode.VerificationConsumed,
     })
 
-    const generated = await service.startEmailOtpSignIn({
-      email: 'bob@example.com',
+    const generated = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: 'bob@example.com',
       ttlSeconds: 30,
     })
     const generatedMessage = emailSender.listMessages()[1]
@@ -378,9 +388,10 @@ describe('DefaultAuthService', () => {
       throw new Error('Expected generated OTP secret in the email message.')
     }
 
-    const generatedFinished = await service.finishEmailOtpSignIn({
+    const generatedFinished = await service.finishOtpSignIn({
       verificationId: generated.verificationId,
       secret: generatedSecret,
+      channel: OtpChannel.Email,
       sessionExpiresAt: addSeconds(now, 60),
     })
 
@@ -401,8 +412,10 @@ describe('DefaultAuthService', () => {
     })
 
     const error = await service
-      .startEmailOtpSignIn({
-        email: 'delivery@example.com',
+      .startOtpChallenge({
+        purpose: VerificationPurpose.SignIn,
+        channel: OtpChannel.Email,
+        target: 'delivery@example.com',
         secret: '123456',
         now,
       })
@@ -413,11 +426,9 @@ describe('DefaultAuthService', () => {
     expect(store.listVerifications()[0]).toMatchObject({
       purpose: VerificationPurpose.SignIn,
       target: 'delivery@example.com',
+      provider: EMAIL_OTP_PROVIDER_ID,
+      channel: OtpChannel.Email,
       status: VerificationStatus.Pending,
-      metadata: {
-        channel: OtpChannel.Email,
-        provider: EMAIL_OTP_PROVIDER_ID,
-      },
     })
     expect(store.listVerifications()[0]?.secretHash).not.toBe('123456')
   })
@@ -488,10 +499,10 @@ describe('DefaultAuthService', () => {
     expect(store.listVerifications()[2]).toMatchObject({
       id: phoneChallenge.verificationId,
       target: '+15551234567',
+      provider: PHONE_OTP_PROVIDER_ID,
+      channel: OtpChannel.Phone,
       metadata: {
         requestId: 'req-phone',
-        channel: OtpChannel.Phone,
-        provider: PHONE_OTP_PROVIDER_ID,
       },
     })
 
@@ -516,19 +527,30 @@ describe('DefaultAuthService', () => {
 
     expect(
       await serviceWithoutEmailSender
-        .startEmailOtpSignIn({ email: 'alice@example.com', now })
+        .startOtpChallenge({
+          purpose: VerificationPurpose.SignIn,
+          channel: OtpChannel.Email,
+          target: 'alice@example.com',
+          now,
+        })
         .catch((caught: unknown) => caught),
     ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(
       await serviceWithoutEmailSender
-        .startEmailOtpSignIn({ email: '   ', now })
+        .startOtpChallenge({
+          purpose: VerificationPurpose.SignIn,
+          channel: OtpChannel.Email,
+          target: '   ',
+          now,
+        })
         .catch((caught: unknown) => caught),
     ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(
       await serviceWithoutEmailSender
-        .finishEmailOtpSignIn({
+        .finishOtpSignIn({
           verificationId: asVerificationId('missing'),
           secret: '123456',
+          channel: OtpChannel.Email,
           now,
         })
         .catch((caught: unknown) => caught),
@@ -542,9 +564,10 @@ describe('DefaultAuthService', () => {
       now,
     })
     const wrongPurpose = await service
-      .finishEmailOtpSignIn({
+      .finishOtpSignIn({
         verificationId: linkVerification.verification.id,
         secret: '123456',
+        channel: OtpChannel.Email,
         now,
       })
       .catch((caught: unknown) => caught)
@@ -572,6 +595,7 @@ describe('DefaultAuthService', () => {
       await serviceWithoutSmsSender
         .startOtpChallenge({
           purpose: VerificationPurpose.SignIn,
+          // @ts-expect-error Unsupported channels are a runtime guard for untyped callers.
           channel: 'push',
           target: 'alice',
           now,
@@ -582,6 +606,7 @@ describe('DefaultAuthService', () => {
       await serviceWithoutSmsSender
         .startOtpChallenge({
           purpose: VerificationPurpose.SignIn,
+          // @ts-expect-error Unsupported channels are a runtime guard for untyped callers.
           channel: 'push',
           target: '   ',
           now,

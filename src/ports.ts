@@ -2,8 +2,11 @@ import type {
   AuditEvent,
   AuthIdentity,
   AuthIdentityProvider,
+  Credential,
+  CredentialId,
   FinishInput,
   IdentityId,
+  OtpChannel,
   ProviderIdentityAssertion,
   Session,
   SessionId,
@@ -11,8 +14,53 @@ import type {
   UserId,
   Verification,
   VerificationId,
+  VerificationPurpose,
 } from './domain/types.js'
 import type { SecretHasher } from './utils/secrets.js'
+
+export const RateLimitAction = {
+  ProviderSignIn: 'provider:sign-in',
+  OtpStart: 'otp:start',
+  OtpFinish: 'otp:finish',
+  MagicLinkStart: 'magic-link:start',
+  MagicLinkFinish: 'magic-link:finish',
+  PasswordSignIn: 'password:sign-in',
+  PasswordRecoveryStart: 'password-recovery:start',
+  PasswordRecoveryFinish: 'password-recovery:finish',
+} as const
+
+export type RateLimitAction = (typeof RateLimitAction)[keyof typeof RateLimitAction]
+
+export interface RateLimitAttempt {
+  readonly action: RateLimitAction
+  readonly key: string
+  readonly now: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface RateLimitDecision {
+  readonly allowed: boolean
+  readonly retryAfterSeconds?: number
+  readonly resetAt?: Date
+}
+
+export interface RateLimiter {
+  consume(input: RateLimitAttempt): Promise<RateLimitDecision>
+}
+
+export interface OtpSecretGeneratorInput {
+  readonly purpose: VerificationPurpose
+  readonly channel: OtpChannel
+  readonly target: string
+  readonly now: Date
+}
+
+export type OtpSecretGenerator = (input: OtpSecretGeneratorInput) => string | Promise<string>
+
+export interface PasswordHasher {
+  hash(password: string): Promise<string>
+  verify(password: string, passwordHash: string): Promise<boolean>
+}
 
 export interface AuthProvider {
   readonly id: AuthIdentityProvider
@@ -39,6 +87,16 @@ export interface IdentityRepo {
     id: IdentityId,
     patch: Partial<Omit<AuthIdentity, 'id' | 'createdAt'>>,
   ): Promise<AuthIdentity>
+}
+
+export interface CredentialRepo {
+  findPasswordByEmail(email: string): Promise<Credential | undefined>
+  findPasswordByUserId(userId: UserId): Promise<Credential | undefined>
+  create(credential: Credential): Promise<Credential>
+  update(
+    id: CredentialId,
+    patch: Partial<Omit<Credential, 'id' | 'userId' | 'type' | 'createdAt'>>,
+  ): Promise<Credential>
 }
 
 export interface VerificationRepo {
@@ -82,6 +140,11 @@ export interface AuthServiceInfrastructure {
   readonly emailSender?: EmailSender
   readonly smsSender?: SmsSender
   readonly secretHasher?: SecretHasher
+  readonly rateLimiter?: RateLimiter
+  readonly otpSecretLength?: number
+  readonly otpSecretGenerator?: OtpSecretGenerator
+  readonly emailOtpSubject?: string
+  readonly passwordHasher?: PasswordHasher
 }
 
 export interface ProviderRegistry {
@@ -95,6 +158,7 @@ export interface UnitOfWork {
 export interface AuthServiceRepositories {
   readonly userRepo: UserRepo
   readonly identityRepo: IdentityRepo
+  readonly credentialRepo: CredentialRepo
   readonly verificationRepo: VerificationRepo
   readonly sessionRepo: SessionRepo
   readonly auditLogRepo: AuditLogRepo

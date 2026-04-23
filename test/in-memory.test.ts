@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AuditEventType,
   SessionStatus,
   UniAuthErrorCode,
   VerificationPurpose,
   VerificationStatus,
   addSeconds,
   asAuditEventId,
+  asCredentialId,
   asIdentityId,
   asSessionId,
   asUserId,
   asVerificationId,
+  CredentialType,
   hashSecret,
+  type Credential,
   type Session,
   type Verification,
 } from '../src'
@@ -86,6 +90,70 @@ describe('InMemoryAuthStore', () => {
       providerUserId: 'oauth-alice-2',
     })
 
+    const credential: Credential = {
+      id: asCredentialId('credential-1'),
+      userId: createdUser.id,
+      type: CredentialType.Password,
+      subject: 'alice@example.com',
+      passwordHash: hashSecret('password'),
+      createdAt: now,
+      updatedAt: now,
+    }
+    const otherUser = await store.userRepo.create(user('user-2'))
+    const secondCredential: Credential = {
+      id: asCredentialId('credential-2'),
+      userId: otherUser.id,
+      type: CredentialType.Password,
+      subject: 'second@example.com',
+      passwordHash: hashSecret('password'),
+      createdAt: now,
+      updatedAt: now,
+    }
+    const sameUserCredential: Credential = {
+      id: asCredentialId('credential-3'),
+      userId: createdUser.id,
+      type: CredentialType.Password,
+      subject: 'same-user@example.com',
+      passwordHash: hashSecret('password'),
+      createdAt: now,
+      updatedAt: now,
+    }
+
+    expect(await store.credentialRepo.findPasswordByEmail(credential.subject)).toBeUndefined()
+    expect(await store.credentialRepo.create(credential)).toBe(credential)
+    expect(await store.credentialRepo.findPasswordByEmail(' Alice@Example.com ')).toBe(credential)
+    expect(await store.credentialRepo.findPasswordByUserId(createdUser.id)).toBe(credential)
+    expect(
+      await store.credentialRepo.create(credential).catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.CredentialAlreadyExists,
+    })
+    expect(
+      await store.credentialRepo.create(sameUserCredential).catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.CredentialAlreadyExists,
+    })
+    expect(await store.credentialRepo.create(secondCredential)).toBe(secondCredential)
+    expect(
+      await store.credentialRepo.update(credential.id, { passwordHash: hashSecret('new') }),
+    ).toMatchObject({
+      passwordHash: hashSecret('new'),
+    })
+    expect(
+      await store.credentialRepo
+        .update(credential.id, { subject: secondCredential.subject })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.CredentialAlreadyExists,
+    })
+    expect(
+      await store.credentialRepo
+        .update(asCredentialId('missing'), {})
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.CredentialNotFound,
+    })
+
     const verification: Verification = {
       id: asVerificationId('verification-1'),
       purpose: VerificationPurpose.Link,
@@ -137,12 +205,13 @@ describe('InMemoryAuthStore', () => {
 
     await store.auditLogRepo.append({
       id: asAuditEventId('audit-1'),
-      type: 'auth.policy_denied',
+      type: AuditEventType.PolicyDenied,
       occurredAt: now,
     })
 
-    expect(store.listUsers()).toHaveLength(1)
+    expect(store.listUsers()).toHaveLength(2)
     expect(store.listIdentities()).toHaveLength(2)
+    expect(store.listCredentials()).toHaveLength(2)
     expect(store.listVerifications()).toHaveLength(1)
     expect(store.listSessions()).toHaveLength(1)
     expect(store.listAuditEvents()).toHaveLength(1)

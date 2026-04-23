@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AuthPolicyAction,
   UniAuthErrorCode,
   VerificationPurpose,
   VerificationStatus,
@@ -63,7 +64,11 @@ describe('provider, policy, and verification edge cases', () => {
       policy: createDefaultAuthPolicy({
         allowAutoLink: true,
         allowMergeAccounts: true,
-        requireReAuthFor: ['link', 'mergeAccounts', 'unlink'],
+        requireReAuthFor: [
+          AuthPolicyAction.Link,
+          AuthPolicyAction.MergeAccounts,
+          AuthPolicyAction.Unlink,
+        ],
         reAuthMaxAgeSeconds: 60,
       }),
       clock: { now: () => now },

@@ -1,8 +1,15 @@
 import { optionalProp } from './optional.js'
 import type { AuthServiceRuntime } from './runtime.js'
 import { createSessionRecord } from './sessions.js'
-import { audit, getActiveUser, isActiveIdentity } from './support.js'
 import {
+  audit,
+  enforceRateLimit,
+  getActiveUser,
+  isActiveIdentity,
+  rateLimitKey,
+} from './support.js'
+import {
+  AuditEventType,
   AuthIdentityStatus,
   type AuthIdentity,
   type AuthResult,
@@ -13,9 +20,16 @@ import {
   type User,
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
+import { RateLimitAction } from '../ports.js'
 import { normalizeEmail, normalizePhone } from '../utils/normalization.js'
 
-type SignInMode = 'exact' | 'auto-link' | 'new-user'
+const SignInAuditMode = {
+  Exact: 'exact',
+  AutoLink: 'auto-link',
+  NewUser: 'new-user',
+} as const
+
+type SignInAuditMode = (typeof SignInAuditMode)[keyof typeof SignInAuditMode]
 
 interface SignInWithAssertionInput {
   readonly now: Date
@@ -24,9 +38,17 @@ interface SignInWithAssertionInput {
 }
 
 export async function signIn(runtime: AuthServiceRuntime, input: SignInInput): Promise<AuthResult> {
+  const now = input.now ?? runtime.clock.now()
+  const assertion = await resolveAssertion(runtime, input)
+
+  await enforceRateLimit(runtime, {
+    action: RateLimitAction.ProviderSignIn,
+    key: rateLimitKey(assertion.provider, assertion.providerUserId),
+    now,
+    metadata: { provider: assertion.provider },
+  })
+
   return runtime.transaction.run(async () => {
-    const now = input.now ?? runtime.clock.now()
-    const assertion = await resolveAssertion(runtime, input)
     return signInWithAssertion(runtime, assertion, {
       now,
       ...optionalProp('sessionExpiresAt', input.sessionExpiresAt),
@@ -48,7 +70,7 @@ export async function signInWithAssertion(
   if (exactIdentity && isActiveIdentity(exactIdentity)) {
     const user = await getActiveUser(runtime, exactIdentity.userId)
     const session = await createSessionForSignIn(runtime, user, input)
-    await auditSuccessfulSignIn(runtime, 'exact', input, user, exactIdentity, session)
+    await auditSuccessfulSignIn(runtime, SignInAuditMode.Exact, input, user, exactIdentity, session)
 
     return {
       user,
@@ -69,12 +91,19 @@ export async function signInWithAssertion(
       input.now,
     )
     const session = await createSessionForSignIn(runtime, autoLinkTarget, input)
-    await audit(runtime, 'auth.identity_linked', input.now, {
+    await audit(runtime, AuditEventType.IdentityLinked, input.now, {
       userId: autoLinkTarget.id,
       identityId: identity.id,
-      metadata: { mode: 'auto-link' },
+      metadata: { mode: SignInAuditMode.AutoLink },
     })
-    await auditSuccessfulSignIn(runtime, 'auto-link', input, autoLinkTarget, identity, session)
+    await auditSuccessfulSignIn(
+      runtime,
+      SignInAuditMode.AutoLink,
+      input,
+      autoLinkTarget,
+      identity,
+      session,
+    )
 
     return {
       user: autoLinkTarget,
@@ -88,7 +117,7 @@ export async function signInWithAssertion(
   const user = await createUserFromAssertion(runtime, assertion, input.now)
   const identity = await createIdentityFromAssertion(runtime, user, assertion, input.now)
   const session = await createSessionForSignIn(runtime, user, input)
-  await auditSuccessfulSignIn(runtime, 'new-user', input, user, identity, session)
+  await auditSuccessfulSignIn(runtime, SignInAuditMode.NewUser, input, user, identity, session)
 
   return {
     user,
@@ -114,13 +143,13 @@ async function createSessionForSignIn(
 
 async function auditSuccessfulSignIn(
   runtime: AuthServiceRuntime,
-  mode: SignInMode,
+  mode: SignInAuditMode,
   input: SignInWithAssertionInput,
   user: User,
   identity: AuthIdentity,
   session: Session,
 ): Promise<void> {
-  await audit(runtime, 'auth.sign_in', input.now, {
+  await audit(runtime, AuditEventType.SignIn, input.now, {
     userId: user.id,
     identityId: identity.id,
     sessionId: session.id,
@@ -220,13 +249,7 @@ async function findAutoLinkTarget(
     return undefined
   }
 
-  const userId = userIds[0]
-
-  if (!userId) {
-    return undefined
-  }
-
-  const targetUser = await runtime.repos.userRepo.findById(userId)
+  const targetUser = await runtime.repos.userRepo.findById(userIds[0]!)
 
   if (!targetUser || targetUser.disabledAt) {
     return undefined

@@ -24,6 +24,10 @@ export function assertion(
   }
 }
 
+export function rateLimitKey(...parts: readonly string[]): string {
+  return parts.join('\u0000')
+}
+
 export function user(id = 'user-1'): User {
   return {
     id: asUserId(id),

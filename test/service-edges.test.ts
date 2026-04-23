@@ -9,7 +9,6 @@ import {
   asSessionId,
   asUserId,
   createDefaultAuthPolicy,
-  type User,
 } from '../src'
 import { InMemoryAuthStore, createInMemoryAuthKit } from '../src/testing'
 import { assertion, now } from './helpers.js'
@@ -224,7 +223,7 @@ describe('DefaultAuthService edge cases', () => {
     })
     await malformedKit.store.identityRepo.create({
       id: asIdentityId('missing-user-identity'),
-      userId: undefined as unknown as User['id'],
+      userId: asUserId('missing-user'),
       provider: 'email',
       providerUserId: 'missing-user',
       email: 'missing-user@example.com',

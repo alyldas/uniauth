@@ -1,7 +1,17 @@
 import type { AuthIdentity, ProviderIdentityAssertion, User, UserId } from '../domain/types.js'
 
 export type MaybePromise<T> = T | Promise<T>
-export type AuthPolicyAction = 'signIn' | 'link' | 'unlink' | 'mergeAccounts'
+
+export const AuthPolicyAction = {
+  SignIn: 'signIn',
+  Link: 'link',
+  Unlink: 'unlink',
+  MergeAccounts: 'mergeAccounts',
+  SetPassword: 'setPassword',
+  ChangePassword: 'changePassword',
+} as const
+
+export type AuthPolicyAction = (typeof AuthPolicyAction)[keyof typeof AuthPolicyAction]
 
 export interface AutoLinkContext {
   readonly assertion: ProviderIdentityAssertion
@@ -43,7 +53,9 @@ export interface DefaultAuthPolicyOptions {
 }
 
 export function createDefaultAuthPolicy(options: DefaultAuthPolicyOptions = {}): AuthPolicy {
-  const requireReAuthFor = new Set<AuthPolicyAction>(options.requireReAuthFor ?? ['mergeAccounts'])
+  const requireReAuthFor = new Set<AuthPolicyAction>(
+    options.requireReAuthFor ?? [AuthPolicyAction.MergeAccounts],
+  )
   const reAuthMaxAgeMs = (options.reAuthMaxAgeSeconds ?? 15 * 60) * 1000
 
   return {
