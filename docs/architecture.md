@@ -102,7 +102,9 @@ boundaries for link, unlink, merge, session, and verification flows.
 `@alyldas/uniauth/testing` provides an in-memory implementation for tests, demos, and examples. It
 includes in-memory email and SMS senders, a rate limiter, and a deterministic password hasher so
 local auth flows can be exercised without SMTP, SMS, Redis, or password-hashing runtime setup. It is
-not a production persistence adapter.
+not a production persistence adapter. The public testing entry point stays stable while internal
+modules keep store/repository state, sender fakes, and support utilities separate so persistence
+work does not pull the testing kit back into one monolith.
 
 ## Reference Persistence
 

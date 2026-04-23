@@ -94,18 +94,18 @@ Tracking issues: #40, #42.
 
 ## Next Release
 
-### v0.11 - Transactional Merge and Testing Boundaries
+### v0.12 - Testing Boundary Decomposition
 
-- Transactional merge flow.
-- Merge idempotency and partial-failure prevention.
-- Audit coverage for merge decisions without secret leakage.
 - In-memory testing kit decomposition aligned with reference persistence boundaries.
+- Stable `@alyldas/uniauth/testing` public exports over narrower internal modules.
+- Deterministic IDs and existing test ergonomics preserved while store, senders, and support fakes
+  stay independently maintainable.
 
-Tracking issues: #41, #47.
+Tracking issues: #47.
 
 ## Planned
 
-### v0.12 - Production Hardening and Integration Backlog
+### v0.13 - Production Hardening and Integration Backlog
 
 - Threat model documentation.
 - Production email and phone normalization design.
