@@ -52,6 +52,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   private readonly verifications = new Map<Verification['id'], Verification>()
   private readonly sessions = new Map<Session['id'], Session>()
   private readonly auditEvents: AuditEvent[] = []
+  private transactionDepth = 0
 
   readonly userRepo: UserRepo = {
     findById: async (id) => this.users.get(id),
@@ -164,6 +165,8 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       )
       return id ? this.credentials.get(id) : undefined
     },
+    listByUserId: async (userId) =>
+      [...this.credentials.values()].filter((credential) => credential.userId === userId),
     create: async (credential) => {
       const key = this.credentialKey(credential.type, credential.subject)
       const userKey = this.credentialUserKey(credential.type, credential.userId)
@@ -190,9 +193,15 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       const updated: Credential = { ...existing, ...patch }
       const oldKey = this.credentialKey(existing.type, existing.subject)
       const newKey = this.credentialKey(updated.type, updated.subject)
+      const oldUserKey = this.credentialUserKey(existing.type, existing.userId)
+      const newUserKey = this.credentialUserKey(updated.type, updated.userId)
       const existingCredentialId = this.credentialKeys.get(newKey)
+      const existingCredentialUserId = this.credentialUserKeys.get(newUserKey)
 
-      if (newKey !== oldKey && existingCredentialId) {
+      if (
+        (newKey !== oldKey && existingCredentialId) ||
+        (newUserKey !== oldUserKey && existingCredentialUserId)
+      ) {
         throw new UniAuthError(
           UniAuthErrorCode.CredentialAlreadyExists,
           'Credential already exists.',
@@ -201,6 +210,8 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
 
       this.credentialKeys.delete(oldKey)
       this.credentialKeys.set(newKey, updated.id)
+      this.credentialUserKeys.delete(oldUserKey)
+      this.credentialUserKeys.set(newUserKey, updated.id)
       this.credentials.set(updated.id, updated)
       return updated
     },
@@ -234,7 +245,21 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   }
 
   async run<T>(operation: () => Promise<T>): Promise<T> {
-    return operation()
+    if (this.transactionDepth > 0) {
+      return operation()
+    }
+
+    const snapshot = this.snapshot()
+    this.transactionDepth += 1
+
+    try {
+      return await operation()
+    } catch (error) {
+      this.restore(snapshot)
+      throw error
+    } finally {
+      this.transactionDepth -= 1
+    }
   }
 
   listUsers(): readonly User[] {
@@ -271,6 +296,76 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
 
   private credentialUserKey(type: CredentialType, userId: User['id']): string {
     return `${type}\u0000${userId}`
+  }
+
+  private snapshot(): {
+    readonly users: Map<User['id'], User>
+    readonly identities: Map<AuthIdentity['id'], AuthIdentity>
+    readonly identityKeys: Map<string, AuthIdentity['id']>
+    readonly credentials: Map<Credential['id'], Credential>
+    readonly credentialKeys: Map<string, Credential['id']>
+    readonly credentialUserKeys: Map<string, Credential['id']>
+    readonly verifications: Map<Verification['id'], Verification>
+    readonly sessions: Map<Session['id'], Session>
+    readonly auditEvents: AuditEvent[]
+  } {
+    return {
+      users: new Map(this.users),
+      identities: new Map(this.identities),
+      identityKeys: new Map(this.identityKeys),
+      credentials: new Map(this.credentials),
+      credentialKeys: new Map(this.credentialKeys),
+      credentialUserKeys: new Map(this.credentialUserKeys),
+      verifications: new Map(this.verifications),
+      sessions: new Map(this.sessions),
+      auditEvents: [...this.auditEvents],
+    }
+  }
+
+  private restore(snapshot: ReturnType<InMemoryAuthStore['snapshot']>): void {
+    this.users.clear()
+    this.identities.clear()
+    this.identityKeys.clear()
+    this.credentials.clear()
+    this.credentialKeys.clear()
+    this.credentialUserKeys.clear()
+    this.verifications.clear()
+    this.sessions.clear()
+    this.auditEvents.length = 0
+
+    for (const [id, user] of snapshot.users) {
+      this.users.set(id, user)
+    }
+
+    for (const [id, identity] of snapshot.identities) {
+      this.identities.set(id, identity)
+    }
+
+    for (const [key, id] of snapshot.identityKeys) {
+      this.identityKeys.set(key, id)
+    }
+
+    for (const [id, credential] of snapshot.credentials) {
+      this.credentials.set(id, credential)
+    }
+
+    for (const [key, id] of snapshot.credentialKeys) {
+      this.credentialKeys.set(key, id)
+    }
+
+    for (const [key, id] of snapshot.credentialUserKeys) {
+      this.credentialUserKeys.set(key, id)
+    }
+
+    for (const [id, verification] of snapshot.verifications) {
+      this.verifications.set(id, verification)
+    }
+
+    for (const [id, session] of snapshot.sessions) {
+      this.sessions.set(id, session)
+    }
+
+    this.auditEvents.push(...snapshot.auditEvents)
   }
 }
 

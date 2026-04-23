@@ -78,6 +78,34 @@ client inside nested UniAuth flows, commits on success, and rolls back on error.
 This means link, unlink, merge, session, and verification writes can share the same transaction
 boundary when the service calls them through `DefaultAuthService`.
 
+## Merge Semantics
+
+`mergeAccounts()` on the reference adapter is designed to be atomic:
+
+- active source identities move to the target user;
+- source credentials move to the target user;
+- the source user is disabled;
+- active source sessions are revoked;
+- if a target credential of the same type already exists, the merge is rejected before any write is
+  committed.
+
+The merge audit payload records only structural data such as moved identity IDs, moved credential
+IDs, revoked session IDs, conflicting credential types, and source user IDs. It does not record
+credential subjects, passwords, or verification secrets.
+
+## Isolation Assumptions
+
+The reference implementation assumes:
+
+- all UniAuth merge writes run through the same `PostgresAuthStore.run()` transaction boundary;
+- the unique constraints on `(provider, provider_user_id)`, `(type, subject)`, and `(type, user_id)`
+  remain enabled;
+- default Postgres `READ COMMITTED` isolation is acceptable for the reference adapter because the
+  uniqueness constraints are the final guard against duplicate identity and credential ownership.
+
+If the application adds external side effects or non-UniAuth writes into the same merge workflow, it
+should place them in the same database transaction or choose a stricter isolation level itself.
+
 ## Security Notes
 
 - Verification secrets remain hashed at rest; the adapter stores only `secret_hash`.

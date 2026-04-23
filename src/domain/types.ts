@@ -239,6 +239,8 @@ export interface MergeResult {
   readonly sourceUser: User
   readonly targetUser: User
   readonly movedIdentityIds: readonly IdentityId[]
+  readonly movedCredentialIds: readonly CredentialId[]
+  readonly revokedSessionIds: readonly SessionId[]
 }
 
 export interface CreateSessionInput {

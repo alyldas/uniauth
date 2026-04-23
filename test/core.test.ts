@@ -704,6 +704,8 @@ describe('DefaultAuthService', () => {
     })
 
     expect(merged.movedIdentityIds).toEqual([source.identity.id])
+    expect(merged.movedCredentialIds).toEqual([])
+    expect(merged.revokedSessionIds).toEqual([source.session.id])
     expect(merged.sourceUser.disabledAt).toEqual(now)
     expect(
       allowedKit.store
@@ -717,6 +719,155 @@ describe('DefaultAuthService', () => {
         .filter((session) => session.userId === source.user.id)
         .map((session) => session.status),
     ).toEqual([SessionStatus.Revoked])
+  })
+
+  it('moves password credentials on merge, supports idempotent retry, and keeps audit metadata secret-free', async () => {
+    const kit = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({ allowMergeAccounts: true, requireReAuthFor: [] }),
+    })
+    const source = await kit.service.signIn({
+      assertion: assertion({ providerUserId: 'source-password', email: 'source@example.com' }),
+      now,
+    })
+    const target = await kit.service.signIn({
+      assertion: assertion({ providerUserId: 'target-password', email: 'target@example.com' }),
+      now,
+    })
+    const sourceCredential = await kit.service.setPassword({
+      userId: source.user.id,
+      email: 'source@example.com',
+      password: 'source-secret',
+      now,
+    })
+
+    const merged = await kit.service.mergeAccounts({
+      sourceUserId: source.user.id,
+      targetUserId: target.user.id,
+      reAuthenticatedAt: now,
+      now,
+    })
+
+    expect(merged.movedCredentialIds).toEqual([sourceCredential.id])
+    expect(merged.revokedSessionIds).toEqual([source.session.id])
+    expect(merged.movedIdentityIds).toEqual(expect.arrayContaining([source.identity.id]))
+    expect(
+      kit.store
+        .listCredentials()
+        .filter((credential) => credential.id === sourceCredential.id)
+        .map((credential) => credential.userId),
+    ).toEqual([target.user.id])
+
+    const passwordSignIn = await kit.service.signInWithPassword({
+      email: 'source@example.com',
+      password: 'source-secret',
+      now,
+    })
+
+    expect(passwordSignIn.user.id).toBe(target.user.id)
+
+    const retriedMerge = await kit.service.mergeAccounts({
+      sourceUserId: source.user.id,
+      targetUserId: target.user.id,
+      reAuthenticatedAt: now,
+      now,
+    })
+
+    expect(retriedMerge.movedIdentityIds).toEqual([])
+    expect(retriedMerge.movedCredentialIds).toEqual([])
+    expect(retriedMerge.revokedSessionIds).toEqual([])
+
+    const mergeEvents = kit.store
+      .listAuditEvents()
+      .filter((event) => event.type === AuditEventType.AccountsMerged)
+
+    expect(mergeEvents).toHaveLength(2)
+    expect(mergeEvents[0]?.metadata).toMatchObject({
+      decision: 'merged',
+      sourceUserId: source.user.id,
+      movedCredentialIds: [sourceCredential.id],
+      revokedSessionIds: [source.session.id],
+    })
+    expect(mergeEvents[1]?.metadata).toMatchObject({
+      decision: 'already-merged',
+      sourceUserId: source.user.id,
+      movedIdentityIds: [],
+      movedCredentialIds: [],
+      revokedSessionIds: [],
+    })
+    expect(JSON.stringify(mergeEvents)).not.toContain('source-secret')
+    expect(JSON.stringify(mergeEvents)).not.toContain('source@example.com')
+  })
+
+  it('rejects merge credential conflicts without moving data or leaking subjects into audit metadata', async () => {
+    const kit = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({ allowMergeAccounts: true, requireReAuthFor: [] }),
+    })
+    const source = await kit.service.signIn({
+      assertion: assertion({
+        providerUserId: 'source-conflict',
+        email: 'source-conflict@example.com',
+      }),
+      now,
+    })
+    const target = await kit.service.signIn({
+      assertion: assertion({
+        providerUserId: 'target-conflict',
+        email: 'target-conflict@example.com',
+      }),
+      now,
+    })
+    const sourceCredential = await kit.service.setPassword({
+      userId: source.user.id,
+      email: 'source-conflict@example.com',
+      password: 'source-conflict-secret',
+      now,
+    })
+    await kit.service.setPassword({
+      userId: target.user.id,
+      email: 'target-conflict@example.com',
+      password: 'target-conflict-secret',
+      now,
+    })
+
+    const mergeError = await kit.service
+      .mergeAccounts({
+        sourceUserId: source.user.id,
+        targetUserId: target.user.id,
+        reAuthenticatedAt: now,
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(mergeError).toMatchObject({ code: UniAuthErrorCode.CredentialAlreadyExists })
+    expect(
+      kit.store
+        .listCredentials()
+        .filter((credential) => credential.id === sourceCredential.id)
+        .map((credential) => credential.userId),
+    ).toEqual([source.user.id])
+    expect(
+      kit.store.listUsers().find((user) => user.id === source.user.id)?.disabledAt,
+    ).toBeUndefined()
+    expect(
+      kit.store
+        .listSessions()
+        .filter((session) => session.userId === source.user.id)
+        .map((session) => session.status),
+    ).toEqual([SessionStatus.Active])
+
+    const denialEvent = [...kit.store.listAuditEvents()]
+      .reverse()
+      .find((event) => event.type === AuditEventType.PolicyDenied)
+
+    expect(denialEvent?.type).toBe(AuditEventType.PolicyDenied)
+    expect(denialEvent?.metadata).toMatchObject({
+      reason: 'merge-credential-conflict',
+      sourceUserId: source.user.id,
+      credentialTypes: ['password'],
+    })
+    expect(JSON.stringify(denialEvent?.metadata)).not.toContain('source-conflict-secret')
+    expect(JSON.stringify(denialEvent?.metadata)).not.toContain('source-conflict@example.com')
+    expect(JSON.stringify(denialEvent?.metadata)).not.toContain('target-conflict@example.com')
   })
 
   it('resolves assertions through a provider registry when requested', async () => {

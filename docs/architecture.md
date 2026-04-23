@@ -109,7 +109,9 @@ not a production persistence adapter.
 `@alyldas/uniauth/postgres` provides a reference Postgres implementation for the repository ports and
 `UnitOfWork`. It accepts an application-owned `pg.Pool`-compatible object instead of bundling a
 database driver into the root package. Schema rollout and migrations remain application-owned even
-though the package also ships a reference SQL schema helper for bootstrap and tests.
+though the package also ships a reference SQL schema helper for bootstrap and tests. The merge flow
+is designed to move identities and credentials, revoke source sessions, and disable the source user
+inside one transaction boundary.
 
 ## Adapter Requirements
 
@@ -119,6 +121,7 @@ Storage adapters should:
 - keep user, identity, session, verification, and audit records separate;
 - keep password credentials separate from identities and store only password hashes;
 - apply `UnitOfWork` to sensitive multi-write flows;
+- keep merge conflict detection aligned with unique credential and identity ownership constraints;
 - store only hashed verification secrets;
 - avoid email/phone ownership inference outside the policy-controlled flow.
 

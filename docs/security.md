@@ -88,6 +88,15 @@
 - Provider adapters can expose normalized trust context without leaking provider SDK objects into
   the core policy contract.
 
+## Threats Covered in v0.11
+
+- Merge retries can return a stable no-op result after the source account has already been merged.
+- Password credential conflicts abort merge before disabling the source user or moving partial state.
+- Merge denial and success audit metadata stay free of credential subjects, passwords, and
+  verification secrets.
+- Transaction-aware stores can roll merge state back when persistence fails after intermediate
+  updates.
+
 ## Out of Scope for Core
 
 - Cookie flags and browser session transport.

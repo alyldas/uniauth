@@ -92,10 +92,11 @@ export interface IdentityRepo {
 export interface CredentialRepo {
   findPasswordByEmail(email: string): Promise<Credential | undefined>
   findPasswordByUserId(userId: UserId): Promise<Credential | undefined>
+  listByUserId(userId: UserId): Promise<readonly Credential[]>
   create(credential: Credential): Promise<Credential>
   update(
     id: CredentialId,
-    patch: Partial<Omit<Credential, 'id' | 'userId' | 'type' | 'createdAt'>>,
+    patch: Partial<Omit<Credential, 'id' | 'type' | 'createdAt'>>,
   ): Promise<Credential>
 }
 
