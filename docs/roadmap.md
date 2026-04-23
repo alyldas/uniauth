@@ -47,8 +47,6 @@
   examples, and license files.
 - Changelog and merge policy documented for the Release Please workflow.
 
-## Next Release
-
 ### v0.6 - Local Auth Hardening
 
 - Email magic link on the shared verification lifecycle.
@@ -60,19 +58,28 @@
 - Shared verification lifecycle tests for magic link, OTP, and password recovery.
 - Public docs for choosing local auth flows without leaking account state.
 
-## Planned
+## Next Release
 
 ### v0.7 - Messenger Providers
 
 - Telegram Mini App `initData` contracts and reference implementation.
 - MAX WebApp `initData` contracts and reference implementation.
+- Shared signed WebApp launch-data validation boundary.
+- Messenger provider docs and examples.
+
+Tracking issues: #33, #34, #35, #36.
+
+## Planned
 
 ### v0.8 - OAuth / OIDC Layer
 
+- Provider adapter module layout before adding OAuth/OIDC adapters.
 - Generic OAuth/OIDC adapter contract.
 - Trusted provider policy.
 - Provider profile mapping into `ProviderIdentityAssertion`.
 - Optional Better Auth and Auth.js bridge adapters.
+
+Tracking issues: #37, #38, #39, #49.
 
 ### v0.9 - Reference Persistence
 
@@ -80,6 +87,9 @@
 - SQL schema example.
 - Transactional merge flow.
 - Indexes and constraints.
+- In-memory testing kit decomposition aligned with reference persistence boundaries.
+
+Tracking issues: #40, #41, #42, #47.
 
 ### v0.10 - Production Hardening
 
@@ -91,6 +101,10 @@
 - Audit coverage.
 - Migration docs and example applications.
 - Backend recipes for Express, Fastify, Nest, and Next.
+- Public domain and service contract source-module decomposition.
+- Password auth use-case decomposition.
+
+Tracking issues: #28, #29, #43, #44, #45, #46, #48.
 
 ## Examples Backlog
 

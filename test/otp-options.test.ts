@@ -23,14 +23,14 @@ describe('OTP configuration', () => {
     }
 
     expect(message?.subject).toBe('Custom sign-in code')
-    await expect(
-      configured.service.finishOtpSignIn({
-        verificationId: challenge.verificationId,
-        secret,
-        channel: OtpChannel.Email,
-        now,
-      }),
-    ).resolves.toMatchObject({
+    const result = await configured.service.finishOtpSignIn({
+      verificationId: challenge.verificationId,
+      secret,
+      channel: OtpChannel.Email,
+      now,
+    })
+
+    expect(result).toMatchObject({
       identity: {
         provider: EMAIL_OTP_PROVIDER_ID,
         providerUserId: 'four@example.com',

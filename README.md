@@ -25,6 +25,7 @@ license, subscription, private contract, or other written permission.
 - Hashes password credentials through a password hasher port, stores them through a credential repo,
   and signs in with a local password identity.
 - Starts and finishes email password recovery on the shared verification lifecycle.
+- Validates signed Telegram Mini App and MAX WebApp `initData` without provider SDK lock-in.
 - Creates local session records after successful sign-in.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
 - Exposes ports for repositories, providers, sender infrastructure, rate limits, password hashing,
@@ -37,7 +38,8 @@ license, subscription, private contract, or other written permission.
 - It does not ship frontend pages or UI components.
 - It does not include Express, Fastify, Nest, Nuxt, or Next handlers in core.
 - It does not generate one mandatory ORM schema.
-- It does not include SMTP, SMS gateway, OAuth, Telegram, or MAX SDK implementations in core.
+- It does not include SMTP, SMS gateway, OAuth, Telegram, or MAX SDKs, bot setup, webhook handlers,
+  or frontend bridge code in core.
 - It does not send messages by itself; OTP, magic-link, and recovery delivery use sender ports you
   provide.
 - It does not bundle a password hashing runtime; password hashing uses a `PasswordHasher` adapter you
@@ -188,6 +190,9 @@ const result = await service.signIn({
   },
 })
 ```
+
+Messenger Mini App providers are SDK-free `AuthProvider` adapters for signed Telegram and MAX
+launch data. See [Messenger providers](docs/messenger-providers.md).
 
 Public error helpers use the `UniAuth` brand casing:
 
@@ -403,6 +408,7 @@ contact `alyldas@ya.ru`.
 - [Architecture](docs/architecture.md)
 - [Security model](docs/security.md)
 - [Local auth flows](docs/local-auth.md)
+- [Messenger providers](docs/messenger-providers.md)
 - [Comparison](docs/comparison.md)
 - [Licensing and attribution](docs/licensing.md)
 - [Roadmap](docs/roadmap.md)
