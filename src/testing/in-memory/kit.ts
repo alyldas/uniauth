@@ -28,7 +28,7 @@ export interface CreateInMemoryAuthKitOptions {
   readonly verificationTtlSeconds?: number
 }
 
-export interface InMemoryAuthKit {
+interface InMemoryAuthKitResult {
   readonly service: DefaultAuthService
   readonly store: InMemoryAuthStore
   readonly providerRegistry: InMemoryProviderRegistry
@@ -39,7 +39,9 @@ export interface InMemoryAuthKit {
   readonly idGenerator: IdGenerator
 }
 
-export function createInMemoryAuthKit(options: CreateInMemoryAuthKitOptions = {}): InMemoryAuthKit {
+export function createInMemoryAuthKit(
+  options: CreateInMemoryAuthKitOptions = {},
+): InMemoryAuthKitResult {
   const store = new InMemoryAuthStore()
   const providerRegistry = new InMemoryProviderRegistry()
   const emailSender = new InMemoryEmailSender()

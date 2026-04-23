@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 import packageJson from '../package.json'
@@ -69,6 +70,16 @@ describe('package exports', () => {
     expect(testing.InMemoryRateLimiter).toBeTypeOf('function')
     expect(testing.InMemorySmsSender).toBeTypeOf('function')
     expect(testing.StaticAuthProvider).toBeTypeOf('function')
+  })
+
+  it('keeps testing package declarations aligned with the stable public surface', async () => {
+    const testingKitDeclarations = await readFile(
+      new URL('../dist/testing/in-memory/kit.d.ts', import.meta.url),
+      'utf8',
+    )
+
+    expect(testingKitDeclarations).not.toContain('export interface InMemoryAuthKit')
+    expect(testingKitDeclarations).toContain('export interface CreateInMemoryAuthKitOptions')
   })
 
   it('keeps internal application helpers private', () => {
