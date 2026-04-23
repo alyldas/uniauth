@@ -8,9 +8,8 @@ coverage
 # Husky runtime files are local git-hook plumbing, not package inputs.
 .husky/_
 
-# Git metadata and CI config are not needed for the package check image.
+# Git metadata is not needed for the package check image.
 .git
-.github
 
 # Local editor state.
 .idea

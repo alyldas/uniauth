@@ -31,8 +31,6 @@
 - Attribution metadata and About/Legal notice helper.
 - PolyForm Strict public license metadata and commercial contact docs.
 
-## Next Release
-
 ### v0.5 - Internal Orchestration and Package Hygiene
 
 - Decomposed `DefaultAuthService` into focused application use-case modules.
@@ -47,14 +45,19 @@
   ESM consumer type resolution.
 - Published package files restricted to public entry points, public declaration dependencies, docs,
   examples, and license files.
+- Changelog and merge policy documented for the Release Please workflow.
 
-## Planned
+## Next Release
 
-### v0.6 - Additional Local Auth Methods
+### v0.6 - Local Auth Hardening
 
 - Email magic link.
 - Password credential with Argon2id.
 - Rate limit integration ports.
+- Shared verification lifecycle tests for magic link, OTP, and password recovery.
+- Public docs for choosing local auth flows without leaking account state.
+
+## Planned
 
 ### v0.7 - Messenger Providers
 

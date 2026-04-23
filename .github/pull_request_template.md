@@ -10,3 +10,4 @@
 - [ ] Security-sensitive behavior is tested, or this change does not affect security behavior.
 - [ ] Release metadata is not edited manually unless this is a Release Please PR (`package.json`, `package-lock.json`, `CHANGELOG.md`).
 - [ ] Merge method and changelog impact follow the policy in `CONTRIBUTING.md`.
+- [ ] Runtime or dependency major updates match the supported Node.js target in `CONTRIBUTING.md`.
