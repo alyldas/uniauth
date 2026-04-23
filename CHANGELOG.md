@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/alyldas/uniauth/compare/v0.6.0...v0.7.0) (2026-04-23)
+
+
+### Features
+
+* add messenger WebApp providers ([651348f](https://github.com/alyldas/uniauth/commit/651348ff0e22fe6cc1444a0f769e5d2cf0d937f0))
+
 ## [0.6.0](https://github.com/alyldas/uniauth/compare/v0.5.0...v0.6.0) (2026-04-23)
 
 
