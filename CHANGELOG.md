@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/alyldas/uniauth/compare/v0.11.0...v0.11.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* keep testing public exports stable ([18795bb](https://github.com/alyldas/uniauth/commit/18795bb26c289155eaed37f39b00221c3a05d26f))
+
 ## [0.11.0](https://github.com/alyldas/uniauth/compare/v0.10.0...v0.11.0) (2026-04-23)
 
 
