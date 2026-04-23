@@ -111,6 +111,25 @@ own provider SDK setup, redirect routes, raw provider payload storage, or applic
 Provider-specific signature validation can live in a small reference adapter when it does not force
 SDK, framework, or storage dependencies into the core package.
 
+## Provider Adapter Layout
+
+Reference provider adapters use root package exports only. Provider-specific source modules may live
+under `src/providers`, but those paths are internal implementation details and must not be added to
+`package.json` subpath exports without a package-level reason.
+
+Each provider family should keep the same rough split when it reduces real complexity:
+
+- a root-facing source barrel, such as `src/messenger.ts`;
+- provider IDs and small constants;
+- payload extraction from `FinishInput`;
+- provider-specific validation and freshness checks;
+- assertion mapping into `ProviderIdentityAssertion`;
+- provider factory functions that return `AuthProvider`.
+
+Adapter code should stay SDK-free unless the adapter is moved out of core into a dedicated package.
+Framework handlers, redirects, callbacks, cookies, secret loading, and provider SDK clients remain
+application-owned.
+
 ## Repository Shape
 
 The project starts as a single package so the core domain contracts can stabilize before adapters

@@ -79,4 +79,19 @@ describe('package exports', () => {
     expect(result.status).not.toBe(0)
     expect(result.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED')
   })
+
+  it('keeps internal provider adapter modules private', () => {
+    const privateProviderSubpath = `${packageMetadata.name}/providers/messenger.js`
+    const result = spawnSync(
+      process.execPath,
+      ['--input-type=module', '--eval', `await import(${JSON.stringify(privateProviderSubpath)})`],
+      {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+      },
+    )
+
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED')
+  })
 })
