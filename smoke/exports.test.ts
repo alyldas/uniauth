@@ -46,7 +46,9 @@ describe('package exports', () => {
     expect(core.createDefaultAuthPolicy).toBeTypeOf('function')
     expect(core.createHmacSecretHasher).toBeTypeOf('function')
     expect(core.createMaxWebAppProvider).toBeTypeOf('function')
+    expect(core.createOAuthOidcProvider).toBeTypeOf('function')
     expect(core.createTelegramMiniAppProvider).toBeTypeOf('function')
+    expect(core.mapOAuthOidcProfileToAssertion).toBeTypeOf('function')
     expect(core.validateSignedWebAppInitData).toBeTypeOf('function')
     expect(core.UNIAUTH_ATTRIBUTION).toBeTypeOf('object')
     expect(core.getUniAuthAttributionNotice).toBeTypeOf('function')
@@ -81,17 +83,25 @@ describe('package exports', () => {
   })
 
   it('keeps internal provider adapter modules private', () => {
-    const privateProviderSubpath = `${packageMetadata.name}/providers/messenger.js`
-    const result = spawnSync(
-      process.execPath,
-      ['--input-type=module', '--eval', `await import(${JSON.stringify(privateProviderSubpath)})`],
-      {
-        cwd: process.cwd(),
-        encoding: 'utf8',
-      },
-    )
+    for (const privateProviderSubpath of [
+      `${packageMetadata.name}/providers/messenger.js`,
+      `${packageMetadata.name}/providers/oauth-oidc.js`,
+    ]) {
+      const result = spawnSync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '--eval',
+          `await import(${JSON.stringify(privateProviderSubpath)})`,
+        ],
+        {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+        },
+      )
 
-    expect(result.status).not.toBe(0)
-    expect(result.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED')
+      expect(result.status).not.toBe(0)
+      expect(result.stderr).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED')
+    }
   })
 })
