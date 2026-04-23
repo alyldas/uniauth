@@ -114,6 +114,7 @@ local npm config or CI secrets; do not commit tokens.
 ## Runtime Contract
 
 The package targets modern ESM TypeScript consumers on Node.js 22 or newer.
+The repository keeps `.node-version` as the local Node.js 22 runtime marker.
 
 Core imports come from the root entry point:
 
@@ -295,6 +296,7 @@ contact `alyldas@ya.ru`.
 
 ## Documentation
 
+- [Development](docs/development.md)
 - [Architecture](docs/architecture.md)
 - [Security model](docs/security.md)
 - [Comparison](docs/comparison.md)

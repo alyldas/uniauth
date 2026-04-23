@@ -2,6 +2,8 @@
 
 ## Local Setup
 
+Use Node.js 22 locally. The repository keeps `.node-version` as the runtime marker.
+
 ```sh
 npm ci
 npm run check
@@ -25,6 +27,8 @@ npm run check
 
 This matches the CI class of checks for the package: format check, lint, typecheck, 100% coverage,
 export smoke tests, package lint, package type-resolution checks, and `npm pack --dry-run`.
+
+See [Development](docs/development.md) for the Docker gate and CI run model.
 
 ## Commit Messages
 
@@ -128,6 +132,7 @@ project maintainer.
 
 ## Useful Docs
 
+- [Development](docs/development.md)
 - [Architecture](docs/architecture.md)
 - [Security model](docs/security.md)
 - [Roadmap](docs/roadmap.md)
