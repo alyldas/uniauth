@@ -29,6 +29,8 @@ license, subscription, private contract, or other written permission.
 - Maps SDK-free OAuth/OIDC provider profiles into the existing provider sign-in pipeline.
 - Creates local session records after successful sign-in.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
+- Runs transaction-aware account merge over identities, credentials, sessions, and audit decisions
+  when the configured `UnitOfWork` supports atomic rollback.
 - Exposes ports for repositories, providers, sender infrastructure, rate limits, password hashing,
   audit logs, and transactions.
 - Ships an in-memory testing implementation through `@alyldas/uniauth/testing`.

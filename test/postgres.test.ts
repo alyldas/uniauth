@@ -444,4 +444,132 @@ describe('Postgres reference persistence', () => {
       code: UniAuthErrorCode.SessionNotFound,
     })
   })
+
+  it('moves password credentials during merge and supports idempotent retries on Postgres', async () => {
+    const { service, store } = await createPostgresTestKit()
+    const source = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-merge-source',
+        email: 'pg-merge-source@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const target = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-merge-target',
+        email: 'pg-merge-target@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const sourceCredential = await service.setPassword({
+      userId: source.user.id,
+      email: 'pg-merge-source@example.com',
+      password: 'pg-merge-secret',
+      now,
+    })
+
+    const merged = await service.mergeAccounts({
+      sourceUserId: source.user.id,
+      targetUserId: target.user.id,
+      reAuthenticatedAt: now,
+      now,
+    })
+
+    expect(merged.movedCredentialIds).toEqual([sourceCredential.id])
+    expect(merged.revokedSessionIds).toEqual([source.session.id])
+    expect(await store.credentialRepo.listByUserId(target.user.id)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: sourceCredential.id,
+          userId: target.user.id,
+        }),
+      ]),
+    )
+
+    const passwordSignIn = await service.signInWithPassword({
+      email: 'pg-merge-source@example.com',
+      password: 'pg-merge-secret',
+      now,
+    })
+
+    expect(passwordSignIn.user.id).toBe(target.user.id)
+
+    const retriedMerge = await service.mergeAccounts({
+      sourceUserId: source.user.id,
+      targetUserId: target.user.id,
+      reAuthenticatedAt: now,
+      now,
+    })
+
+    expect(retriedMerge.movedIdentityIds).toEqual([])
+    expect(retriedMerge.movedCredentialIds).toEqual([])
+    expect(retriedMerge.revokedSessionIds).toEqual([])
+  })
+
+  it('rejects merge credential conflicts on Postgres without partial writes', async () => {
+    const { service, store } = await createPostgresTestKit()
+    const source = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-conflict-source',
+        email: 'pg-conflict-source@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const target = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-conflict-target',
+        email: 'pg-conflict-target@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const sourceCredential = await service.setPassword({
+      userId: source.user.id,
+      email: 'pg-conflict-source@example.com',
+      password: 'pg-conflict-source-secret',
+      now,
+    })
+    await service.setPassword({
+      userId: target.user.id,
+      email: 'pg-conflict-target@example.com',
+      password: 'pg-conflict-target-secret',
+      now,
+    })
+
+    await expect(
+      service.mergeAccounts({
+        sourceUserId: source.user.id,
+        targetUserId: target.user.id,
+        reAuthenticatedAt: now,
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.CredentialAlreadyExists,
+    })
+
+    expect(await store.userRepo.findById(source.user.id)).toMatchObject({
+      id: source.user.id,
+    })
+    expect(await store.credentialRepo.listByUserId(source.user.id)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: sourceCredential.id,
+          userId: source.user.id,
+        }),
+      ]),
+    )
+    expect(
+      (await store.identityRepo.listByUserId(source.user.id)).map((identity) => identity.userId),
+    ).toEqual(expect.arrayContaining([source.user.id]))
+    expect(
+      (await store.sessionRepo.listByUserId(source.user.id)).map((session) => session.status),
+    ).toEqual([SessionStatus.Active])
+  })
 })

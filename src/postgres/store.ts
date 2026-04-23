@@ -322,6 +322,16 @@ export class PostgresAuthStore
         [userId],
         mapCredentialRow,
       ),
+    listByUserId: async (userId) =>
+      this.queryRows<CredentialRow, Credential>(
+        `select
+           id, user_id, type, subject, password_hash, created_at, updated_at, metadata
+         from uniauth_credentials
+         where user_id = $1
+         order by created_at asc, id asc`,
+        [userId],
+        mapCredentialRow,
+      ),
     create: async (credential) => {
       try {
         return await this.queryRequiredRow<CredentialRow, Credential>(
@@ -361,6 +371,7 @@ export class PostgresAuthStore
       }
 
       const update = buildUpdateQuery(patch, [
+        { key: 'userId', column: 'user_id' },
         { key: 'subject', column: 'subject' },
         { key: 'passwordHash', column: 'password_hash' },
         { key: 'updatedAt', column: 'updated_at' },

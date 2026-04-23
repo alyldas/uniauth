@@ -84,21 +84,28 @@ Tracking issues: #37, #49.
 
 Tracking issues: #38.
 
-## Next Release
-
 ### v0.10 - Reference Persistence
 
 - Postgres reference storage.
-- SQL schema example.
-- Transactional merge flow.
 - Indexes and constraints.
+- SQL schema example.
+
+Tracking issues: #40, #42.
+
+## Next Release
+
+### v0.11 - Transactional Merge and Testing Boundaries
+
+- Transactional merge flow.
+- Merge idempotency and partial-failure prevention.
+- Audit coverage for merge decisions without secret leakage.
 - In-memory testing kit decomposition aligned with reference persistence boundaries.
 
-Tracking issues: #40, #41, #42, #47.
+Tracking issues: #41, #47.
 
 ## Planned
 
-### v0.11 - Production Hardening and Integration Backlog
+### v0.12 - Production Hardening and Integration Backlog
 
 - Threat model documentation.
 - Production email and phone normalization design.
