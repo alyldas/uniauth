@@ -20,6 +20,7 @@ export function assertion(
     ...(input.phone ? { phone: input.phone } : {}),
     ...(input.phoneVerified !== undefined ? { phoneVerified: input.phoneVerified } : {}),
     ...(input.displayName ? { displayName: input.displayName } : {}),
+    ...(input.trust ? { trust: input.trust } : {}),
     ...(input.metadata ? { metadata: input.metadata } : {}),
   }
 }
@@ -49,6 +50,7 @@ export function identity(input: Partial<AuthIdentity> = {}): AuthIdentity {
     ...(input.emailVerified !== undefined ? { emailVerified: input.emailVerified } : {}),
     ...(input.phone ? { phone: input.phone } : {}),
     ...(input.phoneVerified !== undefined ? { phoneVerified: input.phoneVerified } : {}),
+    ...(input.trust ? { trust: input.trust } : {}),
     ...(input.disabledAt ? { disabledAt: input.disabledAt } : {}),
     ...(input.metadata ? { metadata: input.metadata } : {}),
   }

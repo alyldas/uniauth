@@ -67,31 +67,30 @@
 
 Tracking issues: #33, #34, #35, #36.
 
-## Next Release
-
 ### v0.8 - OAuth / OIDC Layer
 
 - Provider adapter module layout before adding OAuth/OIDC adapters.
 - Generic OAuth/OIDC adapter contract.
-- Trusted provider policy.
 - Provider profile mapping into `ProviderIdentityAssertion`.
-- Optional Better Auth and Auth.js bridge adapters.
 
-Tracking issues: #37, #38, #39, #49.
+Tracking issues: #37, #49.
 
-## Planned
+## Next Release
 
-### v0.9 - Reference Persistence
+### v0.9 - Reference Persistence and OAuth Policy Follow-Up
 
+- Trusted provider policy hooks.
 - Postgres reference storage.
 - SQL schema example.
 - Transactional merge flow.
 - Indexes and constraints.
 - In-memory testing kit decomposition aligned with reference persistence boundaries.
 
-Tracking issues: #40, #41, #42, #47.
+Tracking issues: #38, #40, #41, #42, #47.
 
-### v0.10 - Production Hardening
+## Planned
+
+### v0.10 - Production Hardening and Integration Backlog
 
 - Threat model documentation.
 - Production email and phone normalization design.
@@ -101,10 +100,11 @@ Tracking issues: #40, #41, #42, #47.
 - Audit coverage.
 - Migration docs and example applications.
 - Backend recipes for Express, Fastify, Nest, and Next.
+- Optional Better Auth and Auth.js bridge adapters after the core OAuth/OIDC policy surface settles.
 - Public domain and service contract source-module decomposition.
 - Password auth use-case decomposition.
 
-Tracking issues: #28, #29, #43, #44, #45, #46, #48.
+Tracking issues: #28, #29, #39, #43, #44, #45, #46, #48.
 
 ## Examples Backlog
 

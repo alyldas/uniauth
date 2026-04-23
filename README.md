@@ -138,6 +138,7 @@ import {
   EMAIL_OTP_PROVIDER_ID,
   OtpChannel,
   PASSWORD_PROVIDER_ID,
+  ProviderTrustLevel,
   RateLimitAction,
   UniAuthError,
   UniAuthErrorCode,
@@ -175,11 +176,23 @@ create sessions, read environment variables, or mutate global state.
 The service contract is policy-driven:
 
 ```ts
-const { service } = createInMemoryAuthKit({
-  policy: createDefaultAuthPolicy({
-    allowAutoLink: false,
+const policy = {
+  ...createDefaultAuthPolicy({
+    allowAutoLink: true,
     allowMergeAccounts: false,
   }),
+  canAutoLink(context) {
+    return (
+      context.assertion.trust?.level === ProviderTrustLevel.Trusted &&
+      context.existingIdentities.every(
+        (identity) => identity.trust?.level !== ProviderTrustLevel.Untrusted,
+      )
+    )
+  },
+}
+
+const { service } = createInMemoryAuthKit({
+  policy,
 })
 
 const result = await service.signIn({
@@ -188,6 +201,10 @@ const result = await service.signIn({
     providerUserId: 'alice@example.com',
     email: 'alice@example.com',
     emailVerified: true,
+    trust: {
+      level: ProviderTrustLevel.Trusted,
+      signals: ['first-party-email'],
+    },
   },
 })
 ```

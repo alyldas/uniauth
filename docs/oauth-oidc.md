@@ -103,6 +103,25 @@ createOAuthOidcProvider({
 })
 ```
 
+Providers can also attach normalized trust context for downstream policy checks:
+
+```ts
+createOAuthOidcProvider({
+  providerId: 'tenant-oauth',
+  client,
+  mapProfile: ({ provider, profile }) => ({
+    provider,
+    providerUserId: profile.subject,
+    email: profile.email,
+    emailVerified: profile.emailVerified,
+    trust: {
+      level: 'trusted',
+      signals: ['oidc-email-verified', 'tenant-allowlist'],
+    },
+  }),
+})
+```
+
 ## Security Notes
 
 - Validate `state`, `nonce`, redirect URI, and PKCE verifier in application code before or during
@@ -113,3 +132,5 @@ createOAuthOidcProvider({
 - Exact `(provider, providerUserId)` matching still wins. Email, phone, username, and display fields
   are profile hints, not account ownership proof.
 - Auto-link remains controlled by `AuthPolicy`; OAuth/OIDC providers do not silently merge users.
+- `ProviderIdentityAssertion.trust` can carry app-owned trust signals into `AuthPolicy.canAutoLink`,
+  `AuthPolicy.canLinkIdentity`, and `AuthPolicy.canMergeUsers` without exposing provider SDK types.

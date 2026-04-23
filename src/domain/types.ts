@@ -64,6 +64,20 @@ export const SessionStatus = {
 
 export type SessionStatus = (typeof SessionStatus)[keyof typeof SessionStatus]
 
+export const ProviderTrustLevel = {
+  Trusted: 'trusted',
+  Neutral: 'neutral',
+  Untrusted: 'untrusted',
+} as const
+
+export type ProviderTrustLevel = (typeof ProviderTrustLevel)[keyof typeof ProviderTrustLevel]
+
+export interface ProviderTrustContext {
+  readonly level: ProviderTrustLevel
+  readonly signals?: readonly string[]
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface User {
   readonly id: UserId
   readonly displayName?: string
@@ -85,6 +99,7 @@ export interface AuthIdentity {
   readonly emailVerified?: boolean
   readonly phone?: string
   readonly phoneVerified?: boolean
+  readonly trust?: ProviderTrustContext
   readonly createdAt: Date
   readonly updatedAt: Date
   readonly disabledAt?: Date
@@ -135,6 +150,7 @@ export interface ProviderIdentityAssertion {
   readonly phone?: string
   readonly phoneVerified?: boolean
   readonly displayName?: string
+  readonly trust?: ProviderTrustContext
   readonly metadata?: Record<string, unknown>
 }
 

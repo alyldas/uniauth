@@ -30,10 +30,13 @@
 ## Policy Matrix
 
 - Auto-link by verified email/phone: denied by default; extension point:
-  `AuthPolicy.canAutoLink`.
+  `AuthPolicy.canAutoLink`. The context includes the incoming assertion trust and the matched
+  existing identities so policy can reject low-trust provider claims.
+- Link provider identity: allowed by default; extension point: `AuthPolicy.canLinkIdentity`.
 - Unlink identity: allowed only when another active identity remains; extension point:
   `AuthPolicy.canUnlinkIdentity`.
-- Merge users: denied by default; extension point: `AuthPolicy.canMergeUsers`.
+- Merge users: denied by default; extension point: `AuthPolicy.canMergeUsers`. The merge context now
+  includes source and target active identities so policy can inspect provider trust and metadata.
 - Re-auth: required for merge by default; extension point: `AuthPolicy.requiresReAuth`.
 
 ## Threats Covered in v0.1
@@ -77,6 +80,13 @@
   runtime without adding a mandatory dependency to core.
 - Password recovery reuses the verification lifecycle and rate-limit port without creating sessions
   during reset.
+
+## Threats Covered in v0.9
+
+- Low-trust provider claims can be denied during auto-link and explicit link policy decisions.
+- Merge policy can inspect active identities on both sides before moving provider-linked accounts.
+- Provider adapters can expose normalized trust context without leaking provider SDK objects into
+  the core policy contract.
 
 ## Out of Scope for Core
 
