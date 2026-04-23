@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/alyldas/uniauth/compare/v0.5.0...v0.6.0) (2026-04-23)
+
+
+### Features
+
+* add local auth hardening flows ([84194e7](https://github.com/alyldas/uniauth/commit/84194e73617b49df46161fc32d9fd8d15f7578d4))
+
 ## [0.5.0](https://github.com/alyldas/uniauth/compare/v0.4.0...v0.5.0) (2026-04-22)
 
 
