@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AuthPolicyAction,
   UniAuthError,
   UniAuthErrorCode,
   addSeconds,
   asAuditEventId,
+  asCredentialId,
   asIdentityId,
   asSessionId,
   asUserId,
@@ -15,6 +17,7 @@ import {
   generateOtpSecret,
   generateSecret,
   hashSecret,
+  invalidCredentials,
   invalidInput,
   isUniAuthError,
   normalizeEmail,
@@ -31,6 +34,7 @@ describe('public utility coverage', () => {
 
     expect(randomIds.userId()).toMatch(/^usr_/)
     expect(randomIds.identityId()).toMatch(/^idn_/)
+    expect(randomIds.credentialId()).toMatch(/^crd_/)
     expect(randomIds.verificationId()).toMatch(/^vrf_/)
     expect(randomIds.sessionId()).toMatch(/^ses_/)
     expect(randomIds.auditEventId()).toMatch(/^aud_/)
@@ -39,12 +43,14 @@ describe('public utility coverage', () => {
 
     expect(sequentialIds.userId()).toBe('unit_usr_1')
     expect(sequentialIds.identityId()).toBe('unit_idn_2')
-    expect(sequentialIds.verificationId()).toBe('unit_vrf_3')
-    expect(sequentialIds.sessionId()).toBe('unit_ses_4')
-    expect(sequentialIds.auditEventId()).toBe('unit_aud_5')
+    expect(sequentialIds.credentialId()).toBe('unit_crd_3')
+    expect(sequentialIds.verificationId()).toBe('unit_vrf_4')
+    expect(sequentialIds.sessionId()).toBe('unit_ses_5')
+    expect(sequentialIds.auditEventId()).toBe('unit_aud_6')
 
     expect(asUserId('usr')).toBe('usr')
     expect(asIdentityId('idn')).toBe('idn')
+    expect(asCredentialId('crd')).toBe('crd')
     expect(asVerificationId('vrf')).toBe('vrf')
     expect(asSessionId('ses')).toBe('ses')
     expect(asAuditEventId('aud')).toBe('aud')
@@ -83,7 +89,7 @@ describe('public utility coverage', () => {
       allowAutoLink: true,
       allowMergeAccounts: true,
       reAuthMaxAgeSeconds: 1,
-      requireReAuthFor: ['mergeAccounts'],
+      requireReAuthFor: [AuthPolicyAction.MergeAccounts],
     })
 
     expect(
@@ -116,21 +122,21 @@ describe('public utility coverage', () => {
     ).toBe(false)
     expect(
       defaultPolicy.requiresReAuth({
-        action: 'link',
+        action: AuthPolicyAction.Link,
         userId: asUserId('user-1'),
         now,
       }),
     ).toBe(false)
     expect(
       defaultPolicy.requiresReAuth({
-        action: 'mergeAccounts',
+        action: AuthPolicyAction.MergeAccounts,
         userId: asUserId('user-1'),
         now,
       }),
     ).toBe(true)
     expect(
       defaultPolicy.requiresReAuth({
-        action: 'mergeAccounts',
+        action: AuthPolicyAction.MergeAccounts,
         userId: asUserId('user-1'),
         now,
         reAuthenticatedAt: now,
@@ -138,7 +144,7 @@ describe('public utility coverage', () => {
     ).toBe(false)
     expect(
       permissivePolicy.requiresReAuth({
-        action: 'mergeAccounts',
+        action: AuthPolicyAction.MergeAccounts,
         userId: asUserId('user-1'),
         now,
         reAuthenticatedAt: new Date('2025-12-31T23:59:58.000Z'),
@@ -166,5 +172,6 @@ describe('public utility coverage', () => {
     expect(isUniAuthError(error)).toBe(true)
     expect(isUniAuthError(new Error('nope'))).toBe(false)
     expect(invalidInput().message).toBe('Invalid auth input.')
+    expect(invalidCredentials().code).toBe(UniAuthErrorCode.InvalidCredentials)
   })
 })

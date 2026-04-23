@@ -2,7 +2,7 @@ import type { AuthServiceRuntime } from './runtime.js'
 import { optionalProp } from './optional.js'
 import { audit, getActiveUser } from './support.js'
 import type { CreateSessionInput, Session, SessionId } from '../domain/types.js'
-import { SessionStatus } from '../domain/types.js'
+import { AuditEventType, SessionStatus } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode } from '../errors.js'
 import { addSeconds } from '../utils/time.js'
 
@@ -33,7 +33,7 @@ export async function revokeSession(
       status: SessionStatus.Revoked,
       revokedAt: now,
     })
-    await audit(runtime, 'auth.session_revoked', now, {
+    await audit(runtime, AuditEventType.SessionRevoked, now, {
       userId: session.userId,
       sessionId: session.id,
     })
@@ -54,7 +54,7 @@ export async function createSessionRecord(
   }
 
   const created = await runtime.repos.sessionRepo.create(session)
-  await audit(runtime, 'auth.session_created', input.now, {
+  await audit(runtime, AuditEventType.SessionCreated, input.now, {
     userId: created.userId,
     sessionId: created.id,
   })

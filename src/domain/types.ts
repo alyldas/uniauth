@@ -4,6 +4,7 @@ export type Brand<Value, Name extends string> = Value & { readonly [brand]: Name
 
 export type UserId = Brand<string, 'UserId'>
 export type IdentityId = Brand<string, 'IdentityId'>
+export type CredentialId = Brand<string, 'CredentialId'>
 export type VerificationId = Brand<string, 'VerificationId'>
 export type SessionId = Brand<string, 'SessionId'>
 export type AuditEventId = Brand<string, 'AuditEventId'>
@@ -11,7 +12,9 @@ export type AuditEventId = Brand<string, 'AuditEventId'>
 export type AuthIdentityProvider = string
 
 export const EMAIL_OTP_PROVIDER_ID = 'email-otp'
+export const EMAIL_MAGIC_LINK_PROVIDER_ID = 'email-magic-link'
 export const PHONE_OTP_PROVIDER_ID = 'phone-otp'
+export const PASSWORD_PROVIDER_ID = 'password'
 
 export type ExtensibleString<Literal extends string> = Literal | (string & Record<never, never>)
 
@@ -45,7 +48,13 @@ export const OtpChannel = {
   Phone: 'phone',
 } as const
 
-export type OtpChannel = ExtensibleString<(typeof OtpChannel)[keyof typeof OtpChannel]>
+export type OtpChannel = (typeof OtpChannel)[keyof typeof OtpChannel]
+
+export const CredentialType = {
+  Password: 'password',
+} as const
+
+export type CredentialType = (typeof CredentialType)[keyof typeof CredentialType]
 
 export const SessionStatus = {
   Active: 'active',
@@ -86,11 +95,24 @@ export interface Verification {
   readonly id: VerificationId
   readonly purpose: VerificationPurpose
   readonly target: string
+  readonly provider?: AuthIdentityProvider
+  readonly channel?: OtpChannel
   readonly secretHash: string
   readonly status: VerificationStatus
   readonly createdAt: Date
   readonly expiresAt: Date
   readonly consumedAt?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface Credential {
+  readonly id: CredentialId
+  readonly userId: UserId
+  readonly type: CredentialType
+  readonly subject: string
+  readonly passwordHash: string
+  readonly createdAt: Date
+  readonly updatedAt: Date
   readonly metadata?: Record<string, unknown>
 }
 
@@ -123,16 +145,20 @@ export interface FinishInput {
   readonly metadata?: Record<string, unknown>
 }
 
-export type AuditEventType =
-  | 'auth.sign_in'
-  | 'auth.identity_linked'
-  | 'auth.identity_unlinked'
-  | 'auth.accounts_merged'
-  | 'auth.session_created'
-  | 'auth.session_revoked'
-  | 'auth.verification_created'
-  | 'auth.verification_consumed'
-  | 'auth.policy_denied'
+export const AuditEventType = {
+  SignIn: 'auth.sign_in',
+  IdentityLinked: 'auth.identity_linked',
+  IdentityUnlinked: 'auth.identity_unlinked',
+  AccountsMerged: 'auth.accounts_merged',
+  SessionCreated: 'auth.session_created',
+  SessionRevoked: 'auth.session_revoked',
+  VerificationCreated: 'auth.verification_created',
+  VerificationConsumed: 'auth.verification_consumed',
+  PolicyDenied: 'auth.policy_denied',
+  RateLimited: 'auth.rate_limited',
+} as const
+
+export type AuditEventType = (typeof AuditEventType)[keyof typeof AuditEventType]
 
 export interface AuditEvent {
   readonly id: AuditEventId
@@ -259,25 +285,89 @@ export interface FinishOtpSignInInput {
   readonly metadata?: Record<string, unknown>
 }
 
-export interface StartEmailOtpSignInInput {
+export interface EmailMagicLink {
+  readonly verificationId: VerificationId
+  readonly secret: string
   readonly email: string
+  readonly expiresAt: Date
+}
+
+export interface StartEmailMagicLinkSignInInput {
+  readonly email: string
+  readonly createLink: (input: EmailMagicLink) => string | Promise<string>
   readonly secret?: string
   readonly ttlSeconds?: number
   readonly now?: Date
   readonly metadata?: Record<string, unknown>
 }
 
-export interface StartEmailOtpSignInResult {
+export interface StartEmailMagicLinkSignInResult {
   readonly verificationId: VerificationId
   readonly expiresAt: Date
   readonly delivery: typeof OtpChannel.Email
 }
 
-export interface FinishEmailOtpSignInInput {
+export interface FinishEmailMagicLinkSignInInput {
   readonly verificationId: VerificationId
   readonly secret: string
   readonly now?: Date
   readonly sessionExpiresAt?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface SignInWithPasswordInput {
+  readonly email: string
+  readonly password: string
+  readonly now?: Date
+  readonly sessionExpiresAt?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface SetPasswordInput {
+  readonly userId: UserId
+  readonly email: string
+  readonly password: string
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface ChangePasswordInput {
+  readonly userId: UserId
+  readonly currentPassword: string
+  readonly newPassword: string
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface EmailPasswordRecoveryLink {
+  readonly verificationId: VerificationId
+  readonly secret: string
+  readonly email: string
+  readonly expiresAt: Date
+}
+
+export interface StartEmailPasswordRecoveryInput {
+  readonly email: string
+  readonly createLink: (input: EmailPasswordRecoveryLink) => string | Promise<string>
+  readonly secret?: string
+  readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface StartEmailPasswordRecoveryResult {
+  readonly verificationId: VerificationId
+  readonly expiresAt: Date
+  readonly delivery: typeof OtpChannel.Email
+}
+
+export interface FinishEmailPasswordRecoveryInput {
+  readonly verificationId: VerificationId
+  readonly secret: string
+  readonly newPassword: string
+  readonly now?: Date
   readonly metadata?: Record<string, unknown>
 }
 
@@ -288,6 +378,7 @@ export interface Clock {
 export interface IdGenerator {
   userId(): UserId
   identityId(): IdentityId
+  credentialId(): CredentialId
   verificationId(): VerificationId
   sessionId(): SessionId
   auditEventId(): AuditEventId
@@ -295,11 +386,20 @@ export interface IdGenerator {
 
 export interface AuthService {
   signIn(input: SignInInput): Promise<AuthResult>
+  signInWithPassword(input: SignInWithPasswordInput): Promise<AuthResult>
   startOtpChallenge(input: StartOtpChallengeInput): Promise<StartOtpChallengeResult>
   finishOtpChallenge(input: FinishOtpChallengeInput): Promise<Verification>
   finishOtpSignIn(input: FinishOtpSignInInput): Promise<AuthResult>
-  startEmailOtpSignIn(input: StartEmailOtpSignInInput): Promise<StartEmailOtpSignInResult>
-  finishEmailOtpSignIn(input: FinishEmailOtpSignInInput): Promise<AuthResult>
+  startEmailMagicLinkSignIn(
+    input: StartEmailMagicLinkSignInInput,
+  ): Promise<StartEmailMagicLinkSignInResult>
+  finishEmailMagicLinkSignIn(input: FinishEmailMagicLinkSignInInput): Promise<AuthResult>
+  setPassword(input: SetPasswordInput): Promise<Credential>
+  changePassword(input: ChangePasswordInput): Promise<Credential>
+  startEmailPasswordRecovery(
+    input: StartEmailPasswordRecoveryInput,
+  ): Promise<StartEmailPasswordRecoveryResult>
+  finishEmailPasswordRecovery(input: FinishEmailPasswordRecoveryInput): Promise<Credential>
   link(input: LinkInput): Promise<LinkResult>
   unlink(input: UnlinkInput): Promise<void>
   mergeAccounts(input: MergeAccountsInput): Promise<MergeResult>
@@ -316,6 +416,10 @@ export function asUserId(value: string): UserId {
 
 export function asIdentityId(value: string): IdentityId {
   return value as IdentityId
+}
+
+export function asCredentialId(value: string): CredentialId {
+  return value as CredentialId
 }
 
 export function asVerificationId(value: string): VerificationId {

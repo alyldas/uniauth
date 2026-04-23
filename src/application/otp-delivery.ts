@@ -49,13 +49,14 @@ export function getOtpDelivery(runtime: AuthServiceRuntime, channel: OtpChannelT
     }
 
     const { emailSender } = runtime
+    const subject = runtime.emailOtpSubject ?? DEFAULT_EMAIL_OTP_SUBJECT
 
     return {
       provider: EMAIL_OTP_PROVIDER_ID,
       send: async (created) => {
         await emailSender.sendEmail({
           to: created.verification.target,
-          subject: DEFAULT_EMAIL_OTP_SUBJECT,
+          subject,
           text: `Your sign-in code is ${created.secret}.`,
           metadata: {
             verificationId: created.verification.id,

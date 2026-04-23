@@ -3,15 +3,19 @@ import { optionalProp } from './optional.js'
 import type { AuthServiceRuntime } from './runtime.js'
 import type {
   AuditEvent,
-  AuditEventType,
   AuthIdentity,
   IdentityId,
   SessionId,
   User,
   UserId,
 } from '../domain/types.js'
-import { AuthIdentityStatus } from '../domain/types.js'
-import { UniAuthError, UniAuthErrorCode } from '../errors.js'
+import { AuditEventType, AuthIdentityStatus } from '../domain/types.js'
+import { UniAuthError, UniAuthErrorCode, rateLimited } from '../errors.js'
+import type { RateLimitAttempt } from '../ports.js'
+
+const PolicyDenialReason = {
+  ReAuthRequired: 're-auth-required',
+} as const
 
 export function isActiveIdentity(identity: AuthIdentity): boolean {
   return identity.status === AuthIdentityStatus.Active && !identity.disabledAt
@@ -55,12 +59,45 @@ export async function ensureReAuth(
   })
 
   if (required) {
-    await audit(runtime, 'auth.policy_denied', now, {
+    await audit(runtime, AuditEventType.PolicyDenied, now, {
       userId,
-      metadata: { reason: 're-auth-required', action },
+      metadata: { reason: PolicyDenialReason.ReAuthRequired, action },
     })
     throw new UniAuthError(UniAuthErrorCode.ReAuthRequired, 'Recent authentication is required.')
   }
+}
+
+export async function enforceRateLimit(
+  runtime: AuthServiceRuntime,
+  input: RateLimitAttempt,
+): Promise<void> {
+  if (!runtime.rateLimiter) {
+    return
+  }
+
+  const decision = await runtime.rateLimiter.consume(input)
+
+  if (decision.allowed) {
+    return
+  }
+
+  await audit(runtime, AuditEventType.RateLimited, input.now, {
+    metadata: {
+      action: input.action,
+      ...optionalProp('retryAfterSeconds', decision.retryAfterSeconds),
+      ...optionalProp('resetAt', decision.resetAt?.toISOString()),
+    },
+  })
+
+  throw rateLimited({
+    action: input.action,
+    ...optionalProp('retryAfterSeconds', decision.retryAfterSeconds),
+    ...optionalProp('resetAt', decision.resetAt?.toISOString()),
+  })
+}
+
+export function rateLimitKey(...parts: readonly string[]): string {
+  return parts.join('\u0000')
 }
 
 export async function audit(
