@@ -75,6 +75,12 @@ start/finish, password sign-in, and password recovery. Applications own the real
 edge runtime, or hosted rate-limit adapter and decide exact bucket sizes, key hashing, and retry
 headers.
 
+Messenger WebApp providers are reference `AuthProvider` factories, not SDK integrations. They
+validate signed Telegram Mini App and MAX WebApp launch data with an application-provided bot token,
+map the signed user into `ProviderIdentityAssertion`, and leave bot setup, frontend bridge code,
+HTTP transport, cookies, and persistence to the application. Raw launch payloads are not copied into
+assertion metadata.
+
 Delivery happens after the verification record has been created inside `UnitOfWork`. If a sender
 fails, the pending verification stays in storage until normal expiry or adapter cleanup; core does
 not roll back storage after an external delivery side effect fails.
@@ -101,7 +107,9 @@ Storage adapters should:
 - avoid email/phone ownership inference outside the policy-controlled flow.
 
 Provider adapters should expose `finish()` and return a `ProviderIdentityAssertion`. Core does not
-own provider SDK setup, redirect routes, raw provider payload storage, or signature validation.
+own provider SDK setup, redirect routes, raw provider payload storage, or application secrets.
+Provider-specific signature validation can live in a small reference adapter when it does not force
+SDK, framework, or storage dependencies into the core package.
 
 ## Repository Shape
 
