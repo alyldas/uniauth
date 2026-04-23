@@ -92,16 +92,25 @@ Tracking issues: #38.
 
 Tracking issues: #40, #42.
 
+### v0.11 - Transactional Merge and Testing Boundaries
+
+- Transactional merge flow.
+- Merge idempotency and partial-failure prevention.
+- Audit coverage for merge decisions without secret leakage.
+- In-memory testing kit decomposition aligned with reference persistence boundaries.
+- Stable `@alyldas/uniauth/testing` public exports preserved after the testing-kit split.
+
+Tracking issues: #41, #47.
+
 ## Next Release
 
-### v0.12 - Testing Boundary Decomposition
+### v0.12 - Optional Auth Bridges
 
-- In-memory testing kit decomposition aligned with reference persistence boundaries.
-- Stable `@alyldas/uniauth/testing` public exports over narrower internal modules.
-- Deterministic IDs and existing test ergonomics preserved while store, senders, and support fakes
-  stay independently maintainable.
+- Optional Better Auth and Auth.js bridge adapters that do not add hard dependencies to core.
+- Bridge boundaries that preserve UniAuth account-linking and policy invariants.
+- Documentation that explains what external auth libraries own and what UniAuth still owns.
 
-Tracking issues: #47.
+Tracking issues: #39.
 
 ## Planned
 
@@ -115,11 +124,10 @@ Tracking issues: #47.
 - Audit coverage.
 - Migration docs and example applications.
 - Backend recipes for Express, Fastify, Nest, and Next.
-- Optional Better Auth and Auth.js bridge adapters after the core OAuth/OIDC policy surface settles.
 - Public domain and service contract source-module decomposition.
 - Password auth use-case decomposition.
 
-Tracking issues: #28, #29, #39, #43, #44, #45, #46, #48.
+Tracking issues: #28, #29, #43, #44, #45, #46, #48.
 
 ## Examples Backlog
 
