@@ -387,6 +387,11 @@ wrap `EmailSender` or `SmsSender` instead of introducing a new core dispatcher, 
 delivery remains adapter-owned state rather than a new core verification status. See
 [OTP delivery boundary](docs/otp-delivery.md).
 
+Email and phone normalization stay intentionally lightweight in the root helpers so the package does
+not silently impose one production syntax or phone metadata policy on every consumer. Current
+exports remain compatibility-oriented; stricter validation, E.164 canonicalization guidance, and
+migration cautions are documented in [Normalization boundary](docs/normalization.md).
+
 Verification hashing is pluggable. The default hasher keeps the package usable out of the box, while
 production OTP deployments should provide an app-owned pepper through `createHmacSecretHasher` or a
 custom `SecretHasher` implementation:
@@ -469,6 +474,7 @@ contact `alyldas@ya.ru`.
 - [Threat model](docs/threat-model.md)
 - [Local auth flows](docs/local-auth.md)
 - [OTP delivery boundary](docs/otp-delivery.md)
+- [Normalization boundary](docs/normalization.md)
 - [Messenger providers](docs/messenger-providers.md)
 - [OAuth / OIDC providers](docs/oauth-oidc.md)
 - [Postgres persistence](docs/postgres.md)

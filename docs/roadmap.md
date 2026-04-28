@@ -115,7 +115,7 @@ Tracking issues: #39.
 ### v0.13 - Production Hardening and Integration Backlog
 
 - Threat model documentation.
-- Production email and phone normalization design.
+- Production email and phone normalization boundary and migration guidance.
 - OTP delivery orchestration boundary documented for queue, retry, and dead-letter adapters without
   moving sender side effects into core.
 - Anti-takeover tests.

@@ -57,7 +57,8 @@ Current coverage:
 Residual risk:
 
 - provider trust assignment is still application-owned;
-- production normalization policy for email and phone is still backlog work under `#29`.
+- the normalization boundary is now documented in [Normalization boundary](normalization.md), but
+  strict validator/canonicalizer rollout is still application-owned or future work.
 
 ### Provider Identity Confusion
 
