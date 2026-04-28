@@ -30,7 +30,8 @@ win over configured generation. Empty generated secrets are rejected before a ve
 created.
 
 `emailOtpSubject` customizes only the built-in email OTP subject. Full templates, localization,
-provider payloads, queues, retry, and dead-letter behavior remain sender-adapter concerns.
+provider payloads, queues, retry, and dead-letter behavior remain sender-adapter concerns. See
+[OTP delivery boundary](otp-delivery.md).
 
 ## Magic Link
 
@@ -121,8 +122,9 @@ headers, retry-after formatting, and abuse analytics remain application or adapt
 
 ## Production Boundaries
 
-Current v0.6 local auth hardening does not try to solve every production edge. The production
-normalization and delivery orchestration designs are tracked for v0.10 in [Roadmap](roadmap.md).
+Current local auth hardening does not try to solve every production edge. The OTP delivery boundary
+is documented in [OTP delivery boundary](otp-delivery.md), and production normalization remains
+tracked in [Roadmap](roadmap.md).
 
 For storage and security invariants, see [Architecture](architecture.md) and
 [Security model](security.md).

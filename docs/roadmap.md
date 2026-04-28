@@ -116,7 +116,8 @@ Tracking issues: #39.
 
 - Threat model documentation.
 - Production email and phone normalization design.
-- OTP delivery orchestration, retry, queue, and dead-letter boundary design.
+- OTP delivery orchestration boundary documented for queue, retry, and dead-letter adapters without
+  moving sender side effects into core.
 - Anti-takeover tests.
 - Merge idempotency tests.
 - Audit coverage.

@@ -99,6 +99,11 @@ Delivery happens after the verification record has been created inside `UnitOfWo
 fails, the pending verification stays in storage until normal expiry or adapter cleanup; core does
 not roll back storage after an external delivery side effect fails.
 
+Queue-backed delivery should wrap `EmailSender` or `SmsSender`, not replace them with a new core
+dispatcher contract. Core does not track delivery attempts, retries, dead-letter state, or
+provider-specific webhooks. Those remain application-owned or optional-adapter-owned delivery
+infrastructure concerns.
+
 `UnitOfWork` is intentionally part of v0.1 so storage adapters can provide real transaction
 boundaries for link, unlink, merge, session, and verification flows.
 

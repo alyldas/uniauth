@@ -382,8 +382,10 @@ await service.finishEmailPasswordRecovery({
 OTP delivery is outside the storage transaction. `startOtpChallenge` first persists the hashed
 verification record, then calls the configured sender port. If the sender rejects, the pending
 verification remains in storage until it is consumed, expires, or is cleaned up by your adapter.
-This keeps external SMTP/SMS/queue side effects out of `UnitOfWork`; applications that need retry or
-dead-letter behavior should implement it in their sender adapter.
+This keeps external SMTP/SMS/queue side effects out of `UnitOfWork`. Queue-backed delivery should
+wrap `EmailSender` or `SmsSender` instead of introducing a new core dispatcher, and exhausted
+delivery remains adapter-owned state rather than a new core verification status. See
+[OTP delivery boundary](docs/otp-delivery.md).
 
 Verification hashing is pluggable. The default hasher keeps the package usable out of the box, while
 production OTP deployments should provide an app-owned pepper through `createHmacSecretHasher` or a
@@ -466,6 +468,7 @@ contact `alyldas@ya.ru`.
 - [Security model](docs/security.md)
 - [Threat model](docs/threat-model.md)
 - [Local auth flows](docs/local-auth.md)
+- [OTP delivery boundary](docs/otp-delivery.md)
 - [Messenger providers](docs/messenger-providers.md)
 - [OAuth / OIDC providers](docs/oauth-oidc.md)
 - [Postgres persistence](docs/postgres.md)
