@@ -497,6 +497,8 @@ contact `alyldas@ya.ru`.
 ## Examples
 
 - [Basic Node example](examples/basic-node/index.ts)
+- [Express auth module example](examples/express-auth/index.ts)
+- [Fastify auth module example](examples/fastify-auth/index.ts)
 - [Link and unlink example](examples/link-unlink/index.ts)
 - [OTP backend wiring example](examples/otp-backend/index.ts)
 - [OAuth / OIDC wiring example](examples/oauth-oidc/index.ts)
@@ -513,6 +515,7 @@ contact `alyldas@ya.ru`.
 - [Local auth flows](docs/local-auth.md)
 - [OTP delivery boundary](docs/otp-delivery.md)
 - [Normalization boundary](docs/normalization.md)
+- [Session transport recipes](docs/session-transport.md)
 - [Messenger providers](docs/messenger-providers.md)
 - [OAuth / OIDC providers](docs/oauth-oidc.md)
 - [Postgres persistence](docs/postgres.md)

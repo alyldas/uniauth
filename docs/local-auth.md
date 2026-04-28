@@ -132,3 +132,5 @@ For storage and security invariants, see [Architecture](architecture.md) and
 
 For framework-specific route, cookie, and response composition, see
 [Backend integration recipes](backend-recipes.md).
+For cookie, bearer, and mobile client session transport choices, see
+[Session transport recipes](session-transport.md).
