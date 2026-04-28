@@ -33,7 +33,7 @@ export async function startOtpChallenge(
   input: StartOtpChallengeInput,
 ): Promise<StartOtpChallengeResult> {
   const now = input.now ?? runtime.clock.now()
-  const target = normalizeOtpTarget(input.channel, input.target)
+  const target = normalizeOtpTarget(runtime, input.channel, input.target)
   const delivery = getOtpDelivery(runtime, input.channel)
   await enforceRateLimit(runtime, {
     action: RateLimitAction.OtpStart,
@@ -130,7 +130,7 @@ export async function finishOtpSignIn(
 
     return signInWithAssertion(
       runtime,
-      assertionFromOtpVerification(verification, currentChallenge.channel),
+      assertionFromOtpVerification(runtime, verification, currentChallenge.channel),
       {
         now,
         ...optionalProp('sessionExpiresAt', input.sessionExpiresAt),
@@ -227,11 +227,12 @@ function otpChannelFromVerification(verification: Verification): SupportedOtpCha
 }
 
 function assertionFromOtpVerification(
+  runtime: AuthServiceRuntime,
   verification: Verification,
   channel: SupportedOtpChannel,
 ): ProviderIdentityAssertion {
   if (channel === OtpChannel.Email) {
-    return normalizeAssertion({
+    return normalizeAssertion(runtime, {
       provider: EMAIL_OTP_PROVIDER_ID,
       providerUserId: verification.target,
       email: verification.target,
@@ -239,7 +240,7 @@ function assertionFromOtpVerification(
     })
   }
 
-  return normalizeAssertion({
+  return normalizeAssertion(runtime, {
     provider: PHONE_OTP_PROVIDER_ID,
     providerUserId: verification.target,
     phone: verification.target,

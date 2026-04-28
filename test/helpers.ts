@@ -2,12 +2,19 @@ import {
   AuthIdentityStatus,
   asIdentityId,
   asUserId,
+  createAuthNormalizer,
+  invalidInput,
+  normalizeEmail,
+  type AuthNormalizer,
   type AuthIdentity,
   type ProviderIdentityAssertion,
   type User,
 } from '../src'
 
 export const now = new Date('2026-01-01T00:00:00.000Z')
+
+const strictEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u
+const strictE164Pattern = /^\+[1-9]\d{7,14}$/u
 
 export function assertion(
   input: Partial<ProviderIdentityAssertion> = {},
@@ -27,6 +34,37 @@ export function assertion(
 
 export function rateLimitKey(...parts: readonly string[]): string {
   return parts.join('\u0000')
+}
+
+export function createStrictNormalizer(): AuthNormalizer {
+  return createAuthNormalizer({
+    normalizeEmail(email) {
+      const normalized = normalizeEmail(email)
+
+      if (!normalized || !strictEmailPattern.test(normalized)) {
+        throw invalidInput('Email is invalid.')
+      }
+
+      return normalized
+    },
+    normalizePhone(phone) {
+      const trimmed = phone.trim()
+      const digits = trimmed.replace(/\D+/g, '')
+      const normalized = trimmed.startsWith('+')
+        ? `+${digits}`
+        : digits.length === 10
+          ? `+1${digits}`
+          : digits.length === 11 && digits.startsWith('1')
+            ? `+${digits}`
+            : ''
+
+      if (!strictE164Pattern.test(normalized)) {
+        throw invalidInput('Phone is invalid.')
+      }
+
+      return normalized
+    },
+  })
 }
 
 export function user(id = 'user-1'): User {

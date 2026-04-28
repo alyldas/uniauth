@@ -16,6 +16,7 @@ import type {
   VerificationId,
   VerificationPurpose,
 } from './domain/types.js'
+import type { AuthNormalizer } from './utils/normalization.js'
 import type { SecretHasher } from './utils/secrets.js'
 
 export const RateLimitAction = {
@@ -140,6 +141,7 @@ export interface SmsSender {
 export interface AuthServiceInfrastructure {
   readonly emailSender?: EmailSender
   readonly smsSender?: SmsSender
+  readonly normalizer?: AuthNormalizer
   readonly secretHasher?: SecretHasher
   readonly rateLimiter?: RateLimiter
   readonly otpSecretLength?: number

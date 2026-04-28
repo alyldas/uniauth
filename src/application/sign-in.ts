@@ -23,7 +23,6 @@ import {
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
 import { RateLimitAction } from '../ports.js'
-import { normalizeEmail, normalizePhone } from '../utils/normalization.js'
 
 const SignInAuditMode = {
   Exact: 'exact',
@@ -168,7 +167,7 @@ export async function resolveAssertion(
   },
 ): Promise<ProviderIdentityAssertion> {
   if (input.assertion) {
-    return normalizeAssertion(input.assertion)
+    return normalizeAssertion(runtime, input.assertion)
   }
 
   if (!input.provider || !input.finishInput) {
@@ -185,10 +184,11 @@ export async function resolveAssertion(
     throw new UniAuthError(UniAuthErrorCode.ProviderNotFound, 'Auth provider was not found.')
   }
 
-  return normalizeAssertion(await provider.finish(input.finishInput))
+  return normalizeAssertion(runtime, await provider.finish(input.finishInput))
 }
 
 export function normalizeAssertion(
+  runtime: Pick<AuthServiceRuntime, 'normalizer'>,
   assertion: Partial<ProviderIdentityAssertion>,
 ): ProviderIdentityAssertion {
   const provider = assertion.provider?.trim() ?? ''
@@ -198,8 +198,8 @@ export function normalizeAssertion(
     throw invalidInput('Provider and provider user id are required.')
   }
 
-  const email = assertion.email ? normalizeEmail(assertion.email) : undefined
-  const phone = assertion.phone ? normalizePhone(assertion.phone) : undefined
+  const email = assertion.email ? runtime.normalizer.normalizeEmail(assertion.email) : undefined
+  const phone = assertion.phone ? runtime.normalizer.normalizePhone(assertion.phone) : undefined
   const displayName = assertion.displayName?.trim() || undefined
 
   return {

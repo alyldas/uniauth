@@ -10,6 +10,7 @@ import type {
   UnitOfWork,
 } from '../ports.js'
 import { createRandomIdGenerator } from '../utils/ids.js'
+import { compatibilityAuthNormalizer, type AuthNormalizer } from '../utils/normalization.js'
 import { sha256SecretHasher, type SecretHasher } from '../utils/secrets.js'
 import { systemClock } from '../utils/time.js'
 
@@ -26,6 +27,7 @@ export interface AuthServiceRuntime extends AuthServiceInfrastructure {
   readonly providerRegistry: ProviderRegistry | undefined
   readonly transaction: UnitOfWork
   readonly idGenerator: IdGenerator
+  readonly normalizer: AuthNormalizer
   readonly secretHasher: SecretHasher
   readonly clock: Clock
   readonly sessionTtlSeconds: number
@@ -46,6 +48,7 @@ export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): Au
     providerRegistry: options.providerRegistry,
     transaction: options.transaction ?? immediateUnitOfWork,
     idGenerator: options.idGenerator ?? createRandomIdGenerator(),
+    normalizer: options.normalizer ?? compatibilityAuthNormalizer,
     secretHasher: options.secretHasher ?? sha256SecretHasher,
     clock: options.clock ?? systemClock,
     sessionTtlSeconds: options.sessionTtlSeconds ?? DEFAULT_SESSION_TTL_SECONDS,

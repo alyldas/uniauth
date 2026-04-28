@@ -7,7 +7,6 @@ import {
   type OtpChannel as OtpChannelType,
 } from '../domain/types.js'
 import { invalidInput } from '../errors.js'
-import { normalizeEmail, normalizePhone, normalizeTarget } from '../utils/normalization.js'
 
 const DEFAULT_EMAIL_OTP_SUBJECT = 'Your sign-in code'
 const DEFAULT_SMS_OTP_PREFIX = 'Your sign-in code is'
@@ -19,13 +18,17 @@ export interface OtpDelivery {
   send(created: CreateVerificationResult): Promise<void>
 }
 
-export function normalizeOtpTarget(channel: OtpChannelType, target: string): string {
+export function normalizeOtpTarget(
+  runtime: Pick<AuthServiceRuntime, 'normalizer'>,
+  channel: OtpChannelType,
+  target: string,
+): string {
   const normalized =
     channel === OtpChannel.Email
-      ? normalizeEmail(target)
+      ? runtime.normalizer.normalizeEmail(target)
       : channel === OtpChannel.Phone
-        ? normalizePhone(target)
-        : normalizeTarget(target)
+        ? runtime.normalizer.normalizePhone(target)
+        : runtime.normalizer.normalizeTarget(target)
 
   if (normalized) {
     return normalized

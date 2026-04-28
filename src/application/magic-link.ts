@@ -15,7 +15,6 @@ import {
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
 import { RateLimitAction } from '../ports.js'
-import { normalizeEmail } from '../utils/normalization.js'
 import { generateSecret } from '../utils/secrets.js'
 
 const DEFAULT_EMAIL_MAGIC_LINK_SUBJECT = 'Your sign-in link'
@@ -25,7 +24,7 @@ export async function startEmailMagicLinkSignIn(
   input: StartEmailMagicLinkSignInInput,
 ): Promise<StartEmailMagicLinkSignInResult> {
   const now = input.now ?? runtime.clock.now()
-  const email = normalizeEmail(input.email)
+  const email = runtime.normalizer.normalizeEmail(input.email)
 
   if (!email) {
     throw invalidInput('Email is required.')
@@ -104,7 +103,7 @@ export async function finishEmailMagicLinkSignIn(
 
     return signInWithAssertion(
       runtime,
-      normalizeAssertion({
+      normalizeAssertion(runtime, {
         provider: EMAIL_MAGIC_LINK_PROVIDER_ID,
         providerUserId: consumed.target,
         email: consumed.target,
