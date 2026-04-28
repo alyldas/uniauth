@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { OtpChannel, UniAuthErrorCode, VerificationPurpose, createDefaultAuthPolicy } from '../src'
+import {
+  OtpChannel,
+  UniAuthErrorCode,
+  VerificationPurpose,
+  createAuthNormalizer,
+  createDefaultAuthPolicy,
+} from '../src'
+import { normalizeOtpTarget } from '../src/application/otp-delivery.js'
 import { createInMemoryAuthKit } from '../src/testing'
 import { assertion, createStrictNormalizer, now } from './helpers.js'
 
@@ -89,7 +96,150 @@ describe('shared normalization boundary', () => {
     expect(store.listCredentials()).toHaveLength(0)
   })
 
-  it('rejects invalid phone and generic verification targets before persistence or delivery', async () => {
+  it('treats blank optional provider claims as absent with a strict normalizer', async () => {
+    const normalizer = createStrictNormalizer()
+    const { service } = createInMemoryAuthKit({ normalizer })
+
+    const blankProfile = await service.signIn({
+      assertion: {
+        provider: 'oauth',
+        providerUserId: 'blank-profile',
+        email: '   ',
+        emailVerified: true,
+        phone: '   ',
+        phoneVerified: true,
+        displayName: '   ',
+      },
+      now,
+    })
+
+    expect(blankProfile.user.email).toBeUndefined()
+    expect(blankProfile.user.phone).toBeUndefined()
+    expect(blankProfile.user.displayName).toBeUndefined()
+    expect(blankProfile.identity.email).toBeUndefined()
+    expect(blankProfile.identity.phone).toBeUndefined()
+  })
+
+  it('preserves required-input errors before strict normalization runs', async () => {
+    const normalizer = createStrictNormalizer()
+    const { service, store, emailSender, smsSender } = createInMemoryAuthKit({ normalizer })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        provider: 'email',
+        providerUserId: 'owner',
+        email: 'owner@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+
+    await expect(
+      service.startEmailMagicLinkSignIn({
+        email: '   ',
+        createLink: ({ verificationId, secret }) =>
+          `/auth/magic?verification=${verificationId}&token=${secret}`,
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Email is required.',
+    })
+    await expect(
+      service.setPassword({
+        userId: signedIn.user.id,
+        email: '   ',
+        password: 'new-password',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Email is required.',
+    })
+    await expect(
+      service.startOtpChallenge({
+        purpose: VerificationPurpose.SignIn,
+        channel: OtpChannel.Phone,
+        target: '   ',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Phone is required.',
+    })
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.Link,
+        target: '   ',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Verification target is required.',
+    })
+
+    expect(store.listVerifications()).toHaveLength(0)
+    expect(emailSender.listMessages()).toHaveLength(0)
+    expect(smsSender.listMessages()).toHaveLength(0)
+  })
+
+  it('maps empty normalized values back to required-input errors', async () => {
+    const emptyNormalizer = createAuthNormalizer({
+      normalizeEmail: () => '',
+      normalizePhone: () => '',
+      normalizeTarget: () => '',
+    })
+    const { service } = createInMemoryAuthKit({ normalizer: emptyNormalizer })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        provider: 'owner',
+        providerUserId: 'owner',
+      }),
+      now,
+    })
+
+    await expect(
+      service.startEmailMagicLinkSignIn({
+        email: 'owner@example.com',
+        createLink: () => '/auth/magic',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Email is required.',
+    })
+    await expect(
+      service.setPassword({
+        userId: signedIn.user.id,
+        email: 'owner@example.com',
+        password: 'new-password',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Email is required.',
+    })
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.Link,
+        target: 'opaque-token',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Verification target is required.',
+    })
+    expect(() =>
+      normalizeOtpTarget({ normalizer: emptyNormalizer }, OtpChannel.Email, 'owner@example.com'),
+    ).toThrow('Email is required.')
+    expect(() =>
+      normalizeOtpTarget({ normalizer: emptyNormalizer }, OtpChannel.Phone, '+15551234567'),
+    ).toThrow('Phone is required.')
+    expect(() =>
+      normalizeOtpTarget({ normalizer: emptyNormalizer }, 'custom' as never, 'opaque-token'),
+    ).toThrow('OTP target is required.')
+  })
+
+  it('rejects invalid phone and invalid email targets before persistence or delivery', async () => {
     const normalizer = createStrictNormalizer()
     const { service, store, smsSender } = createInMemoryAuthKit({ normalizer })
 
@@ -117,5 +267,20 @@ describe('shared normalization boundary', () => {
 
     expect(store.listVerifications()).toHaveLength(0)
     expect(smsSender.listMessages()).toHaveLength(0)
+  })
+
+  it('keeps opaque verification targets generic under a strict normalizer', async () => {
+    const normalizer = createStrictNormalizer()
+    const { service, store } = createInMemoryAuthKit({ normalizer })
+
+    const created = await service.createVerification({
+      purpose: VerificationPurpose.Link,
+      target: ' opaque-token ',
+      secret: 'opaque-secret',
+      now,
+    })
+
+    expect(created.verification.target).toBe('opaque-token')
+    expect(store.listVerifications()[0]?.target).toBe('opaque-token')
   })
 })

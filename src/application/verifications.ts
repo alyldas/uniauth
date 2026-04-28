@@ -45,7 +45,13 @@ export async function createVerificationRecord(
   input: CreateVerificationRecordInput,
 ): Promise<CreateVerificationResult> {
   const secret = input.secret ?? generateSecret()
-  const target = runtime.normalizer.normalizeTarget(input.target)
+  const trimmedTarget = input.target.trim()
+
+  if (!trimmedTarget) {
+    throw invalidInput('Verification target is required.')
+  }
+
+  const target = runtime.normalizer.normalizeTarget(trimmedTarget)
 
   if (!target) {
     throw invalidInput('Verification target is required.')

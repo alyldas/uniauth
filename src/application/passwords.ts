@@ -267,7 +267,13 @@ function normalizePasswordEmail(
   runtime: Pick<AuthServiceRuntime, 'normalizer'>,
   email: string,
 ): string {
-  const normalized = runtime.normalizer.normalizeEmail(email)
+  const trimmed = email.trim()
+
+  if (!trimmed) {
+    throw invalidInput('Email is required.')
+  }
+
+  const normalized = runtime.normalizer.normalizeEmail(trimmed)
 
   if (!normalized) {
     throw invalidInput('Email is required.')

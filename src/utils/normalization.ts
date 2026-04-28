@@ -54,9 +54,21 @@ function defaultNormalizeTarget(
 ): string {
   const trimmed = target.trim()
 
+  if (!trimmed) {
+    return ''
+  }
+
   if (trimmed.includes('@')) {
     return helpers.normalizeEmail(trimmed)
   }
 
-  return helpers.normalizePhone(trimmed)
+  if (isPhoneLikeTarget(trimmed)) {
+    return helpers.normalizePhone(trimmed)
+  }
+
+  return trimmed
+}
+
+function isPhoneLikeTarget(target: string): boolean {
+  return /[0-9]/u.test(target) && /^[+\d\s().-]+$/u.test(target)
 }

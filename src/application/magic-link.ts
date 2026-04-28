@@ -24,7 +24,13 @@ export async function startEmailMagicLinkSignIn(
   input: StartEmailMagicLinkSignInInput,
 ): Promise<StartEmailMagicLinkSignInResult> {
   const now = input.now ?? runtime.clock.now()
-  const email = runtime.normalizer.normalizeEmail(input.email)
+  const trimmedEmail = input.email.trim()
+
+  if (!trimmedEmail) {
+    throw invalidInput('Email is required.')
+  }
+
+  const email = runtime.normalizer.normalizeEmail(trimmedEmail)
 
   if (!email) {
     throw invalidInput('Email is required.')
