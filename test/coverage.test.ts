@@ -61,6 +61,8 @@ describe('public utility coverage', () => {
     expect(normalizePhone(' +1 (555) 123-4567 ')).toBe('+15551234567')
     expect(normalizeTarget(' Alice@Example.COM ')).toBe('alice@example.com')
     expect(normalizeTarget(' +1 (555) 123-4567 ')).toBe('+15551234567')
+    expect(normalizeTarget(' opaque-token ')).toBe('opaque-token')
+    expect(normalizeTarget('   ')).toBe('')
     expect(compatibilityAuthNormalizer.normalizeEmail(' Alice@Example.COM ')).toBe(
       'alice@example.com',
     )

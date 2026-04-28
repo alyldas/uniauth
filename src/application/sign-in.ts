@@ -198,8 +198,8 @@ export function normalizeAssertion(
     throw invalidInput('Provider and provider user id are required.')
   }
 
-  const email = assertion.email ? runtime.normalizer.normalizeEmail(assertion.email) : undefined
-  const phone = assertion.phone ? runtime.normalizer.normalizePhone(assertion.phone) : undefined
+  const email = normalizeOptionalClaim(assertion.email, runtime.normalizer.normalizeEmail)
+  const phone = normalizeOptionalClaim(assertion.phone, runtime.normalizer.normalizePhone)
   const displayName = assertion.displayName?.trim() || undefined
 
   return {
@@ -221,6 +221,23 @@ export function normalizeAssertion(
     ...optionalProp('trust', normalizeProviderTrust(assertion.trust)),
     ...optionalProp('metadata', assertion.metadata),
   }
+}
+
+function normalizeOptionalClaim(
+  value: string | undefined,
+  normalize: (value: string) => string,
+): string | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return undefined
+  }
+
+  return normalize(trimmed)
 }
 
 function normalizeProviderTrust(

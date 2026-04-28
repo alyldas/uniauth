@@ -23,12 +23,26 @@ export function normalizeOtpTarget(
   channel: OtpChannelType,
   target: string,
 ): string {
+  const trimmed = target.trim()
+
+  if (!trimmed) {
+    if (channel === OtpChannel.Email) {
+      throw invalidInput('Email is required.')
+    }
+
+    if (channel === OtpChannel.Phone) {
+      throw invalidInput('Phone is required.')
+    }
+
+    throw invalidInput('OTP target is required.')
+  }
+
   const normalized =
     channel === OtpChannel.Email
-      ? runtime.normalizer.normalizeEmail(target)
+      ? runtime.normalizer.normalizeEmail(trimmed)
       : channel === OtpChannel.Phone
-        ? runtime.normalizer.normalizePhone(target)
-        : runtime.normalizer.normalizeTarget(target)
+        ? runtime.normalizer.normalizePhone(trimmed)
+        : runtime.normalizer.normalizeTarget(trimmed)
 
   if (normalized) {
     return normalized
