@@ -119,3 +119,6 @@ risks, see [Threat model](threat-model.md).
 
 See [OTP delivery boundary](otp-delivery.md) for the intended queue/retry/DLQ composition around
 the current sender-port model.
+
+See [Normalization boundary](normalization.md) for the intended compatibility defaults, production
+strictness guidance, and migration cautions around email and phone canonicalization.

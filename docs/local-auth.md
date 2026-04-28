@@ -123,8 +123,8 @@ headers, retry-after formatting, and abuse analytics remain application or adapt
 ## Production Boundaries
 
 Current local auth hardening does not try to solve every production edge. The OTP delivery boundary
-is documented in [OTP delivery boundary](otp-delivery.md), and production normalization remains
-tracked in [Roadmap](roadmap.md).
+is documented in [OTP delivery boundary](otp-delivery.md), and production normalization policy is
+documented in [Normalization boundary](normalization.md).
 
 For storage and security invariants, see [Architecture](architecture.md) and
 [Security model](security.md).
