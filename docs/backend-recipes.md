@@ -219,6 +219,14 @@ Recommended shape:
 
 This keeps pool lifecycle, transactions, and migration ownership out of request handlers.
 
+## Repository Examples
+
+The repository keeps small transport-facing examples alongside these framework notes:
+
+- [OTP backend wiring example](../examples/otp-backend/index.ts)
+- [OAuth / OIDC wiring example](../examples/oauth-oidc/index.ts)
+- [Messenger provider wiring notes](messenger-providers.md)
+
 ## Cookie And CSRF Rules
 
 UniAuth does not issue browser cookies or validate CSRF tokens. Treat these as mandatory
