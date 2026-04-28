@@ -464,6 +464,7 @@ contact `alyldas@ya.ru`.
 - [Architecture](docs/architecture.md)
 - [Auth bridges](docs/bridges.md)
 - [Security model](docs/security.md)
+- [Threat model](docs/threat-model.md)
 - [Local auth flows](docs/local-auth.md)
 - [Messenger providers](docs/messenger-providers.md)
 - [OAuth / OIDC providers](docs/oauth-oidc.md)
