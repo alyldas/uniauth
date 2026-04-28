@@ -15,5 +15,10 @@ framework integration, route handling, session transport, and application-facing
 
 ## Intended Relationship
 
-`@alyldas/uniauth` can later expose bridge adapters around Better Auth or Auth.js, but core should
-not depend on either library.
+`@alyldas/uniauth` now exposes optional bridge helpers through `@alyldas/uniauth/bridges`.
+
+Those helpers only map framework-owned OAuth callback or account data into a stable
+`ProviderIdentityAssertion`.
+
+They do not make UniAuth the primary session engine, route owner, cookie owner, or token store for
+either framework.

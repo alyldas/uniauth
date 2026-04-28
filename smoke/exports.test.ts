@@ -22,10 +22,13 @@ describe('package exports', () => {
   })
 
   it('loads the public ESM entry points', async () => {
+    const bridges = await import('../dist/bridges')
     const core = await import('../dist')
     const postgres = await import('../dist/postgres')
     const testing = await import('../dist/testing')
 
+    expect(bridges.mapAuthJsOAuthToAssertion).toBeTypeOf('function')
+    expect(bridges.mapBetterAuthOAuthToAssertion).toBeTypeOf('function')
     expect(core.AuditEventType.SignIn).toBe('auth.sign_in')
     expect(core.CredentialType.Password).toBe('password')
     expect(core.AuthPolicyAction.ChangePassword).toBe('changePassword')
@@ -99,6 +102,8 @@ describe('package exports', () => {
 
   it('keeps internal provider adapter modules private', () => {
     for (const privateProviderSubpath of [
+      `${packageMetadata.name}/bridges/authjs.js`,
+      `${packageMetadata.name}/bridges/better-auth.js`,
       `${packageMetadata.name}/providers/messenger.js`,
       `${packageMetadata.name}/providers/oauth-oidc.js`,
       `${packageMetadata.name}/postgres/store.js`,
