@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/alyldas/uniauth/compare/v0.11.1...v0.12.0) (2026-04-28)
+
+
+### Features
+
+* add optional auth bridge helpers ([5ff7607](https://github.com/alyldas/uniauth/commit/5ff760793d401a0547fb3c9169cd1ac2c318b41f))
+
 ## [0.11.1](https://github.com/alyldas/uniauth/compare/v0.11.0...v0.11.1) (2026-04-23)
 
 
