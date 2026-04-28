@@ -497,6 +497,8 @@ contact `alyldas@ya.ru`.
 ## Examples
 
 - [Basic Node example](examples/basic-node/index.ts)
+- [Link and unlink example](examples/link-unlink/index.ts)
+- [Provider finish example](examples/provider-finish/index.ts)
 
 ## Documentation
 

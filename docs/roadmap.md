@@ -133,8 +133,9 @@ Tracking issues: #28, #29, #43, #44, #73.
 - Backend recipes for Express, Fastify, Nest, and Next.
 - Public domain and service contract source-module decomposition.
 - Password auth use-case decomposition.
+- Additional runnable examples for link/unlink and provider-finish wiring.
 
-Tracking issues: #45, #46, #48.
+Tracking issues: #45, #46, #48, #83.
 
 ## Examples Backlog
 
