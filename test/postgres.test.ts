@@ -1,6 +1,7 @@
 import { newDb } from 'pg-mem'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  type AuthPolicy,
   AuthIdentityStatus,
   ProviderTrustLevel,
   SessionStatus,
@@ -32,6 +33,10 @@ interface PostgresTestKit {
   readonly service: ReturnType<typeof createAuthService>
 }
 
+interface PostgresTestKitOptions {
+  readonly policy?: AuthPolicy
+}
+
 const openPools = new Set<{ end(): Promise<void> }>()
 
 afterEach(async () => {
@@ -42,7 +47,9 @@ afterEach(async () => {
   openPools.clear()
 })
 
-async function createPostgresTestKit(): Promise<PostgresTestKit> {
+async function createPostgresTestKit(
+  options: PostgresTestKitOptions = {},
+): Promise<PostgresTestKit> {
   const database = newDb({ autoCreateForeignKeyIndices: true })
   const pg = database.adapters.createPg()
   const pool = new pg.Pool() as PostgresPool & { end(): Promise<void> }
@@ -73,11 +80,13 @@ async function createPostgresTestKit(): Promise<PostgresTestKit> {
     providerRegistry,
     idGenerator: createSequentialIdGenerator('pg'),
     passwordHasher: new InMemoryPasswordHasher(),
-    policy: createDefaultAuthPolicy({
-      allowAutoLink: true,
-      allowMergeAccounts: true,
-      requireReAuthFor: [],
-    }),
+    policy:
+      options.policy ??
+      createDefaultAuthPolicy({
+        allowAutoLink: true,
+        allowMergeAccounts: true,
+        requireReAuthFor: [],
+      }),
   })
 
   return {
@@ -88,6 +97,140 @@ async function createPostgresTestKit(): Promise<PostgresTestKit> {
 }
 
 describe('Postgres reference persistence', () => {
+  it('keeps exact provider identity ahead of profile attributes on Postgres', async () => {
+    const { service, store } = await createPostgresTestKit()
+
+    const first = await service.signIn({
+      assertion: {
+        provider: 'oidc',
+        providerUserId: 'pg-exact-user',
+        email: 'first@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const second = await service.signIn({
+      assertion: {
+        provider: 'oidc',
+        providerUserId: 'pg-exact-user',
+        email: 'different@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    expect(second.isNewUser).toBe(false)
+    expect(second.isNewIdentity).toBe(false)
+    expect(second.user.id).toBe(first.user.id)
+    expect(await store.userRepo.findById(first.user.id)).toMatchObject({
+      id: first.user.id,
+    })
+    expect(await store.identityRepo.listByUserId(first.user.id)).toHaveLength(1)
+    expect(await store.sessionRepo.listByUserId(first.user.id)).toHaveLength(2)
+  })
+
+  it('does not silently auto-merge verified email identities on Postgres under the default policy', async () => {
+    const { service, store } = await createPostgresTestKit({
+      policy: createDefaultAuthPolicy(),
+    })
+
+    const emailUser = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-email-user',
+        email: 'shared@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const oauthUser = await service.signIn({
+      assertion: {
+        provider: 'oidc',
+        providerUserId: 'pg-oauth-user',
+        email: 'shared@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    expect(oauthUser.isNewUser).toBe(true)
+    expect(oauthUser.user.id).not.toBe(emailUser.user.id)
+    expect(await store.userRepo.findById(emailUser.user.id)).toMatchObject({
+      id: emailUser.user.id,
+    })
+    expect(await store.userRepo.findById(oauthUser.user.id)).toMatchObject({
+      id: oauthUser.user.id,
+    })
+  })
+
+  it('rejects unlinking the last active identity on Postgres', async () => {
+    const { service } = await createPostgresTestKit({
+      policy: createDefaultAuthPolicy(),
+    })
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-last-identity',
+        email: 'last@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    await expect(
+      service.unlink({
+        userId: signedIn.user.id,
+        identityId: signedIn.identity.id,
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.LastIdentity,
+    })
+  })
+
+  it('keeps invalid password sign-in responses neutral on Postgres', async () => {
+    const { service, store } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-neutral-password',
+        email: 'neutral@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    await service.setPassword({
+      userId: signedIn.user.id,
+      email: 'neutral@example.com',
+      password: 'correct-secret',
+      now,
+    })
+
+    await expect(
+      service.signInWithPassword({
+        email: 'missing@example.com',
+        password: 'wrong-secret',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidCredentials,
+      message: 'Email or password is invalid.',
+    })
+    await expect(
+      service.signInWithPassword({
+        email: 'neutral@example.com',
+        password: 'wrong-secret',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidCredentials,
+      message: 'Email or password is invalid.',
+    })
+
+    expect(await store.sessionRepo.listByUserId(signedIn.user.id)).toHaveLength(1)
+  })
+
   it('applies the schema and supports repository round-trips', async () => {
     const { pool, store } = await createPostgresTestKit()
     const idGenerator = createSequentialIdGenerator('pg-repo')
@@ -446,7 +589,7 @@ describe('Postgres reference persistence', () => {
   })
 
   it('moves password credentials during merge and supports idempotent retries on Postgres', async () => {
-    const { service, store } = await createPostgresTestKit()
+    const { pool, service, store } = await createPostgresTestKit()
     const source = await service.signIn({
       assertion: {
         provider: 'email',
@@ -508,10 +651,33 @@ describe('Postgres reference persistence', () => {
     expect(retriedMerge.movedIdentityIds).toEqual([])
     expect(retriedMerge.movedCredentialIds).toEqual([])
     expect(retriedMerge.revokedSessionIds).toEqual([])
+
+    const mergeEvents = await pool.query<{ type: string; metadata: unknown }>(
+      'select type, metadata from uniauth_audit_events where type = $1 order by id asc',
+      ['auth.accounts_merged'],
+    )
+
+    expect(mergeEvents.rows).toHaveLength(2)
+    expect(mergeEvents.rows[0]).toMatchObject({
+      type: 'auth.accounts_merged',
+      metadata: expect.objectContaining({
+        decision: 'merged',
+        revokedSessionIds: [source.session.id],
+      }),
+    })
+    expect(mergeEvents.rows[1]).toMatchObject({
+      type: 'auth.accounts_merged',
+      metadata: expect.objectContaining({
+        decision: 'already-merged',
+        revokedSessionIds: [],
+      }),
+    })
+    expect(JSON.stringify(mergeEvents.rows)).not.toContain('pg-merge-secret')
+    expect(JSON.stringify(mergeEvents.rows)).not.toContain('pg-merge-source@example.com')
   })
 
   it('rejects merge credential conflicts on Postgres without partial writes', async () => {
-    const { service, store } = await createPostgresTestKit()
+    const { pool, service, store } = await createPostgresTestKit()
     const source = await service.signIn({
       assertion: {
         provider: 'email',
@@ -571,5 +737,22 @@ describe('Postgres reference persistence', () => {
     expect(
       (await store.sessionRepo.listByUserId(source.user.id)).map((session) => session.status),
     ).toEqual([SessionStatus.Active])
+
+    const denialEvents = await pool.query<{ type: string; metadata: unknown }>(
+      'select type, metadata from uniauth_audit_events where type = $1 order by id asc',
+      ['auth.policy_denied'],
+    )
+
+    expect(denialEvents.rows).toHaveLength(1)
+    expect(denialEvents.rows[0]).toMatchObject({
+      type: 'auth.policy_denied',
+      metadata: expect.objectContaining({
+        reason: 'merge-credential-conflict',
+      }),
+    })
+    expect(JSON.stringify(denialEvents.rows)).not.toContain('pg-conflict-source-secret')
+    expect(JSON.stringify(denialEvents.rows)).not.toContain('pg-conflict-source@example.com')
+    expect(JSON.stringify(denialEvents.rows)).not.toContain('pg-conflict-target-secret')
+    expect(JSON.stringify(denialEvents.rows)).not.toContain('pg-conflict-target@example.com')
   })
 })
