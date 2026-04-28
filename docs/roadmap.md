@@ -115,7 +115,8 @@ Tracking issues: #39.
 ### v0.13 - Production Hardening and Integration Backlog
 
 - Threat model documentation.
-- Production email and phone normalization boundary and migration guidance.
+- Production email and phone normalization boundary, migration guidance, and follow-up strict
+  implementation.
 - OTP delivery orchestration boundary documented for queue, retry, and dead-letter adapters without
   moving sender side effects into core.
 - Anti-takeover tests.
@@ -126,7 +127,7 @@ Tracking issues: #39.
 - Public domain and service contract source-module decomposition.
 - Password auth use-case decomposition.
 
-Tracking issues: #28, #29, #43, #44, #45, #46, #48.
+Tracking issues: #28, #29, #43, #44, #45, #46, #48, #73.
 
 ## Examples Backlog
 
