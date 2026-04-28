@@ -112,7 +112,8 @@ Residual risk:
 
 - delivery retries, queue isolation, abuse controls at SMTP/SMS providers, and dead-letter policy
   remain application-owned;
-- OTP delivery orchestration hardening is still backlog work under `#28`.
+- delivery orchestration boundary is documented in [OTP delivery boundary](otp-delivery.md), but
+  provider-specific workers, retries, and webhooks still remain outside core.
 
 ### Session Creation, Revocation, and Residual Access
 

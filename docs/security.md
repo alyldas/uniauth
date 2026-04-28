@@ -26,6 +26,8 @@ risks, see [Threat model](threat-model.md).
 - Password recovery uses hashed verification secrets and consume-once finish semantics.
 - OTP delivery failures do not expose account state; the app-owned sender adapter decides retry,
   dead-letter, and cleanup behavior.
+- Queue-backed delivery may wrap sender ports, but delivery attempts and exhausted-delivery state
+  remain outside core.
 - Rate-limit denials do not create users or sessions, do not consume pending verifications, and do not
   reveal whether a target account exists.
 - Public errors avoid exposing which user owns an identity.
@@ -114,3 +116,6 @@ risks, see [Threat model](threat-model.md).
   headers.
 - Database migrations and production SQL constraints.
 - Application secret loading, pepper rotation, and key management.
+
+See [OTP delivery boundary](otp-delivery.md) for the intended queue/retry/DLQ composition around
+the current sender-port model.
