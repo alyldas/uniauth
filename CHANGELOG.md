@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/alyldas/uniauth/compare/v0.15.0...v0.16.0) (2026-04-28)
+
+
+### Features
+
+* add framework auth examples ([ca1bb96](https://github.com/alyldas/uniauth/commit/ca1bb9681a2d732c371eb11a4c760c26400dd8b2))
+
 ## [0.15.0](https://github.com/alyldas/uniauth/compare/v0.14.0...v0.15.0) (2026-04-28)
 
 
