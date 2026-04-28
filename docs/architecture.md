@@ -177,3 +177,5 @@ become separate packages.
 Future provider, persistence, and HTTP integrations should stay outside the core package unless they
 are small reference contracts. If the ecosystem grows into multiple maintained adapters, the project
 can move to a monorepo with packages for storage, providers, and framework-specific HTTP wiring.
+
+For framework-level HTTP composition examples, see [Backend integration recipes](backend-recipes.md).

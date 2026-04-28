@@ -129,3 +129,6 @@ be wired through the shared `normalizer` runtime option documented in
 
 For storage and security invariants, see [Architecture](architecture.md) and
 [Security model](security.md).
+
+For framework-specific route, cookie, and response composition, see
+[Backend integration recipes](backend-recipes.md).
