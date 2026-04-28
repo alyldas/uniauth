@@ -102,8 +102,6 @@ Tracking issues: #40, #42.
 
 Tracking issues: #41, #47.
 
-## Next Release
-
 ### v0.12 - Optional Auth Bridges
 
 - Optional Better Auth and Auth.js bridge helpers that do not add hard dependencies to core.
@@ -112,7 +110,7 @@ Tracking issues: #41, #47.
 
 Tracking issues: #39.
 
-## Planned
+## Next Release
 
 ### v0.13 - Production Hardening and Integration Backlog
 
