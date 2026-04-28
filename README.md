@@ -502,6 +502,7 @@ contact `alyldas@ya.ru`.
 
 - [Development](docs/development.md)
 - [Architecture](docs/architecture.md)
+- [Backend integration recipes](docs/backend-recipes.md)
 - [Auth bridges](docs/bridges.md)
 - [Security model](docs/security.md)
 - [Threat model](docs/threat-model.md)
