@@ -55,15 +55,17 @@ and release flow, see [Development](development.md) and the root [release checkl
 
 Use Express when you want explicit middleware order and fully manual response handling.
 
+See the runnable [Express auth module example](../examples/express-auth/index.ts) for a larger
+module-shaped variant that includes app-owned sender wiring, session cookie issuance, and neutral
+error mapping.
+
 ```ts
 import express from 'express'
-import cookieParser from 'cookie-parser'
 import { authService } from './auth-service.js'
 
 const app = express()
 
 app.use(express.json())
-app.use(cookieParser())
 
 app.post('/auth/password/sign-in', async (req, res, next) => {
   try {
@@ -97,6 +99,10 @@ Express ownership notes:
 ## Fastify
 
 Use Fastify when you want schema-driven request validation and plugin-based server composition.
+
+See the runnable [Fastify auth module example](../examples/fastify-auth/index.ts) for a
+module-shaped variant that keeps Fastify schemas, cookie transport, and app-owned sender adapters in
+the framework layer.
 
 ```ts
 import Fastify from 'fastify'
@@ -223,6 +229,8 @@ This keeps pool lifecycle, transactions, and migration ownership out of request 
 
 The repository keeps small transport-facing examples alongside these framework notes:
 
+- [Express auth module example](../examples/express-auth/index.ts)
+- [Fastify auth module example](../examples/fastify-auth/index.ts)
 - [OTP backend wiring example](../examples/otp-backend/index.ts)
 - [OAuth / OIDC wiring example](../examples/oauth-oidc/index.ts)
 - [Messenger provider wiring notes](messenger-providers.md)
@@ -240,6 +248,9 @@ Minimum expectations:
   deployment;
 - keep OAuth `state` and `nonce` validation in the application callback layer;
 - clear browser cookies separately when a local UniAuth session is revoked.
+
+For bearer and mobile client transport choices around local sessions, see
+[Session transport recipes](session-transport.md).
 
 ## Release And Maintenance Notes
 
