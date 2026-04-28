@@ -90,6 +90,11 @@ them in app-owned persistence keyed by local auth/session state, not inside core
 Applications can additionally attach normalized trust context to assertions so `AuthPolicy` can make
 auto-link, explicit-link, and merge decisions without receiving raw SDK objects.
 
+Optional framework bridge helpers under `@alyldas/uniauth/bridges` stay even narrower. They accept
+framework-owned Better Auth or Auth.js callback/account data, reduce it to
+`ProviderIdentityAssertion`, and intentionally do not take ownership of framework routes, cookies,
+session transport, token lifecycle, or plugin state.
+
 Delivery happens after the verification record has been created inside `UnitOfWork`. If a sender
 fails, the pending verification stays in storage until normal expiry or adapter cleanup; core does
 not roll back storage after an external delivery side effect fails.

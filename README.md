@@ -27,6 +27,8 @@ license, subscription, private contract, or other written permission.
 - Starts and finishes email password recovery on the shared verification lifecycle.
 - Validates signed Telegram Mini App and MAX WebApp `initData` without provider SDK lock-in.
 - Maps SDK-free OAuth/OIDC provider profiles into the existing provider sign-in pipeline.
+- Maps Auth.js and Better Auth OAuth callback data into `ProviderIdentityAssertion` through the
+  optional `@alyldas/uniauth/bridges` entry point.
 - Creates local session records after successful sign-in.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
 - Runs transaction-aware account merge over identities, credentials, sessions, and audit decisions
@@ -44,6 +46,8 @@ license, subscription, private contract, or other written permission.
 - It does not generate one mandatory ORM schema.
 - It does not include SMTP, SMS gateway, OAuth/OIDC, Telegram, or MAX SDKs, bot setup, webhook
   handlers, or frontend bridge code in core.
+- It does not embed Better Auth or Auth.js runtime, session stores, cookies, callbacks, or plugin
+  wiring into core.
 - It does not send messages by itself; OTP, magic-link, and recovery delivery use sender ports you
   provide.
 - It does not bundle a password hashing runtime; password hashing uses a `PasswordHasher` adapter you
@@ -183,6 +187,12 @@ import {
 } from '@alyldas/uniauth/postgres'
 ```
 
+Optional framework bridge helpers come from a dedicated bridges entry point:
+
+```ts
+import { mapAuthJsOAuthToAssertion, mapBetterAuthOAuthToAssertion } from '@alyldas/uniauth/bridges'
+```
+
 There are no root side effects. Importing the package does not register providers, touch storage,
 create sessions, read environment variables, or mutate global state.
 
@@ -227,6 +237,9 @@ launch data. See [Messenger providers](docs/messenger-providers.md).
 
 OAuth/OIDC providers use an SDK-free client contract for authorization-code finish flows. See
 [OAuth / OIDC providers](docs/oauth-oidc.md).
+
+Optional Better Auth and Auth.js bridge helpers live in their own subpath so the core package stays
+free of framework runtime dependencies. See [Auth bridges](docs/bridges.md).
 
 Reference Postgres persistence lives in a separate subpath so the core API stays ORM-free and does
 not take a hard runtime dependency on `pg`. See [Postgres persistence](docs/postgres.md).
@@ -411,9 +424,14 @@ Provider adapters should return a normalized `ProviderIdentityAssertion` from `f
 provider payloads should stay adapter-owned or be reduced to explicit `metadata`; core does not
 persist raw provider profiles.
 
+Framework bridge helpers should stay equally narrow: they normalize framework callback data into
+`ProviderIdentityAssertion`, but they do not own provider SDK setup, cookies, sessions, token
+storage, or framework callback routing.
+
 ## Entry Points
 
 - `@alyldas/uniauth`: public domain types, service implementation, policy API, ports, errors, and utilities.
+- `@alyldas/uniauth/bridges`: optional Better Auth and Auth.js assertion mapping helpers.
 - `@alyldas/uniauth/postgres`: reference Postgres repositories, schema helper, and transaction wiring.
 - `@alyldas/uniauth/testing`: in-memory store, provider registry, static provider, in-memory email
   and SMS senders, and test kit.
@@ -444,6 +462,7 @@ contact `alyldas@ya.ru`.
 
 - [Development](docs/development.md)
 - [Architecture](docs/architecture.md)
+- [Auth bridges](docs/bridges.md)
 - [Security model](docs/security.md)
 - [Local auth flows](docs/local-auth.md)
 - [Messenger providers](docs/messenger-providers.md)

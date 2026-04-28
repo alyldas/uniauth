@@ -42,6 +42,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./bridges": {
+      "types": "./dist/bridges.d.ts",
+      "import": "./dist/bridges/index.js"
+    },
     "./postgres": {
       "types": "./dist/postgres.d.ts",
       "import": "./dist/postgres/index.js"

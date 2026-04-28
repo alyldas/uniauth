@@ -106,7 +106,7 @@ Tracking issues: #41, #47.
 
 ### v0.12 - Optional Auth Bridges
 
-- Optional Better Auth and Auth.js bridge adapters that do not add hard dependencies to core.
+- Optional Better Auth and Auth.js bridge helpers that do not add hard dependencies to core.
 - Bridge boundaries that preserve UniAuth account-linking and policy invariants.
 - Documentation that explains what external auth libraries own and what UniAuth still owns.
 
