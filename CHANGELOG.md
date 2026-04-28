@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/alyldas/uniauth/compare/v0.12.0...v0.13.0) (2026-04-28)
+
+
+### Features
+
+* add configurable normalization boundary ([d431ae9](https://github.com/alyldas/uniauth/commit/d431ae983a15459a00733334b948f5d162b62a62))
+
 ## [0.12.0](https://github.com/alyldas/uniauth/compare/v0.11.1...v0.12.0) (2026-04-28)
 
 
