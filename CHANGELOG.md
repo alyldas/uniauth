@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/alyldas/uniauth/compare/v0.13.0...v0.13.1) (2026-04-28)
+
+
+### Bug Fixes
+
+* restore normalization boundary semantics ([94d459b](https://github.com/alyldas/uniauth/commit/94d459b20e2e6e99d3309d535d7217a1391a2f30))
+
 ## [0.13.0](https://github.com/alyldas/uniauth/compare/v0.12.0...v0.13.0) (2026-04-28)
 
 
