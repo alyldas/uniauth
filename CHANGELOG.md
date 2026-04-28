@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/alyldas/uniauth/compare/v0.14.0...v0.15.0) (2026-04-28)
+
+
+### Features
+
+* add provider wiring examples ([a8524e3](https://github.com/alyldas/uniauth/commit/a8524e37268577a6062c877ebf008c75587e76da))
+
 ## [0.14.0](https://github.com/alyldas/uniauth/compare/v0.13.1...v0.14.0) (2026-04-28)
 
 
