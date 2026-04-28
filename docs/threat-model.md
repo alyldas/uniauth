@@ -57,8 +57,9 @@ Current coverage:
 Residual risk:
 
 - provider trust assignment is still application-owned;
-- the normalization boundary is now documented in [Normalization boundary](normalization.md), but
-  strict validator/canonicalizer rollout is still application-owned or future work.
+- the shared normalization boundary is now available and documented in
+  [Normalization boundary](normalization.md), but strict validator choice, phone-region policy, and
+  migration rollout are still application-owned.
 
 ### Provider Identity Confusion
 

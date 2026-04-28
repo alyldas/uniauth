@@ -77,8 +77,8 @@ headers.
 
 The built-in `normalizeEmail`, `normalizePhone`, and `normalizeTarget` helpers are compatibility
 utilities, not a full production canonicalization policy. If an application needs strict email
-validation or E.164 phone handling, it should apply one shared policy across provider assertions,
-OTP, magic link, password, and repository lookup paths instead of normalizing each flow
+validation or E.164 phone handling, it should pass one shared `normalizer` boundary across provider
+assertions, OTP, magic link, password, and repository lookup paths instead of normalizing each flow
 independently. See [Normalization boundary](normalization.md).
 
 Messenger WebApp providers are reference `AuthProvider` factories, not SDK integrations. They

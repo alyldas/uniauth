@@ -32,7 +32,6 @@ import {
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidCredentials, invalidInput } from '../errors.js'
 import { RateLimitAction, type PasswordHasher } from '../ports.js'
-import { normalizeEmail } from '../utils/normalization.js'
 import { generateSecret } from '../utils/secrets.js'
 
 const DEFAULT_PASSWORD_RECOVERY_SUBJECT = 'Reset your password'
@@ -45,7 +44,7 @@ export async function signInWithPassword(
   input: SignInWithPasswordInput,
 ): Promise<AuthResult> {
   const now = input.now ?? runtime.clock.now()
-  const email = normalizePasswordEmail(input.email)
+  const email = normalizePasswordEmail(runtime, input.email)
   assertPassword(input.password)
   const passwordHasher = getPasswordHasher(runtime)
 
@@ -97,7 +96,7 @@ export async function setPassword(
     const user = await getActiveUser(runtime, input.userId)
     await ensureReAuth(runtime, AuthPolicyAction.SetPassword, user.id, input.reAuthenticatedAt, now)
 
-    const email = normalizePasswordEmail(input.email)
+    const email = normalizePasswordEmail(runtime, input.email)
     assertPassword(input.password)
     const passwordHasher = getPasswordHasher(runtime)
     const existingForEmail = await runtime.repos.credentialRepo.findPasswordByEmail(email)
@@ -177,7 +176,7 @@ export async function startEmailPasswordRecovery(
   input: StartEmailPasswordRecoveryInput,
 ): Promise<StartEmailPasswordRecoveryResult> {
   const now = input.now ?? runtime.clock.now()
-  const email = normalizePasswordEmail(input.email)
+  const email = normalizePasswordEmail(runtime, input.email)
 
   if (!runtime.emailSender) {
     throw invalidInput('Email sender is required for password recovery.')
@@ -264,8 +263,11 @@ export async function finishEmailPasswordRecovery(
   })
 }
 
-function normalizePasswordEmail(email: string): string {
-  const normalized = normalizeEmail(email)
+function normalizePasswordEmail(
+  runtime: Pick<AuthServiceRuntime, 'normalizer'>,
+  email: string,
+): string {
+  const normalized = runtime.normalizer.normalizeEmail(email)
 
   if (!normalized) {
     throw invalidInput('Email is required.')

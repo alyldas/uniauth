@@ -12,7 +12,6 @@ import {
   type Verification,
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
-import { normalizeTarget } from '../utils/normalization.js'
 import { generateSecret } from '../utils/secrets.js'
 import { addSeconds } from '../utils/time.js'
 
@@ -46,7 +45,7 @@ export async function createVerificationRecord(
   input: CreateVerificationRecordInput,
 ): Promise<CreateVerificationResult> {
   const secret = input.secret ?? generateSecret()
-  const target = normalizeTarget(input.target)
+  const target = runtime.normalizer.normalizeTarget(input.target)
 
   if (!target) {
     throw invalidInput('Verification target is required.')

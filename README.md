@@ -150,9 +150,12 @@ import {
   UniAuthError,
   UniAuthErrorCode,
   VerificationPurpose,
+  compatibilityAuthNormalizer,
+  createAuthNormalizer,
   createDefaultAuthPolicy,
   createHmacSecretHasher,
   isUniAuthError,
+  type AuthNormalizer,
   type AuthProvider,
   type AuthService,
   type EmailMagicLink,
@@ -195,6 +198,36 @@ import { mapAuthJsOAuthToAssertion, mapBetterAuthOAuthToAssertion } from '@alyld
 
 There are no root side effects. Importing the package does not register providers, touch storage,
 create sessions, read environment variables, or mutate global state.
+
+Normalization can be shared through one optional runtime boundary:
+
+```ts
+const strictNormalizer: AuthNormalizer = createAuthNormalizer({
+  normalizeEmail(email) {
+    const normalized = compatibilityAuthNormalizer.normalizeEmail(email)
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(normalized)) {
+      throw new UniAuthError(UniAuthErrorCode.InvalidInput, 'Email is invalid.')
+    }
+
+    return normalized
+  },
+  normalizePhone(phone) {
+    const digits = phone.replace(/\D+/g, '')
+    const normalized = digits.length === 10 ? `+1${digits}` : `+${digits}`
+
+    if (!/^\+[1-9]\d{7,14}$/u.test(normalized)) {
+      throw new UniAuthError(UniAuthErrorCode.InvalidInput, 'Phone is invalid.')
+    }
+
+    return normalized
+  },
+})
+
+const { service } = createInMemoryAuthKit({
+  normalizer: strictNormalizer,
+})
+```
 
 The service contract is policy-driven:
 

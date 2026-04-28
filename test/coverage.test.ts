@@ -6,6 +6,8 @@ import {
   addSeconds,
   asAuditEventId,
   asCredentialId,
+  compatibilityAuthNormalizer,
+  createAuthNormalizer,
   asIdentityId,
   asSessionId,
   asUserId,
@@ -59,6 +61,25 @@ describe('public utility coverage', () => {
     expect(normalizePhone(' +1 (555) 123-4567 ')).toBe('+15551234567')
     expect(normalizeTarget(' Alice@Example.COM ')).toBe('alice@example.com')
     expect(normalizeTarget(' +1 (555) 123-4567 ')).toBe('+15551234567')
+    expect(compatibilityAuthNormalizer.normalizeEmail(' Alice@Example.COM ')).toBe(
+      'alice@example.com',
+    )
+    expect(
+      createAuthNormalizer({
+        normalizeEmail: (email) => email.trim().toUpperCase(),
+        normalizePhone: (phone) => phone.replace(/\s+/g, '').trim(),
+        normalizeTarget: (target, helpers) =>
+          target.includes('@')
+            ? helpers.normalizeEmail(target)
+            : `tel:${helpers.normalizePhone(target)}`,
+      }).normalizeTarget(' 1 2 3 '),
+    ).toBe('tel:123')
+    expect(
+      createAuthNormalizer({
+        normalizeEmail: (email) => email.trim().toUpperCase(),
+        normalizePhone: (phone) => phone.replace(/\s+/g, '').trim(),
+      }).normalizeTarget(' Alice@Example.COM '),
+    ).toBe('ALICE@EXAMPLE.COM')
 
     const generatedSecret = generateSecret(8)
     const generatedOtpSecret = generateOtpSecret()

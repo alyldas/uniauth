@@ -26,8 +26,62 @@ Production-grade validation and canonicalization should follow these rules:
 - region-specific phone parsing must be explicit and application-owned or future-adapter-owned;
 - no mandatory phone metadata dependency should be added to the core package.
 
-If UniAuth later grows configurable strict normalization, it should be introduced as one shared
-runtime boundary, not as separate ad hoc flags for each auth flow.
+Configurable strict normalization should stay on one shared runtime boundary, not split into ad hoc
+flags for each auth flow.
+
+## Runtime API
+
+UniAuth now exposes one optional runtime-level normalization boundary through the `normalizer`
+service option.
+
+The boundary shape is:
+
+- `normalizeEmail(email)`
+- `normalizePhone(phone)`
+- `normalizeTarget(target)`
+
+The default runtime uses `compatibilityAuthNormalizer`, which preserves the historical lightweight
+behavior. Applications can pass a stricter shared normalizer to `DefaultAuthService` or
+`createInMemoryAuthKit`.
+
+```ts
+import {
+  UniAuthError,
+  UniAuthErrorCode,
+  compatibilityAuthNormalizer,
+  createAuthNormalizer,
+} from '@alyldas/uniauth'
+import { createInMemoryAuthKit } from '@alyldas/uniauth/testing'
+
+const strictNormalizer = createAuthNormalizer({
+  normalizeEmail(email) {
+    const normalized = compatibilityAuthNormalizer.normalizeEmail(email)
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(normalized)) {
+      throw new UniAuthError(UniAuthErrorCode.InvalidInput, 'Email is invalid.')
+    }
+
+    return normalized
+  },
+  normalizePhone(phone) {
+    const digits = phone.replace(/\D+/g, '')
+    const normalized = digits.length === 10 ? `+1${digits}` : `+${digits}`
+
+    if (!/^\+[1-9]\d{7,14}$/u.test(normalized)) {
+      throw new UniAuthError(UniAuthErrorCode.InvalidInput, 'Phone is invalid.')
+    }
+
+    return normalized
+  },
+})
+
+const { service } = createInMemoryAuthKit({
+  normalizer: strictNormalizer,
+})
+```
+
+The important part is not the regex itself. The important part is that OTP, magic link, password,
+verification, and provider-assertion paths all use the same configured normalizer object.
 
 ## Current Compatibility Mode
 
@@ -174,7 +228,8 @@ updating all persisted data and all lookup paths consistently.
 
 ## Future Core Integration
 
-If UniAuth later exposes configurable normalization, it should follow these constraints:
+The runtime-level normalization boundary now exists. Future tightening should still follow these
+constraints:
 
 - one shared runtime-level boundary for email and phone normalization;
 - used by OTP, magic link, password, verification, and provider-assertion orchestration paths;

@@ -20,7 +20,7 @@ import type {
   UserRepo,
   VerificationRepo,
 } from '../../ports.js'
-import { normalizeEmail, normalizePhone } from '../../utils/normalization.js'
+import { compatibilityAuthNormalizer, type AuthNormalizer } from '../../utils/normalization.js'
 
 interface StoreSnapshot {
   readonly users: Map<User['id'], User>
@@ -34,6 +34,10 @@ interface StoreSnapshot {
   readonly auditEvents: AuditEvent[]
 }
 
+export interface InMemoryAuthStoreOptions {
+  readonly normalizer?: AuthNormalizer
+}
+
 export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   private readonly users = new Map<User['id'], User>()
   private readonly identities = new Map<AuthIdentity['id'], AuthIdentity>()
@@ -45,6 +49,8 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   private readonly sessions = new Map<Session['id'], Session>()
   private readonly auditEvents: AuditEvent[] = []
   private transactionDepth = 0
+
+  constructor(private readonly options: InMemoryAuthStoreOptions = {}) {}
 
   readonly userRepo: UserRepo = {
     findById: async (id) => this.users.get(id),
@@ -72,7 +78,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       return id ? this.identities.get(id) : undefined
     },
     findByVerifiedEmail: async (email) => {
-      const normalizedEmail = normalizeEmail(email)
+      const normalizedEmail = this.normalizer.normalizeEmail(email)
       return [...this.identities.values()].filter(
         (identity) =>
           identity.status === AuthIdentityStatus.Active &&
@@ -81,7 +87,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       )
     },
     findByVerifiedPhone: async (phone) => {
-      const normalizedPhone = normalizePhone(phone)
+      const normalizedPhone = this.normalizer.normalizePhone(phone)
       return [...this.identities.values()].filter(
         (identity) =>
           identity.status === AuthIdentityStatus.Active &&
@@ -128,7 +134,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   readonly credentialRepo: CredentialRepo = {
     findPasswordByEmail: async (email) => {
       const id = this.credentialKeys.get(
-        this.credentialKey(CredentialType.Password, normalizeEmail(email)),
+        this.credentialKey(CredentialType.Password, this.normalizer.normalizeEmail(email)),
       )
       return id ? this.credentials.get(id) : undefined
     },
@@ -280,6 +286,10 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
 
   private identityKey(provider: AuthIdentityProvider, providerUserId: string): string {
     return `${provider}\u0000${providerUserId}`
+  }
+
+  private get normalizer(): AuthNormalizer {
+    return this.options.normalizer ?? compatibilityAuthNormalizer
   }
 
   private credentialKey(type: Credential['type'], subject: string): string {

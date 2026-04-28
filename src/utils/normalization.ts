@@ -1,3 +1,22 @@
+export interface AuthNormalizer {
+  normalizeEmail(email: string): string
+  normalizePhone(phone: string): string
+  normalizeTarget(target: string): string
+}
+
+export type AuthValueNormalizer = (value: string) => string
+
+export type AuthTargetNormalizer = (
+  target: string,
+  helpers: Pick<AuthNormalizer, 'normalizeEmail' | 'normalizePhone'>,
+) => string
+
+export interface CreateAuthNormalizerOptions {
+  readonly normalizeEmail?: AuthValueNormalizer
+  readonly normalizePhone?: AuthValueNormalizer
+  readonly normalizeTarget?: AuthTargetNormalizer
+}
+
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()
 }
@@ -7,11 +26,37 @@ export function normalizePhone(phone: string): string {
 }
 
 export function normalizeTarget(target: string): string {
+  return defaultNormalizeTarget(target, {
+    normalizeEmail,
+    normalizePhone,
+  })
+}
+
+export function createAuthNormalizer(options: CreateAuthNormalizerOptions = {}): AuthNormalizer {
+  const helpers = {
+    normalizeEmail: options.normalizeEmail ?? normalizeEmail,
+    normalizePhone: options.normalizePhone ?? normalizePhone,
+  }
+  const normalizeTargetHandler = options.normalizeTarget ?? defaultNormalizeTarget
+
+  return {
+    normalizeEmail: helpers.normalizeEmail,
+    normalizePhone: helpers.normalizePhone,
+    normalizeTarget: (target) => normalizeTargetHandler(target, helpers),
+  }
+}
+
+export const compatibilityAuthNormalizer = createAuthNormalizer()
+
+function defaultNormalizeTarget(
+  target: string,
+  helpers: Pick<AuthNormalizer, 'normalizeEmail' | 'normalizePhone'>,
+): string {
   const trimmed = target.trim()
 
   if (trimmed.includes('@')) {
-    return normalizeEmail(trimmed)
+    return helpers.normalizeEmail(trimmed)
   }
 
-  return normalizePhone(trimmed)
+  return helpers.normalizePhone(trimmed)
 }

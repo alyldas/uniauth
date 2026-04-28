@@ -49,10 +49,12 @@ describe('package exports', () => {
       core.isUniAuthError(new core.UniAuthError(core.UniAuthErrorCode.InvalidInput, 'x')),
     ).toBe(true)
     expect(core.createDefaultAuthPolicy).toBeTypeOf('function')
+    expect(core.createAuthNormalizer).toBeTypeOf('function')
     expect(core.createHmacSecretHasher).toBeTypeOf('function')
     expect(core.createMaxWebAppProvider).toBeTypeOf('function')
     expect(core.createOAuthOidcProvider).toBeTypeOf('function')
     expect(core.createTelegramMiniAppProvider).toBeTypeOf('function')
+    expect(core.compatibilityAuthNormalizer).toBeTypeOf('object')
     expect(core.mapOAuthOidcProfileToAssertion).toBeTypeOf('function')
     expect(core.validateSignedWebAppInitData).toBeTypeOf('function')
     expect(core.UNIAUTH_ATTRIBUTION).toBeTypeOf('object')

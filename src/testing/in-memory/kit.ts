@@ -8,6 +8,7 @@ import type { AuthPolicy } from '../../application/policy.js'
 import type { Clock, IdGenerator } from '../../domain/types.js'
 import type { OtpSecretGenerator, PasswordHasher, RateLimiter } from '../../ports.js'
 import { createSequentialIdGenerator } from '../../utils/ids.js'
+import type { AuthNormalizer } from '../../utils/normalization.js'
 import type { SecretHasher } from '../../utils/secrets.js'
 import { InMemoryProviderRegistry } from '../providers.js'
 import { InMemoryEmailSender, InMemorySmsSender } from './senders.js'
@@ -18,6 +19,7 @@ export interface CreateInMemoryAuthKitOptions {
   readonly policy?: AuthPolicy
   readonly clock?: Clock
   readonly idGenerator?: IdGenerator
+  readonly normalizer?: AuthNormalizer
   readonly secretHasher?: SecretHasher
   readonly rateLimiter?: RateLimiter
   readonly otpSecretLength?: number
@@ -42,7 +44,9 @@ interface InMemoryAuthKitResult {
 export function createInMemoryAuthKit(
   options: CreateInMemoryAuthKitOptions = {},
 ): InMemoryAuthKitResult {
-  const store = new InMemoryAuthStore()
+  const store = new InMemoryAuthStore({
+    ...optionalProp('normalizer', options.normalizer),
+  })
   const providerRegistry = new InMemoryProviderRegistry()
   const emailSender = new InMemoryEmailSender()
   const smsSender = new InMemorySmsSender()
@@ -58,6 +62,7 @@ export function createInMemoryAuthKit(
     providerRegistry,
     transaction: store,
     idGenerator,
+    ...optionalProp('normalizer', options.normalizer),
     ...optionalProp('secretHasher', options.secretHasher),
     ...optionalProp('policy', options.policy),
     ...optionalProp('clock', options.clock),
