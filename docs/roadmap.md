@@ -144,8 +144,6 @@ Tracking issues: #45, #46, #48, #83.
 
 Tracking issues: #86, #87, #88.
 
-## Next Release
-
 ### v0.16 - Framework Module Examples and Session Transport
 
 - Express auth module example with app-owned sender, cookie, and error-mapping boundaries.
@@ -153,6 +151,16 @@ Tracking issues: #86, #87, #88.
 - Session transport recipes for browser cookies, bearer/API transport, and mobile/native clients.
 
 Tracking issues: #93, #94, #95.
+
+## Next Release
+
+### v0.17 - Backlog To Be Defined
+
+- No tracking issues are assigned yet.
+- The next release will be defined after the next concrete feature or hardening slice is promoted
+  into GitHub issues.
+
+Tracking issues: none.
 
 ## Versioning
 
