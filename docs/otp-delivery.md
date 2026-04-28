@@ -42,6 +42,10 @@ sequenceDiagram
 The sender can deliver directly or enqueue work. From core's point of view both are the same
 contract: `send(...)` is an app-owned side effect after verification persistence.
 
+For a small HTTP-facing composition example around `startOtpChallenge(...)`,
+`finishOtpSignIn(...)`, app-owned sender wiring, and session-cookie issuance, see
+[OTP backend wiring example](../examples/otp-backend/index.ts).
+
 ## What Core Owns
 
 UniAuth owns only the generic auth semantics:

@@ -107,6 +107,101 @@ await service.signIn({
 `createMaxWebAppProvider` extracts `WebAppData` when the payload contains that parameter. If the
 payload is already direct `initData`, it validates it as-is.
 
+## Wiring Examples
+
+Messenger providers stay app-owned at bootstrap and transport layers:
+
+- load bot tokens in server-only code;
+- register providers in the same bootstrap where `ProviderRegistry` and `AuthService` are created;
+- pass raw signed `initData` from your HTTP or RPC boundary into `finishInput.payload`;
+- issue browser cookies, redirects, and CSRF/state handling in the application layer after
+  `service.signIn(...)` returns a local session.
+
+### Telegram Mini App Route
+
+```ts
+import { TELEGRAM_MINI_APP_PROVIDER_ID, createTelegramMiniAppProvider } from '@alyldas/uniauth'
+import { authService, providerRegistry } from './auth-bootstrap.js'
+
+providerRegistry.register(
+  createTelegramMiniAppProvider({
+    botToken: process.env.TELEGRAM_BOT_TOKEN!,
+    maxAgeSeconds: 60 * 5,
+  }),
+)
+
+export async function postTelegramMiniAppSignIn(request: Request) {
+  const body = await request.json()
+  const result = await authService.signIn({
+    provider: TELEGRAM_MINI_APP_PROVIDER_ID,
+    finishInput: {
+      payload: {
+        initData: body.initData,
+      },
+    },
+  })
+
+  return {
+    status: 200,
+    sessionCookie: {
+      name: 'session',
+      value: result.session.id,
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+    },
+    body: {
+      userId: result.user.id,
+    },
+  }
+}
+```
+
+### MAX WebApp Route
+
+```ts
+import { MAX_WEBAPP_PROVIDER_ID, createMaxWebAppProvider } from '@alyldas/uniauth'
+import { authService, providerRegistry } from './auth-bootstrap.js'
+
+providerRegistry.register(
+  createMaxWebAppProvider({
+    botToken: process.env.MAX_BOT_TOKEN!,
+    maxAgeSeconds: 60 * 5,
+  }),
+)
+
+export async function postMaxWebAppSignIn(request: Request) {
+  const body = await request.json()
+  const result = await authService.signIn({
+    provider: MAX_WEBAPP_PROVIDER_ID,
+    finishInput: {
+      payload: {
+        url: body.url,
+      },
+    },
+  })
+
+  return {
+    status: 200,
+    sessionCookie: {
+      name: 'session',
+      value: result.session.id,
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+    },
+    body: {
+      userId: result.user.id,
+    },
+  }
+}
+```
+
+For framework-specific cookie, CSRF, and redirect handling around these providers, see
+[Backend integration recipes](backend-recipes.md).
+
 ## Security Notes
 
 - Keep bot tokens in application bootstrap code. UniAuth never reads environment variables itself.

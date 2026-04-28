@@ -85,6 +85,10 @@ await service.signIn({
 })
 ```
 
+See the runnable [OAuth / OIDC wiring example](../examples/oauth-oidc/index.ts) for a small
+callback-shaped transport example that keeps state, PKCE verifier storage, redirect URI handling,
+and session cookie issuance application-owned.
+
 The built-in mapper uses `profile.subject` as `providerUserId`, maps verified email and phone claims,
 and copies only reduced profile metadata such as issuer, preferred username, picture URL, locale, and
 explicit app-provided profile metadata. It does not copy access tokens or ID tokens into assertion

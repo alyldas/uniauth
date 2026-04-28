@@ -498,6 +498,8 @@ contact `alyldas@ya.ru`.
 
 - [Basic Node example](examples/basic-node/index.ts)
 - [Link and unlink example](examples/link-unlink/index.ts)
+- [OTP backend wiring example](examples/otp-backend/index.ts)
+- [OAuth / OIDC wiring example](examples/oauth-oidc/index.ts)
 - [Provider finish example](examples/provider-finish/index.ts)
 
 ## Documentation
