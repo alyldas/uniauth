@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/alyldas/uniauth/compare/v0.13.1...v0.14.0) (2026-04-28)
+
+
+### Features
+
+* add example applications ([66e38f5](https://github.com/alyldas/uniauth/commit/66e38f58232bdcd3b71713c76e1b4f550a1f09bd))
+
 ## [0.13.1](https://github.com/alyldas/uniauth/compare/v0.13.0...v0.13.1) (2026-04-28)
 
 
