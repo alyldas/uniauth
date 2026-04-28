@@ -135,8 +135,6 @@ Tracking issues: #28, #29, #43, #44, #73.
 
 Tracking issues: #45, #46, #48, #83.
 
-## Next Release
-
 ### v0.15 - Example Coverage and Provider Wiring
 
 - HTTP-facing OTP wiring example.
@@ -146,11 +144,15 @@ Tracking issues: #45, #46, #48, #83.
 
 Tracking issues: #86, #87, #88.
 
-## Examples Backlog
+## Next Release
 
-- OTP wiring backend example.
-- OAuth/OIDC adapter wiring example.
-- Telegram and MAX adapter wiring examples.
+### v0.16 - Backlog To Be Defined
+
+- No tracking issues are assigned yet.
+- The next release will be defined after the next concrete feature or hardening slice is promoted
+  into GitHub issues.
+
+Tracking issues: none.
 
 ## Versioning
 
