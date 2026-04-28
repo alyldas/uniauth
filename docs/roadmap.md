@@ -125,8 +125,6 @@ Tracking issues: #39.
 
 Tracking issues: #28, #29, #43, #44, #73.
 
-## Next Release
-
 ### v0.14 - Integration Recipes and Internal Simplification
 
 - Migration docs and example applications.
@@ -137,12 +135,22 @@ Tracking issues: #28, #29, #43, #44, #73.
 
 Tracking issues: #45, #46, #48, #83.
 
+## Next Release
+
+### v0.15 - Example Coverage and Provider Wiring
+
+- HTTP-facing OTP wiring example.
+- OAuth/OIDC adapter wiring example using the public provider factory.
+- Telegram Mini App and MAX WebApp wiring examples with application-owned token loading and payload
+  transport.
+
+Tracking issues: #86, #87, #88.
+
 ## Examples Backlog
 
-- Link and unlink flow.
-- OTP wiring.
-- OAuth adapter wiring.
-- Telegram and MAX adapter wiring.
+- OTP wiring backend example.
+- OAuth/OIDC adapter wiring example.
+- Telegram and MAX adapter wiring examples.
 
 ## Versioning
 
