@@ -110,9 +110,7 @@ Tracking issues: #41, #47.
 
 Tracking issues: #39.
 
-## Next Release
-
-### v0.13 - Production Hardening and Integration Backlog
+### v0.13 - Production Hardening and Normalization
 
 - Threat model documentation.
 - Production email and phone normalization boundary, migration guidance, and follow-up strict
@@ -122,12 +120,21 @@ Tracking issues: #39.
 - Anti-takeover tests.
 - Merge idempotency tests.
 - Audit coverage.
+- Shared runtime-level normalization boundary with compatibility defaults and strict app-owned
+  wiring.
+
+Tracking issues: #28, #29, #43, #44, #73.
+
+## Next Release
+
+### v0.14 - Integration Recipes and Internal Simplification
+
 - Migration docs and example applications.
 - Backend recipes for Express, Fastify, Nest, and Next.
 - Public domain and service contract source-module decomposition.
 - Password auth use-case decomposition.
 
-Tracking issues: #28, #29, #43, #44, #45, #46, #48, #73.
+Tracking issues: #45, #46, #48.
 
 ## Examples Backlog
 
