@@ -1,5 +1,8 @@
 # Security Model
 
+For the attacker-centric view, trust boundaries, production hardening assumptions, and residual
+risks, see [Threat model](threat-model.md).
+
 ## Invariants
 
 - User IDs are local and never derived from external provider IDs.
