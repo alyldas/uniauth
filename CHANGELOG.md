@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/alyldas/uniauth/compare/v0.24.0...v0.25.0) (2026-04-29)
+
+
+### Features
+
+* add safe read-side projection helpers ([2cc32ba](https://github.com/alyldas/uniauth/commit/2cc32ba5e293b62e16eed5bec7adf61db09c4c6e))
+
 ## [0.24.0](https://github.com/alyldas/uniauth/compare/v0.23.0...v0.24.0) (2026-04-29)
 
 
