@@ -16,6 +16,9 @@ npm ci
 npm run check
 ```
 
+The repository keeps npm cache and `_logs` in project-local `.npm-cache/` through `.npmrc` so
+package checks do not depend on a writable home directory.
+
 Use focused commands while developing:
 
 ```sh
@@ -26,8 +29,9 @@ npm run lint
 
 ## Package Gate
 
-`npm run check` is the local release gate. It runs formatting, ESLint, typecheck, 100% coverage,
-export smoke tests, package lint, package type-resolution checks, and `npm pack --dry-run`.
+`npm run check` is the local release gate. It runs dependency audit, formatting, ESLint,
+typecheck, 100% coverage, export smoke tests, package lint, package type-resolution checks, and
+`npm pack --dry-run`.
 
 Use Docker when you want the same package gate inside the pinned Node 22 Alpine image:
 

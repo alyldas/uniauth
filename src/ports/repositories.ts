@@ -57,6 +57,7 @@ export interface VerificationRepo {
 
 export interface SessionRepo {
   findById(id: SessionId): Promise<Session | undefined>
+  findByTokenHash(tokenHash: string): Promise<Session | undefined>
   listByUserId(userId: UserId): Promise<readonly Session[]>
   create(session: Session): Promise<Session>
   update(id: SessionId, patch: Partial<Omit<Session, 'id' | 'createdAt'>>): Promise<Session>

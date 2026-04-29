@@ -31,6 +31,7 @@ interface StoreSnapshot {
   readonly credentialUserKeys: Map<string, Credential['id']>
   readonly verifications: Map<Verification['id'], Verification>
   readonly sessions: Map<Session['id'], Session>
+  readonly sessionKeys: Map<string, Session['id']>
   readonly auditEvents: AuditEvent[]
 }
 
@@ -47,6 +48,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   private readonly credentialUserKeys = new Map<string, Credential['id']>()
   private readonly verifications = new Map<Verification['id'], Verification>()
   private readonly sessions = new Map<Session['id'], Session>()
+  private readonly sessionKeys = new Map<string, Session['id']>()
   private readonly auditEvents: AuditEvent[] = []
   private transactionDepth = 0
 
@@ -217,10 +219,19 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
 
   readonly sessionRepo: SessionRepo = {
     findById: async (id) => this.sessions.get(id),
+    findByTokenHash: async (tokenHash) => {
+      const id = this.sessionKeys.get(tokenHash)
+      return id ? this.sessions.get(id) : undefined
+    },
     listByUserId: async (userId) =>
       [...this.sessions.values()].filter((session) => session.userId === userId),
     create: async (session) => {
+      if (this.sessionKeys.has(session.tokenHash)) {
+        throw new UniAuthError(UniAuthErrorCode.InvalidInput, 'Session token already exists.')
+      }
+
       this.sessions.set(session.id, session)
+      this.sessionKeys.set(session.tokenHash, session.id)
       return session
     },
     update: async (id, patch) => {
@@ -231,6 +242,14 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       }
 
       const updated: Session = { ...existing, ...patch }
+      const existingSessionId = this.sessionKeys.get(updated.tokenHash)
+
+      if (updated.tokenHash !== existing.tokenHash && existingSessionId) {
+        throw new UniAuthError(UniAuthErrorCode.InvalidInput, 'Session token already exists.')
+      }
+
+      this.sessionKeys.delete(existing.tokenHash)
+      this.sessionKeys.set(updated.tokenHash, updated.id)
       this.sessions.set(updated.id, updated)
       return updated
     },
@@ -310,6 +329,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       credentialUserKeys: new Map(this.credentialUserKeys),
       verifications: new Map(this.verifications),
       sessions: new Map(this.sessions),
+      sessionKeys: new Map(this.sessionKeys),
       auditEvents: [...this.auditEvents],
     }
   }
@@ -323,6 +343,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
     this.credentialUserKeys.clear()
     this.verifications.clear()
     this.sessions.clear()
+    this.sessionKeys.clear()
     this.auditEvents.length = 0
 
     for (const [id, user] of snapshot.users) {
@@ -355,6 +376,10 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
 
     for (const [id, session] of snapshot.sessions) {
       this.sessions.set(id, session)
+    }
+
+    for (const [key, id] of snapshot.sessionKeys) {
+      this.sessionKeys.set(key, id)
     }
 
     this.auditEvents.push(...snapshot.auditEvents)

@@ -22,6 +22,7 @@ export interface AuthResult {
   readonly user: User
   readonly identity: AuthIdentity
   readonly session: Session
+  readonly sessionToken: string
   readonly isNewUser: boolean
   readonly isNewIdentity: boolean
 }
@@ -71,6 +72,16 @@ export interface CreateSessionInput {
   readonly expiresAt?: Date
   readonly now?: Date
   readonly metadata?: Record<string, unknown>
+}
+
+export interface CreateSessionResult {
+  readonly session: Session
+  readonly sessionToken: string
+}
+
+export interface ResolveSessionInput {
+  readonly sessionToken: string
+  readonly now?: Date
 }
 
 export interface CreateVerificationInput {

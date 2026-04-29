@@ -14,6 +14,7 @@ import {
   asVerificationId,
   createDefaultAuthPolicy,
   createHmacSecretHasher,
+  createScryptSecretHasher,
   createRandomIdGenerator,
   createSequentialIdGenerator,
   generateOtpSecret,
@@ -88,6 +89,17 @@ describe('public utility coverage', () => {
     const secretHash = hashSecret('secret')
     const hmacHasher = createHmacSecretHasher({ pepper: 'test-pepper' })
     const hmacHash = await hmacHasher.hash('123456')
+    const defaultScryptHasher = createScryptSecretHasher()
+    const defaultScryptHash = await defaultScryptHasher.hash('123456')
+    const scryptHasher = createScryptSecretHasher({
+      cost: 16,
+      blockSize: 1,
+      parallelization: 1,
+      keyLength: 16,
+      saltByteLength: 8,
+      maxmem: 1024 * 1024,
+    })
+    const scryptHash = await scryptHasher.hash('123456')
 
     expect(generatedSecret).toBeTypeOf('string')
     expect(generatedOtpSecret).toMatch(/^\d{6}$/)
@@ -99,8 +111,36 @@ describe('public utility coverage', () => {
     expect(await hmacHasher.verify('123456', hmacHash)).toBe(true)
     expect(await hmacHasher.verify('000000', hmacHash)).toBe(false)
     expect(await hmacHasher.verify('123456', secretHash)).toBe(false)
+    expect(defaultScryptHash).toMatch(/^scrypt:/)
+    expect(await defaultScryptHasher.verify('123456', defaultScryptHash)).toBe(true)
+    expect(scryptHash).toMatch(/^scrypt:/)
+    expect(await scryptHasher.verify('123456', scryptHash)).toBe(true)
+    expect(await scryptHasher.verify('000000', scryptHash)).toBe(false)
+    expect(await scryptHasher.verify('123456', secretHash)).toBe(false)
+    expect(await scryptHasher.verify('123456', 'scrypt:bad')).toBe(false)
+    expect(await scryptHasher.verify('123456', 'scrypt:0:8:1:32:c2FsdA:AQ')).toBe(false)
+    expect(await scryptHasher.verify('123456', 'scrypt:16:8:1:32:c2FsdA:AQ')).toBe(false)
+    expect(await scryptHasher.verify('123456', 'scrypt:1024:100000:1:32:c2FsdA:AQ')).toBe(false)
     expect(() => createHmacSecretHasher({ pepper: '' })).toThrow(
       'Secret hasher pepper is required.',
+    )
+    expect(() => createScryptSecretHasher({ cost: 15 })).toThrow(
+      'Scrypt cost must be a power of two.',
+    )
+    expect(() => createScryptSecretHasher({ blockSize: 0 })).toThrow(
+      'Scrypt block size must be a positive integer.',
+    )
+    expect(() => createScryptSecretHasher({ parallelization: 0 })).toThrow(
+      'Scrypt parallelization must be a positive integer.',
+    )
+    expect(() => createScryptSecretHasher({ keyLength: 0 })).toThrow(
+      'Scrypt key length must be a positive integer.',
+    )
+    expect(() => createScryptSecretHasher({ saltByteLength: 0 })).toThrow(
+      'Scrypt salt byte length must be a positive integer.',
+    )
+    expect(() => createScryptSecretHasher({ maxmem: 0 })).toThrow(
+      'Scrypt maxmem must be a positive integer.',
     )
     expect(addSeconds(now, 5)).toEqual(new Date('2026-01-01T00:00:05.000Z'))
     expect(systemClock.now()).toBeInstanceOf(Date)

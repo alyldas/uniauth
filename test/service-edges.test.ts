@@ -61,6 +61,7 @@ describe('DefaultAuthService edge cases', () => {
       }),
       metadata: { mode: 'exact' },
       sessionExpiresAt: addSeconds(now, 30),
+      now,
     })
     await defaultService.signIn({
       assertion: assertion({
@@ -71,6 +72,7 @@ describe('DefaultAuthService edge cases', () => {
       }),
       metadata: { mode: 'new-user-options' },
       sessionExpiresAt: addSeconds(now, 30),
+      now,
     })
 
     const explicitSession = await defaultService.createSession({
@@ -80,9 +82,17 @@ describe('DefaultAuthService edge cases', () => {
       now,
     })
 
-    expect(explicitSession.metadata).toEqual({ manual: true })
+    expect(explicitSession.session.metadata).toEqual({ manual: true })
     expect(await defaultService.getUserIdentities(first.user.id)).toHaveLength(1)
-    await defaultService.revokeSession(explicitSession.id)
+    expect(
+      await defaultService.resolveSession({ sessionToken: explicitSession.sessionToken, now }),
+    ).toBe(explicitSession.session)
+    await defaultService.revokeSession(explicitSession.session.id)
+    await expect(
+      defaultService.resolveSession({ sessionToken: explicitSession.sessionToken, now }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
     expect(
       await defaultService.revokeSession(asSessionId('missing')).catch((caught: unknown) => caught),
     ).toMatchObject({
@@ -306,14 +316,14 @@ describe('DefaultAuthService edge cases', () => {
       now,
     })
 
-    await mergeKit.service.revokeSession(nonActiveSourceSession.id)
+    await mergeKit.service.revokeSession(nonActiveSourceSession.session.id)
     expect(
       await mergeKit.service.mergeAccounts({
         sourceUserId: source.user.id,
         targetUserId: target.user.id,
       }),
     ).toMatchObject({ movedIdentityIds: [source.identity.id] })
-    expect(nonActiveSourceSession.status).toBe(SessionStatus.Active)
+    expect(nonActiveSourceSession.session.status).toBe(SessionStatus.Active)
   })
 
   it('rolls merge state back when audit persistence fails inside the transaction boundary', async () => {

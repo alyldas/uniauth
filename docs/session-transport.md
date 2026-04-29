@@ -1,7 +1,8 @@
 # Session Transport Recipes
 
-UniAuth creates and revokes local session records. The application still owns how that session ID
-travels between client and server.
+UniAuth creates and revokes local session records. The application still owns how the one-time
+`sessionToken` returned at session creation travels between client and server. `Session.id` is a
+server-side record identifier, not a bearer credential.
 
 This document keeps the boundary explicit for three common transports:
 
@@ -11,8 +12,8 @@ This document keeps the boundary explicit for three common transports:
 
 ## Browser Cookies
 
-Browser-first applications usually map `result.session.id` into a session cookie immediately after a
-successful finish flow.
+Browser-first applications usually map `result.sessionToken` into a session cookie immediately after
+a successful finish flow.
 
 Minimum expectations:
 
@@ -30,11 +31,20 @@ const result = await authService.finishOtpSignIn({
   secret: body.code,
 })
 
-response.cookie('session', result.session.id, {
+response.cookie('session', result.sessionToken, {
   httpOnly: true,
   secure: true,
   sameSite: 'lax',
   path: '/',
+})
+```
+
+On later requests, resolve the token through UniAuth instead of treating `Session.id` as the client
+credential:
+
+```ts
+const session = await authService.resolveSession({
+  sessionToken: request.cookies.session,
 })
 ```
 
@@ -48,8 +58,8 @@ What stays application-owned:
 
 ## Bearer Transport
 
-API-first applications may choose to return the local UniAuth session ID in the JSON response and
-then send it back in an `Authorization` header or another app-owned header.
+API-first applications may choose to return the local UniAuth `sessionToken` in the JSON response
+and then send it back in an `Authorization` header or another app-owned header.
 
 Example shape:
 
@@ -60,7 +70,7 @@ const result = await authService.signInWithPassword({
 })
 
 return {
-  sessionToken: result.session.id,
+  sessionToken: result.sessionToken,
   userId: result.user.id,
 }
 ```
@@ -70,20 +80,20 @@ What stays application-owned:
 - TLS-only transport;
 - token forwarding rules between services;
 - gateway or edge header normalization;
-- server middleware that resolves the session ID back into application auth context;
-- log redaction so session identifiers do not leak into access logs.
+- server middleware that resolves the session token back into application auth context;
+- log redaction so bearer session tokens do not leak into access logs.
 
 ## Mobile And Native Clients
 
-Mobile or native applications often keep the local session identifier in platform-owned secure
-storage instead of browser cookies.
+Mobile or native applications often keep the local session token in platform-owned secure storage
+instead of browser cookies.
 
 Recommended boundary:
 
-1. UniAuth returns a local session ID.
+1. UniAuth returns a one-time local session token.
 2. The API returns it to the client over TLS.
 3. The client stores it in Keychain, Keystore, or another secure app-owned store.
-4. Future API calls send that session ID through an app-owned header or bearer transport.
+4. Future API calls send that session token through an app-owned header or bearer transport.
 
 What stays application-owned:
 
@@ -99,11 +109,11 @@ UniAuth revokes the local session record, but it does not clear browser cookies 
 
 Treat logout as two coordinated steps:
 
-1. call `authService.revokeSession(sessionId)`;
+1. resolve the client token to a server session and call `authService.revokeSession(session.id)`;
 2. remove the transport artifact:
    - clear the cookie;
    - delete the bearer token from client state;
-   - delete the mobile-stored session ID.
+   - delete the mobile-stored session token.
 
 ## Security Notes
 

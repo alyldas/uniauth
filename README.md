@@ -154,6 +154,7 @@ import {
   createAuthNormalizer,
   createDefaultAuthPolicy,
   createHmacSecretHasher,
+  createScryptSecretHasher,
   isUniAuthError,
   type AuthNormalizer,
   type AuthProvider,
@@ -425,9 +426,9 @@ not silently impose one production syntax or phone metadata policy on every cons
 exports remain compatibility-oriented; stricter validation, E.164 canonicalization guidance, and
 migration cautions are documented in [Normalization boundary](docs/normalization.md).
 
-Verification hashing is pluggable. The default hasher keeps the package usable out of the box, while
-production OTP deployments should provide an app-owned pepper through `createHmacSecretHasher` or a
-custom `SecretHasher` implementation:
+Verification hashing is pluggable. The default hasher is salted `scrypt` so short OTP values are not
+stored as fast hashes. Production deployments that need app-owned key material can still provide an
+HMAC pepper through `createHmacSecretHasher` or a custom `SecretHasher` implementation:
 
 ```ts
 import { createHmacSecretHasher } from '@alyldas/uniauth'
@@ -457,6 +458,7 @@ Storage adapters should preserve these invariants:
 - Enforce uniqueness for `(provider, providerUserId)`.
 - Run link, unlink, merge, session, and verification writes inside the provided transaction boundary.
 - Store verification secrets only through the configured `SecretHasher`.
+- Store client session tokens only as server-side hashes.
 - Do not infer ownership from email, phone, or provider profile metadata outside `AuthPolicy`.
 - Keep sender side effects outside storage transactions.
 
@@ -530,10 +532,13 @@ This repository keeps package source and documentation in git. Do not commit gen
 - `dist`
 - `coverage`
 - `node_modules`
+- `.npm-cache`
 - `*.tgz`
 
 `dist` is created by `npm run build`, `npm run test:exports`, and npm pack based commands
-(`npm run test:types-package`, `npm run pack:dry`, release publish) through `prepack`.
+(`npm run lint:package`, `npm run test:types-package`, `npm run pack:dry`, release publish)
+through `prepack`. `.npm-cache` stores npm cache and `_logs` locally so package checks do not
+depend on a writable home directory.
 `npm run prepare` only installs local Husky hooks when the project is inside a git repository.
 
 `npm run lint:package` runs `publint` against the built package metadata, entry points, exports,
@@ -564,7 +569,8 @@ npm run check
 ```
 
 The gate runs formatting, ESLint, typecheck, 100% coverage, export smoke tests, package lint,
-package type-resolution checks, and `npm pack --dry-run`.
+package type-resolution checks, dependency audit with `npm audit --audit-level=moderate`, and
+`npm pack --dry-run`.
 
 The release workflow follows the same Release Please model as `theme-mode`: pushes to `main` update
 a release PR, and merging that PR creates the `v*` tag, GitHub release notes, and GitHub Packages

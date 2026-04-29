@@ -51,6 +51,7 @@ describe('package exports', () => {
     expect(core.createDefaultAuthPolicy).toBeTypeOf('function')
     expect(core.createAuthNormalizer).toBeTypeOf('function')
     expect(core.createHmacSecretHasher).toBeTypeOf('function')
+    expect(core.createScryptSecretHasher).toBeTypeOf('function')
     expect(core.createMaxWebAppProvider).toBeTypeOf('function')
     expect(core.createOAuthOidcProvider).toBeTypeOf('function')
     expect(core.createTelegramMiniAppProvider).toBeTypeOf('function')

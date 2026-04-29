@@ -67,8 +67,13 @@ The reference schema intentionally includes:
 
 - a unique constraint on `(provider, provider_user_id)` in `uniauth_identities`;
 - unique constraints on `(type, subject)` and `(type, user_id)` in `uniauth_credentials`;
+- a unique `token_hash` on `uniauth_sessions` so client session tokens are not stored raw;
 - partial indexes for verified email and phone lookups on active identities;
 - explicit `jsonb` columns for adapter-owned `metadata` and provider `trust`.
+
+Existing deployments need an application-owned migration for `uniauth_sessions.token_hash`. Because
+previous session IDs may already have been exposed as bearer credentials, prefer expiring existing
+sessions during rollout instead of trying to backfill reusable client tokens.
 
 ## Transaction Model
 
@@ -109,6 +114,7 @@ should place them in the same database transaction or choose a stricter isolatio
 ## Security Notes
 
 - Verification secrets remain hashed at rest; the adapter stores only `secret_hash`.
+- Client session tokens remain hashed at rest; the adapter stores only `token_hash`.
 - Trust and metadata fields are stored as `jsonb`, but provider SDK objects should still be reduced
   before they reach UniAuth.
 - The adapter does not infer ownership from email or phone outside the core policy flow.

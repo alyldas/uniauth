@@ -9,11 +9,20 @@ import type { Clock, IdGenerator } from '../../domain/types.js'
 import type { OtpSecretGenerator, PasswordHasher, RateLimiter } from '../../ports.js'
 import { createSequentialIdGenerator } from '../../utils/ids.js'
 import type { AuthNormalizer } from '../../utils/normalization.js'
-import type { SecretHasher } from '../../utils/secrets.js'
+import { createScryptSecretHasher, type SecretHasher } from '../../utils/secrets.js'
 import { InMemoryProviderRegistry } from '../providers.js'
 import { InMemoryEmailSender, InMemorySmsSender } from './senders.js'
 import { InMemoryAuthStore } from './store.js'
 import { InMemoryPasswordHasher, InMemoryRateLimiter } from './support.js'
+
+const inMemorySecretHasher = createScryptSecretHasher({
+  cost: 16,
+  blockSize: 1,
+  parallelization: 1,
+  keyLength: 16,
+  saltByteLength: 8,
+  maxmem: 1024 * 1024,
+})
 
 export interface CreateInMemoryAuthKitOptions {
   readonly policy?: AuthPolicy
@@ -62,8 +71,8 @@ export function createInMemoryAuthKit(
     providerRegistry,
     transaction: store,
     idGenerator,
+    secretHasher: options.secretHasher ?? inMemorySecretHasher,
     ...optionalProp('normalizer', options.normalizer),
-    ...optionalProp('secretHasher', options.secretHasher),
     ...optionalProp('policy', options.policy),
     ...optionalProp('clock', options.clock),
     ...optionalProp('otpSecretLength', options.otpSecretLength),

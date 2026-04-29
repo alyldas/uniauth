@@ -193,6 +193,7 @@ function sessionRow(overrides: Record<string, unknown> = {}): Record<string, unk
   return {
     id: 'session-1',
     user_id: 'user-1',
+    token_hash: 'hashed-session-token',
     status: 'active',
     created_at: '2026-01-01T00:00:00.000Z',
     expires_at: '2026-01-31T00:00:00.000Z',

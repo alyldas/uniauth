@@ -30,6 +30,7 @@ identities, and email/phone are optional identity attributes.
 - `mergeAccounts`
 - `createSession`
 - `revokeSession`
+- `resolveSession`
 - `createVerification`
 - `consumeVerification`
 
@@ -65,9 +66,10 @@ adapter backed by their chosen algorithm, parameters, and secret-loading policy,
 package provides only a deterministic test hasher. Password identity records use the local
 `password` provider so unlink and last-sign-in-method policy remains shared with other identities.
 
-Verification hashing is delegated to `SecretHasher`. The default hasher is sufficient for local
-development and compatibility tests; production OTP deployments should pass a custom hasher, for
-example `createHmacSecretHasher` with an application-owned pepper loaded during bootstrap.
+Verification hashing is delegated to `SecretHasher`. The default hasher uses salted `scrypt` so
+short OTP values are not stored as fast hashes. Production deployments that need app-owned key
+material can pass a custom hasher, for example `createHmacSecretHasher` with an application-owned
+pepper loaded during bootstrap.
 
 Rate limiting is delegated to `RateLimiter`. Core only defines stable actions and calls the port
 before security-sensitive attempts such as provider sign-in, OTP start/finish, magic-link
@@ -138,6 +140,7 @@ Storage adapters should:
 - enforce unique active provider identities by `(provider, providerUserId)`;
 - keep user, identity, session, verification, and audit records separate;
 - keep password credentials separate from identities and store only password hashes;
+- store only session token hashes, not bearer session tokens;
 - apply `UnitOfWork` to sensitive multi-write flows;
 - keep merge conflict detection aligned with unique credential and identity ownership constraints;
 - store only hashed verification secrets;

@@ -165,7 +165,7 @@ async function finishOidcCallback(request: CallbackRequest): Promise<RedirectRes
       provider: result.identity.provider,
     },
     cookies: [
-      buildSessionCookie(result.session.id),
+      buildSessionCookie(result.sessionToken),
       clearCookie('oidcState'),
       clearCookie('oidcCodeVerifier'),
       clearCookie('oidcRedirectUri'),

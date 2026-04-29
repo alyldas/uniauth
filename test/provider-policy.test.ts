@@ -223,7 +223,7 @@ describe('provider, policy, and verification edge cases', () => {
     expect(verification.secret).toBeTypeOf('string')
     expect(verification.verification.target).toBe('+15551234567')
     expect(verification.verification.metadata).toEqual({ channel: 'sms' })
-    expect(clockSession.expiresAt).toEqual(addSeconds(now, 5))
+    expect(clockSession.session.expiresAt).toEqual(addSeconds(now, 5))
     expect(
       await kit.service.consumeVerification({
         verificationId: clockVerification.verification.id,

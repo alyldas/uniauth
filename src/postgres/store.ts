@@ -96,6 +96,7 @@ interface VerificationRow {
 interface SessionRow {
   readonly id: string
   readonly user_id: string
+  readonly token_hash: string
   readonly status: SessionStatus
   readonly created_at: Date | string
   readonly expires_at: Date | string
@@ -473,16 +474,28 @@ export class PostgresAuthStore
     findById: async (id) =>
       this.queryOptionalRow<SessionRow, Session>(
         `select
-           id, user_id, status, created_at, expires_at, revoked_at, last_seen_at, metadata
+           id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
+           metadata
          from uniauth_sessions
          where id = $1`,
         [id],
         mapSessionRow,
       ),
+    findByTokenHash: async (tokenHash) =>
+      this.queryOptionalRow<SessionRow, Session>(
+        `select
+           id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
+           metadata
+         from uniauth_sessions
+         where token_hash = $1`,
+        [tokenHash],
+        mapSessionRow,
+      ),
     listByUserId: async (userId) =>
       this.queryRows<SessionRow, Session>(
         `select
-           id, user_id, status, created_at, expires_at, revoked_at, last_seen_at, metadata
+           id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
+           metadata
          from uniauth_sessions
          where user_id = $1
          order by created_at asc, id asc`,
@@ -492,13 +505,16 @@ export class PostgresAuthStore
     create: async (session) =>
       this.queryRequiredRow<SessionRow, Session>(
         `insert into uniauth_sessions (
-           id, user_id, status, created_at, expires_at, revoked_at, last_seen_at, metadata
-         ) values ($1, $2, $3, $4, $5, $6, $7, $8)
+           id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
+           metadata
+         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          returning
-           id, user_id, status, created_at, expires_at, revoked_at, last_seen_at, metadata`,
+           id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
+           metadata`,
         [
           session.id,
           session.userId,
+          session.tokenHash,
           session.status,
           session.createdAt,
           session.expiresAt,
@@ -517,6 +533,7 @@ export class PostgresAuthStore
 
       const update = buildUpdateQuery(patch, [
         { key: 'userId', column: 'user_id' },
+        { key: 'tokenHash', column: 'token_hash' },
         { key: 'status', column: 'status' },
         { key: 'expiresAt', column: 'expires_at' },
         { key: 'revokedAt', column: 'revoked_at' },
@@ -533,7 +550,8 @@ export class PostgresAuthStore
          set ${update.setClause}
          where id = $${update.values.length + 1}
          returning
-           id, user_id, status, created_at, expires_at, revoked_at, last_seen_at, metadata`,
+           id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
+           metadata`,
         [...update.values, id],
         mapSessionRow,
       )
@@ -699,6 +717,7 @@ function mapSessionRow(row: SessionRow): Session {
   return {
     id: asSessionId(row.id),
     userId: asUserId(row.user_id),
+    tokenHash: row.token_hash,
     status: row.status,
     createdAt: readDate(row.created_at),
     expiresAt: readDate(row.expires_at),

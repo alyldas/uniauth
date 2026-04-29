@@ -56,8 +56,9 @@
     }
   },
   "scripts": {
+    "audit:deps": "npm audit --audit-level=moderate",
     "build": "tsup && tsc -p tsconfig.build.json",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run coverage && npm run test:exports && npm run lint:package && npm run test:types-package && npm run pack:dry",
+    "check": "npm run audit:deps && npm run format:check && npm run lint && npm run typecheck && npm run coverage && npm run test:exports && npm run lint:package && npm run test:types-package && npm run pack:dry",
     "check:compose": "docker compose run --rm --build check",
     "check:docker": "docker build --target check -t alyldas-uniauth-check .",
     "coverage": "vitest run test/*.test.ts --coverage",

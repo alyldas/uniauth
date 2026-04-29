@@ -145,7 +145,7 @@ export async function postTelegramMiniAppSignIn(request: Request) {
     status: 200,
     sessionCookie: {
       name: 'session',
-      value: result.session.id,
+      value: result.sessionToken,
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
@@ -186,7 +186,7 @@ export async function postMaxWebAppSignIn(request: Request) {
     status: 200,
     sessionCookie: {
       name: 'session',
-      value: result.session.id,
+      value: result.sessionToken,
       httpOnly: true,
       secure: true,
       sameSite: 'lax',

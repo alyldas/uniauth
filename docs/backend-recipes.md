@@ -74,7 +74,7 @@ app.post('/auth/password/sign-in', async (req, res, next) => {
       password: req.body.password,
     })
 
-    res.cookie('session', result.session.id, {
+    res.cookie('session', result.sessionToken, {
       httpOnly: true,
       sameSite: 'lax',
       secure: true,
@@ -119,7 +119,7 @@ app.post('/auth/magic/finish', async (request, reply) => {
     secret: request.body.secret,
   })
 
-  reply.setCookie('session', result.session.id, {
+  reply.setCookie('session', result.sessionToken, {
     httpOnly: true,
     sameSite: 'lax',
     secure: true,
@@ -157,7 +157,7 @@ export class PasswordAuthController {
   ) {
     const result = await this.auth.signInWithPassword(body)
 
-    res.cookie('session', result.session.id, {
+    res.cookie('session', result.sessionToken, {
       httpOnly: true,
       sameSite: 'lax',
       secure: true,
@@ -193,7 +193,7 @@ export async function POST(request: Request) {
     secret: body.secret,
   })
 
-  cookies().set('session', result.session.id, {
+  cookies().set('session', result.sessionToken, {
     httpOnly: true,
     sameSite: 'lax',
     secure: true,

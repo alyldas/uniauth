@@ -27,7 +27,7 @@ The application still owns:
 
 - user-to-identity ownership;
 - provider identity uniqueness;
-- verification secrets and password hashes;
+- verification secrets, session token hashes, and password hashes;
 - local session validity and revocation state;
 - merge and unlink authorization decisions;
 - audit integrity without secret leakage.
@@ -177,8 +177,8 @@ UniAuth is safer in production only if the application also does the following:
 
 - runs behind HTTPS and owns secure cookie/session transport;
 - provides a real `RateLimiter` backed by application storage or infrastructure;
-- uses a stronger verification `SecretHasher`, for example `createHmacSecretHasher` with an
-  application-owned pepper;
+- considers whether the default salted `scrypt` verification hasher is enough for its threat model,
+  or provides a `SecretHasher` with application-owned key material;
 - chooses and tunes the password hashing runtime and parameters;
 - validates OAuth state/nonce and provider-specific signatures before creating assertions;
 - stores provider tokens outside UniAuth if they must survive past profile fetch;

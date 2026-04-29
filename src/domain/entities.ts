@@ -72,6 +72,7 @@ export interface Credential {
 export interface Session {
   readonly id: SessionId
   readonly userId: UserId
+  readonly tokenHash: string
   readonly status: SessionStatus
   readonly createdAt: Date
   readonly expiresAt: Date
