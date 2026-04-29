@@ -52,7 +52,7 @@ describe('password credentials', () => {
     expect(credential.type).toBe(CredentialType.Password)
     expect(credential.subject).toBe('alice@example.com')
     expect(credential.passwordHash).not.toBe('correct horse battery staple')
-    expect(credential.passwordHash).toMatch(/^test-password:sha256:/)
+    expect(credential.passwordHash).toMatch(/^test-password:scrypt:/)
     expect(result.user.id).toBe(initial.user.id)
     expect(result.identity.provider).toBe(PASSWORD_PROVIDER_ID)
     expect(result.session.status).toBe(SessionStatus.Active)

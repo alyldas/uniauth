@@ -71,7 +71,7 @@ and query parameter conventions remain outside core.
 Password credentials use `CredentialRepo` for stored password hashes and `PasswordHasher` for
 hash/verify work. Core does not bundle a password hashing runtime; production applications pass an
 adapter backed by their chosen algorithm, parameters, and secret-loading policy, while the testing
-package provides only a deterministic test hasher. Password identity records use the local
+package provides only a low-cost `scrypt` test hasher. Password identity records use the local
 `password` provider so unlink and last-sign-in-method policy remains shared with other identities.
 
 Verification hashing is delegated to `SecretHasher`. The default hasher uses salted `scrypt` so
@@ -128,7 +128,7 @@ boundaries for link, unlink, merge, session, and verification flows.
 ## Testing Adapter
 
 `@alyldas/uniauth/testing` provides an in-memory implementation for tests, demos, and examples. It
-includes in-memory email and SMS senders, a rate limiter, and a deterministic password hasher so
+includes in-memory email and SMS senders, a rate limiter, and a low-cost `scrypt` password hasher so
 local auth flows can be exercised without SMTP, SMS, Redis, or password-hashing runtime setup. It is
 not a production persistence adapter. The public testing entry point stays stable while internal
 modules keep store/repository state, sender fakes, and support utilities separate so persistence
