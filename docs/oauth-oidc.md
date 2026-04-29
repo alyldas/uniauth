@@ -56,7 +56,7 @@ const client: OAuthOidcClient = {
 The client should return only the token fields needed to fetch the profile. Long-term token storage
 belongs to the application and should happen outside UniAuth.
 If an application must retain provider tokens, store them behind an application-owned repository and
-keep only the local UniAuth session identifier in UniAuth-facing flows.
+keep only the local UniAuth session token in UniAuth-facing flows.
 
 ## Registration
 

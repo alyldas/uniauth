@@ -81,6 +81,12 @@ describe('DefaultAuthService', () => {
     expect(result.user.email).toBe('alice@example.com')
     expect(result.identity.email).toBe('alice@example.com')
     expect(result.session.status).toBe(SessionStatus.Active)
+    expect(result.sessionToken).toBeTypeOf('string')
+    expect(result.sessionToken).not.toBe(result.session.id)
+    expect(result.session.tokenHash).not.toBe(result.sessionToken)
+    expect(await service.resolveSession({ sessionToken: result.sessionToken, now })).toBe(
+      result.session,
+    )
     expect(store.listUsers()).toHaveLength(1)
     expect(store.listIdentities()).toHaveLength(1)
     expect(store.listSessions()).toHaveLength(1)
@@ -104,6 +110,134 @@ describe('DefaultAuthService', () => {
 
     expect(result.session.expiresAt).toEqual(now)
     expect(verification.verification.expiresAt).toEqual(now)
+  })
+
+  it('rejects invalid session tokens, TTLs, and expiration inputs', async () => {
+    const { service } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({ assertion: assertion(), now })
+    const expired = await service.createSession({
+      userId: signedIn.user.id,
+      expiresAt: now,
+      now,
+    })
+
+    await expect(service.resolveSession({ sessionToken: '   ', now })).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(service.resolveSession({ sessionToken: 'missing', now })).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.resolveSession({ sessionToken: expired.sessionToken, now }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.createSession({
+        userId: signedIn.user.id,
+        expiresAt: addSeconds(now, -1),
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      service.createSession({
+        userId: signedIn.user.id,
+        expiresAt: new Date('invalid'),
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      service.createSession({
+        userId: signedIn.user.id,
+        now: new Date('invalid'),
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+
+    await expect(
+      createInMemoryAuthKit({ sessionTtlSeconds: -1 }).service.signIn({
+        assertion: assertion(),
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      createInMemoryAuthKit({ sessionTtlSeconds: Number.NaN }).service.signIn({
+        assertion: assertion(),
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+  })
+
+  it('rejects invalid verification TTL and creation time inputs', async () => {
+    const { service } = createInMemoryAuthKit()
+
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: 'ttl@example.com',
+        ttlSeconds: -1,
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: 'nan@example.com',
+        ttlSeconds: Number.NaN,
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: 'invalid-now@example.com',
+        now: new Date('invalid'),
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+
+    await expect(
+      createInMemoryAuthKit({ verificationTtlSeconds: -1 }).service.createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: 'runtime-negative@example.com',
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      createInMemoryAuthKit({ verificationTtlSeconds: Number.NaN }).service.createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: 'runtime-nan@example.com',
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+  })
+
+  it('uses the runtime clock when resolving sessions and finishing OTP sign-in', async () => {
+    const { service } = createInMemoryAuthKit({
+      clock: { now: () => now },
+    })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'clock-session',
+        email: 'clock-session@example.com',
+      }),
+    })
+
+    expect(await service.resolveSession({ sessionToken: signedIn.sessionToken })).toBe(
+      signedIn.session,
+    )
+
+    const challenge = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: 'clock-otp@example.com',
+      secret: '123456',
+    })
+    const finished = await service.finishOtpSignIn({
+      verificationId: challenge.verificationId,
+      secret: '123456',
+      channel: OtpChannel.Email,
+    })
+
+    expect(finished.session.status).toBe(SessionStatus.Active)
   })
 
   it('uses exact provider identity match before any profile matching', async () => {
@@ -215,7 +349,7 @@ describe('DefaultAuthService', () => {
     expect(created.secret).toBe('123456')
     expect(created.verification.target).toBe('alice@example.com')
     expect(created.verification.secretHash).not.toBe('123456')
-    expect(created.verification.secretHash).toMatch(/^sha256:/)
+    expect(created.verification.secretHash).toMatch(/^scrypt:/)
     expect(store.listVerifications()[0]?.secretHash).toBe(created.verification.secretHash)
 
     const invalidSecretError = await service
@@ -331,7 +465,7 @@ describe('DefaultAuthService', () => {
       },
     })
     expect(storedVerification?.secretHash).not.toBe('123456')
-    expect(storedVerification?.secretHash).toMatch(/^sha256:/)
+    expect(storedVerification?.secretHash).toMatch(/^scrypt:/)
 
     const wrongSecret = await service
       .finishOtpSignIn({
@@ -380,6 +514,7 @@ describe('DefaultAuthService', () => {
       channel: OtpChannel.Email,
       target: 'bob@example.com',
       ttlSeconds: 30,
+      now,
     })
     const generatedMessage = emailSender.listMessages()[1]
     const generatedSecret = generatedMessage?.text.match(/\d{6}/)?.[0]
@@ -393,6 +528,7 @@ describe('DefaultAuthService', () => {
       secret: generatedSecret,
       channel: OtpChannel.Email,
       sessionExpiresAt: addSeconds(now, 60),
+      now,
     })
 
     expect(generated.delivery).toBe('email')

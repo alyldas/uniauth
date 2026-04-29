@@ -94,10 +94,10 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
         metadata: { transport: 'express', route: 'password-sign-in' },
       })
 
-      writeSessionCookie(response, result.session.id)
+      writeSessionCookie(response, result.sessionToken)
       response.status(200).json({
         userId: result.user.id,
-        sessionId: result.session.id,
+        sessionRecordId: result.session.id,
       })
     } catch (error) {
       next(error)
@@ -135,10 +135,10 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
         metadata: { transport: 'express', route: 'otp-finish' },
       })
 
-      writeSessionCookie(response, result.session.id)
+      writeSessionCookie(response, result.sessionToken)
       response.status(200).json({
         userId: result.user.id,
-        sessionId: result.session.id,
+        sessionRecordId: result.session.id,
       })
     } catch (error) {
       next(error)
@@ -239,8 +239,8 @@ function parseVerificationId(value: string): VerificationId {
   return value as VerificationId
 }
 
-function writeSessionCookie(response: Response, sessionId: string): void {
-  response.cookie('session', sessionId, {
+function writeSessionCookie(response: Response, sessionToken: string): void {
+  response.cookie('session', sessionToken, {
     httpOnly: true,
     sameSite: 'lax',
     secure: true,

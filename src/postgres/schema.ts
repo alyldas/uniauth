@@ -65,6 +65,7 @@ const schemaStatements = [
   `create table if not exists uniauth_sessions (
     id text primary key,
     user_id text not null references uniauth_users(id) on delete restrict,
+    token_hash text not null unique,
     status text not null check (status in ('active', 'revoked', 'expired')),
     created_at timestamptz not null,
     expires_at timestamptz not null,

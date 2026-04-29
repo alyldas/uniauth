@@ -46,7 +46,7 @@ export async function signInWithPassword(
     }
 
     const user = await findUsableCredentialUser(runtime, credential)
-    const session = await createSessionRecord(runtime, {
+    const createdSession = await createSessionRecord(runtime, {
       userId: user.id,
       now,
       ...optionalProp('expiresAt', input.sessionExpiresAt),
@@ -55,14 +55,15 @@ export async function signInWithPassword(
     await audit(runtime, AuditEventType.SignIn, now, {
       userId: user.id,
       identityId: identity.id,
-      sessionId: session.id,
+      sessionId: createdSession.session.id,
       metadata: { mode: PasswordAuditMode.Password },
     })
 
     return {
       user,
       identity,
-      session,
+      session: createdSession.session,
+      sessionToken: createdSession.sessionToken,
       isNewUser: false,
       isNewIdentity: false,
     }

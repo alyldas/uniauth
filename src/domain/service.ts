@@ -3,6 +3,7 @@ import type {
   AuthResult,
   ConsumeVerificationInput,
   CreateSessionInput,
+  CreateSessionResult,
   CreateVerificationInput,
   CreateVerificationResult,
   FinishOtpChallengeInput,
@@ -11,6 +12,7 @@ import type {
   LinkResult,
   MergeAccountsInput,
   MergeResult,
+  ResolveSessionInput,
   SignInInput,
   StartOtpChallengeInput,
   StartOtpChallengeResult,
@@ -69,8 +71,9 @@ export interface AuthService {
   unlink(input: UnlinkInput): Promise<void>
   mergeAccounts(input: MergeAccountsInput): Promise<MergeResult>
   revokeSession(sessionId: SessionId): Promise<void>
+  resolveSession(input: ResolveSessionInput): Promise<Session>
   getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]>
-  createSession(input: CreateSessionInput): Promise<Session>
+  createSession(input: CreateSessionInput): Promise<CreateSessionResult>
   createVerification(input: CreateVerificationInput): Promise<CreateVerificationResult>
   consumeVerification(input: ConsumeVerificationInput): Promise<Verification>
 }

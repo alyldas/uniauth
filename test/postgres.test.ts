@@ -17,6 +17,7 @@ import {
   createAuthService,
   createDefaultAuthPolicy,
   createSequentialIdGenerator,
+  hashSecret,
   type Credential,
 } from '../src'
 import {
@@ -263,6 +264,7 @@ describe('Postgres reference persistence', () => {
     await store.sessionRepo.create({
       id: createSequentialIdGenerator('pg-session').sessionId(),
       userId: createdUser.id,
+      tokenHash: hashSecret('pg-session-token'),
       status: 'active',
       createdAt: now,
       expiresAt: new Date('2026-01-31T00:00:00.000Z'),
@@ -434,6 +436,7 @@ describe('Postgres reference persistence', () => {
     const createdSession = await store.sessionRepo.create({
       id: asSessionId('pg-session-update'),
       userId: createdUser.id,
+      tokenHash: hashSecret('pg-session-token-update'),
       status: SessionStatus.Active,
       createdAt: now,
       expiresAt: new Date('2026-01-31T00:00:00.000Z'),
@@ -559,6 +562,10 @@ describe('Postgres reference persistence', () => {
     })
 
     expect(await store.sessionRepo.findById(createdSession.id)).toMatchObject({
+      id: createdSession.id,
+      status: SessionStatus.Active,
+    })
+    expect(await store.sessionRepo.findByTokenHash(createdSession.tokenHash)).toMatchObject({
       id: createdSession.id,
       status: SessionStatus.Active,
     })

@@ -154,13 +154,15 @@ Tracking issues: #93, #94, #95.
 
 ## Next Release
 
-### v0.17 - Backlog To Be Defined
+### v0.17 - Session Read API and Secret Storage Hardening
 
-- No tracking issues are assigned yet.
-- The next release will be defined after the next concrete feature or hardening slice is promoted
-  into GitHub issues.
+- Public session read-side API through `AuthService.resolveSession`.
+- One-time `sessionToken` return value for sign-in and explicit session creation flows.
+- Server-side session token hashing with token-hash lookup in in-memory and Postgres adapters.
+- Default verification secret hashing moved from fast SHA-256 storage to salted `scrypt`.
+- Package gate alignment between local `npm run check` and CI, including dependency audit.
 
-Tracking issues: none.
+Tracking issues: #99.
 
 ## Versioning
 

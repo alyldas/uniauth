@@ -29,7 +29,7 @@ export async function runProviderFinishExample(): Promise<void> {
     identityId: result.identity.id,
     provider: result.identity.provider,
     providerUserId: result.identity.providerUserId,
-    sessionId: result.session.id,
+    sessionRecordId: result.session.id,
   })
 }
 

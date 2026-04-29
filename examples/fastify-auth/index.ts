@@ -124,7 +124,7 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
         metadata: { transport: 'fastify', route: 'otp-finish' },
       })
 
-      reply.setCookie('session', result.session.id, {
+      reply.setCookie('session', result.sessionToken, {
         httpOnly: true,
         sameSite: 'lax',
         secure: true,
@@ -133,7 +133,7 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
 
       return reply.status(200).send({
         userId: result.user.id,
-        sessionId: result.session.id,
+        sessionRecordId: result.session.id,
       })
     },
   )

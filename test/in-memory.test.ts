@@ -191,19 +191,43 @@ describe('InMemoryAuthStore', () => {
     const session: Session = {
       id: asSessionId('session-1'),
       userId: createdUser.id,
+      tokenHash: hashSecret('session-token'),
       status: SessionStatus.Active,
       createdAt: now,
       expiresAt: addSeconds(now, 60),
     }
 
     expect(await store.sessionRepo.findById(session.id)).toBeUndefined()
+    expect(await store.sessionRepo.findByTokenHash(session.tokenHash)).toBeUndefined()
     expect(await store.sessionRepo.create(session)).toBe(session)
     expect(await store.sessionRepo.findById(session.id)).toBe(session)
+    expect(await store.sessionRepo.findByTokenHash(session.tokenHash)).toBe(session)
     expect(await store.sessionRepo.listByUserId(createdUser.id)).toEqual([session])
+    expect(
+      await store.sessionRepo
+        .create({ ...session, id: asSessionId('session-duplicate') })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    const otherSession: Session = {
+      ...session,
+      id: asSessionId('session-2'),
+      tokenHash: hashSecret('other-session-token'),
+    }
+
+    await store.sessionRepo.create(otherSession)
     expect(
       await store.sessionRepo.update(session.id, { status: SessionStatus.Revoked }),
     ).toMatchObject({
       status: SessionStatus.Revoked,
+    })
+    expect(
+      await store.sessionRepo
+        .update(session.id, { tokenHash: otherSession.tokenHash })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
     })
     expect(
       await store.sessionRepo.update(asSessionId('missing'), {}).catch((caught: unknown) => caught),
@@ -221,7 +245,7 @@ describe('InMemoryAuthStore', () => {
     expect(store.listIdentities()).toHaveLength(2)
     expect(store.listCredentials()).toHaveLength(2)
     expect(store.listVerifications()).toHaveLength(1)
-    expect(store.listSessions()).toHaveLength(1)
+    expect(store.listSessions()).toHaveLength(2)
     expect(store.listAuditEvents()).toHaveLength(1)
   })
 

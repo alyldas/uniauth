@@ -57,6 +57,8 @@ export async function createVerificationRecord(
     throw invalidInput('Verification target is required.')
   }
 
+  const expiresAt = resolveVerificationExpiresAt(runtime, input)
+
   const verification: Verification = {
     id: runtime.idGenerator.verificationId(),
     purpose: input.purpose,
@@ -66,7 +68,7 @@ export async function createVerificationRecord(
     secretHash: await runtime.secretHasher.hash(secret),
     status: VerificationStatus.Pending,
     createdAt: input.now,
-    expiresAt: addSeconds(input.now, input.ttlSeconds ?? runtime.verificationTtlSeconds),
+    expiresAt,
     ...optionalProp('metadata', input.metadata),
   }
 
@@ -116,4 +118,25 @@ export async function consumeVerificationRecord(
   })
 
   return consumed
+}
+
+function resolveVerificationExpiresAt(
+  runtime: AuthServiceRuntime,
+  input: CreateVerificationRecordInput,
+): Date {
+  assertValidDate(input.now, 'Verification creation time is invalid.')
+
+  const ttlSeconds = input.ttlSeconds ?? runtime.verificationTtlSeconds
+
+  if (!Number.isFinite(ttlSeconds) || ttlSeconds < 0) {
+    throw invalidInput('Verification TTL must be a non-negative number of seconds.')
+  }
+
+  return addSeconds(input.now, ttlSeconds)
+}
+
+function assertValidDate(date: Date, message: string): void {
+  if (Number.isNaN(date.getTime())) {
+    throw invalidInput(message)
+  }
 }

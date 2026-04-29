@@ -11,7 +11,7 @@ import type {
 } from '../ports.js'
 import { createRandomIdGenerator } from '../utils/ids.js'
 import { compatibilityAuthNormalizer, type AuthNormalizer } from '../utils/normalization.js'
-import { sha256SecretHasher, type SecretHasher } from '../utils/secrets.js'
+import { scryptSecretHasher, type SecretHasher } from '../utils/secrets.js'
 import { systemClock } from '../utils/time.js'
 
 const DEFAULT_SESSION_TTL_SECONDS = 60 * 60 * 24 * 30
@@ -49,7 +49,7 @@ export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): Au
     transaction: options.transaction ?? immediateUnitOfWork,
     idGenerator: options.idGenerator ?? createRandomIdGenerator(),
     normalizer: options.normalizer ?? compatibilityAuthNormalizer,
-    secretHasher: options.secretHasher ?? sha256SecretHasher,
+    secretHasher: options.secretHasher ?? scryptSecretHasher,
     clock: options.clock ?? systemClock,
     sessionTtlSeconds: options.sessionTtlSeconds ?? DEFAULT_SESSION_TTL_SECONDS,
     verificationTtlSeconds: options.verificationTtlSeconds ?? DEFAULT_VERIFICATION_TTL_SECONDS,

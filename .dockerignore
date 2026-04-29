@@ -4,6 +4,7 @@ node_modules
 # Local build and coverage output should not be copied into the Docker context.
 dist
 coverage
+.npm-cache
 
 # Husky runtime files are local git-hook plumbing, not package inputs.
 .husky/_

@@ -21,7 +21,7 @@ export async function runBasicExample(): Promise<void> {
   console.log({
     userId: result.user.id,
     identityId: result.identity.id,
-    sessionId: result.session.id,
+    sessionRecordId: result.session.id,
   })
 }
 

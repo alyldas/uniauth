@@ -13,6 +13,7 @@ import {
   AuthIdentityStatus,
   type AuthIdentity,
   type AuthResult,
+  type CreateSessionResult,
   type FinishInput,
   ProviderTrustLevel,
   type ProviderIdentityAssertion,
@@ -70,13 +71,21 @@ export async function signInWithAssertion(
 
   if (exactIdentity && isActiveIdentity(exactIdentity)) {
     const user = await getActiveUser(runtime, exactIdentity.userId)
-    const session = await createSessionForSignIn(runtime, user, input)
-    await auditSuccessfulSignIn(runtime, SignInAuditMode.Exact, input, user, exactIdentity, session)
+    const createdSession = await createSessionForSignIn(runtime, user, input)
+    await auditSuccessfulSignIn(
+      runtime,
+      SignInAuditMode.Exact,
+      input,
+      user,
+      exactIdentity,
+      createdSession.session,
+    )
 
     return {
       user,
       identity: exactIdentity,
-      session,
+      session: createdSession.session,
+      sessionToken: createdSession.sessionToken,
       isNewUser: false,
       isNewIdentity: false,
     }
@@ -91,7 +100,7 @@ export async function signInWithAssertion(
       assertion,
       input.now,
     )
-    const session = await createSessionForSignIn(runtime, autoLinkTarget, input)
+    const createdSession = await createSessionForSignIn(runtime, autoLinkTarget, input)
     await audit(runtime, AuditEventType.IdentityLinked, input.now, {
       userId: autoLinkTarget.id,
       identityId: identity.id,
@@ -103,13 +112,14 @@ export async function signInWithAssertion(
       input,
       autoLinkTarget,
       identity,
-      session,
+      createdSession.session,
     )
 
     return {
       user: autoLinkTarget,
       identity,
-      session,
+      session: createdSession.session,
+      sessionToken: createdSession.sessionToken,
       isNewUser: false,
       isNewIdentity: true,
     }
@@ -117,13 +127,21 @@ export async function signInWithAssertion(
 
   const user = await createUserFromAssertion(runtime, assertion, input.now)
   const identity = await createIdentityFromAssertion(runtime, user, assertion, input.now)
-  const session = await createSessionForSignIn(runtime, user, input)
-  await auditSuccessfulSignIn(runtime, SignInAuditMode.NewUser, input, user, identity, session)
+  const createdSession = await createSessionForSignIn(runtime, user, input)
+  await auditSuccessfulSignIn(
+    runtime,
+    SignInAuditMode.NewUser,
+    input,
+    user,
+    identity,
+    createdSession.session,
+  )
 
   return {
     user,
     identity,
-    session,
+    session: createdSession.session,
+    sessionToken: createdSession.sessionToken,
     isNewUser: true,
     isNewIdentity: true,
   }
@@ -133,7 +151,7 @@ async function createSessionForSignIn(
   runtime: AuthServiceRuntime,
   user: User,
   input: SignInWithAssertionInput,
-): Promise<Session> {
+): Promise<CreateSessionResult> {
   return createSessionRecord(runtime, {
     userId: user.id,
     now: input.now,

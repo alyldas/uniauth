@@ -9,7 +9,7 @@ import {
   startEmailPasswordRecovery,
 } from './passwords.js'
 import { type AuthServiceRuntime, createAuthServiceRuntime } from './runtime.js'
-import { createSession, revokeSession } from './sessions.js'
+import { createSession, resolveSession, revokeSession } from './sessions.js'
 import { signIn } from './sign-in.js'
 import { consumeVerification, createVerification } from './verifications.js'
 import type { AuthPolicy } from './policy.js'
@@ -22,6 +22,7 @@ import type {
   Credential,
   ConsumeVerificationInput,
   CreateSessionInput,
+  CreateSessionResult,
   CreateVerificationInput,
   CreateVerificationResult,
   FinishEmailMagicLinkSignInInput,
@@ -33,6 +34,7 @@ import type {
   LinkResult,
   MergeAccountsInput,
   MergeResult,
+  ResolveSessionInput,
   Session,
   SessionId,
   SetPasswordInput,
@@ -137,11 +139,15 @@ export class DefaultAuthService implements AuthService {
     return revokeSession(this.runtime, sessionId)
   }
 
+  async resolveSession(input: ResolveSessionInput): Promise<Session> {
+    return resolveSession(this.runtime, input)
+  }
+
   async getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]> {
     return getUserIdentities(this.runtime, userId)
   }
 
-  async createSession(input: CreateSessionInput): Promise<Session> {
+  async createSession(input: CreateSessionInput): Promise<CreateSessionResult> {
     return createSession(this.runtime, input)
   }
 

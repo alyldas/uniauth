@@ -12,9 +12,10 @@ risks, see [Threat model](threat-model.md).
 - Existing users are never silently merged by email or phone.
 - The last active identity cannot be unlinked under the default policy.
 - Merge is an explicit operation and disabled by default.
+- Client session tokens are returned once and stored only as hashes.
 - Verification secrets are stored as hashes.
-- Verification hashing can be replaced through `SecretHasher`; production OTP flows should use an
-  application-owned pepper or stronger storage-specific hasher.
+- Verification hashing uses salted `scrypt` by default and can be replaced through `SecretHasher`
+  when an application needs peppered or storage-specific hashing.
 - OTP start responses are neutral and do not expose whether an account exists.
 - OTP finish consumes a sign-in verification once before creating a local session.
 - Phone OTP uses the same verification lifecycle as email OTP.
@@ -58,8 +59,8 @@ risks, see [Threat model](threat-model.md).
 - Email OTP account enumeration through start-flow responses.
 - Email OTP replay through consumed verification reuse.
 - Email OTP plaintext persistence in verification storage.
-- Weak OTP hash deployments can be hardened with `createHmacSecretHasher` or a custom
-  `SecretHasher`.
+- Short OTP values use salted `scrypt` by default and can be further hardened with
+  `createHmacSecretHasher` or a custom `SecretHasher`.
 
 ## Threats Covered in v0.3
 

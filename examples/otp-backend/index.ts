@@ -97,7 +97,7 @@ async function postOtpStart(
 
 async function postOtpFinish(
   request: JsonRequest<FinishOtpBody>,
-): Promise<JsonResponse<{ userId: string; sessionId: string }>> {
+): Promise<JsonResponse<{ userId: string; sessionRecordId: string }>> {
   const result = await authService.finishOtpSignIn({
     verificationId: parseVerificationId(request.body.verificationId),
     secret: request.body.code,
@@ -107,9 +107,9 @@ async function postOtpFinish(
     status: 200,
     body: {
       userId: result.user.id,
-      sessionId: result.session.id,
+      sessionRecordId: result.session.id,
     },
-    cookies: [buildSessionCookie(result.session.id)],
+    cookies: [buildSessionCookie(result.sessionToken)],
   }
 }
 
