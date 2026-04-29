@@ -8,6 +8,7 @@ import type {
   Session,
   SessionId,
   TouchSessionInput,
+  UserId,
 } from '../domain/types.js'
 import { AuditEventType, SessionStatus } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
@@ -91,6 +92,14 @@ export async function touchSession(
       lastSeenAt: now,
     })
   })
+}
+
+export async function getUserSessions(
+  runtime: AuthServiceRuntime,
+  userId: UserId,
+): Promise<readonly Session[]> {
+  await getActiveUser(runtime, userId)
+  return runtime.repos.sessionRepo.listByUserId(userId)
 }
 
 export async function createSessionRecord(

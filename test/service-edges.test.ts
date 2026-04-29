@@ -54,7 +54,7 @@ describe('DefaultAuthService edge cases', () => {
     expect(blankProfile.identity.email).toBeUndefined()
     expect(blankProfile.identity.phone).toBeUndefined()
 
-    await defaultService.signIn({
+    const exact = await defaultService.signIn({
       assertion: assertion({
         provider: 'email',
         providerUserId: 'alice',
@@ -84,6 +84,9 @@ describe('DefaultAuthService edge cases', () => {
 
     expect(explicitSession.session.metadata).toEqual({ manual: true })
     expect(await defaultService.getUserIdentities(first.user.id)).toHaveLength(1)
+    expect(
+      (await defaultService.getUserSessions(first.user.id)).map((session) => session.id),
+    ).toEqual([first.session.id, exact.session.id, explicitSession.session.id])
     expect(
       await defaultService.resolveSession({ sessionToken: explicitSession.sessionToken, now }),
     ).toBe(explicitSession.session)
@@ -198,6 +201,11 @@ describe('DefaultAuthService edge cases', () => {
     await defaultStore.userRepo.update(second.user.id, { disabledAt: now })
     expect(
       await defaultService.getUserIdentities(second.user.id).catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
+    expect(
+      await defaultService.getUserSessions(second.user.id).catch((caught: unknown) => caught),
     ).toMatchObject({
       code: UniAuthErrorCode.UserNotFound,
     })

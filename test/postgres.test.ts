@@ -262,6 +262,29 @@ describe('Postgres reference persistence', () => {
     })
   })
 
+  it('lists local sessions for an active user on Postgres', async () => {
+    const { service } = await createPostgresTestKit()
+    const first = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-list-sessions',
+        email: 'pg-list-sessions@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const second = await service.createSession({
+      userId: first.user.id,
+      now: addSeconds(now, 10),
+      metadata: { createdBy: 'test' },
+    })
+
+    expect((await service.getUserSessions(first.user.id)).map((session) => session.id)).toEqual([
+      first.session.id,
+      second.session.id,
+    ])
+  })
+
   it('applies the schema and supports repository round-trips', async () => {
     const { pool, store } = await createPostgresTestKit()
     const idGenerator = createSequentialIdGenerator('pg-repo')
