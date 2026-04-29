@@ -10,6 +10,7 @@ import {
   createDefaultAuthPolicy,
   isUniAuthError,
   type Session,
+  type User,
   type UniAuthErrorCode as UniAuthErrorCodeType,
   type VerificationId,
 } from '@alyldas/uniauth'
@@ -32,6 +33,7 @@ interface FastifyAuthExample {
 
 interface FastifyRequestAuth {
   readonly session: Session
+  readonly user: User
   readonly userId: Session['userId']
 }
 
@@ -144,7 +146,11 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
       }
 
       return reply.status(200).send({
-        userId: auth.userId,
+        user: {
+          id: auth.user.id,
+          email: auth.user.email ?? null,
+          displayName: auth.user.displayName ?? null,
+        },
         sessionRecordId: auth.session.id,
         sessionStatus: auth.session.status,
         lastSeenAt: auth.session.lastSeenAt?.toISOString() ?? null,
@@ -223,9 +229,11 @@ function createFastifySessionPreHandler(
       const session = options.touch
         ? await authService.touchSession({ sessionId: resolved.id })
         : resolved
+      const user = await authService.getUser(session.userId)
 
       request.auth = {
         session,
+        user,
         userId: session.userId,
       }
     } catch (error) {

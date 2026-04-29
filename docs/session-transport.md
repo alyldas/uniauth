@@ -46,6 +46,12 @@ credential:
 const session = await authService.resolveSession({
   sessionToken: request.cookies.session,
 })
+const user = await authService.getUser(session.userId)
+
+return {
+  user,
+  session,
+}
 ```
 
 Applications that track recent activity can then explicitly update `lastSeenAt` through the public
@@ -64,10 +70,17 @@ asset fetch, health check, or background poll.
 
 ```ts
 import type { NextFunction, Request, Response } from 'express'
-import { UniAuthErrorCode, isUniAuthError, type AuthService, type Session } from '@alyldas/uniauth'
+import {
+  UniAuthErrorCode,
+  isUniAuthError,
+  type AuthService,
+  type Session,
+  type User,
+} from '@alyldas/uniauth'
 
 interface ExpressRequestAuth {
   readonly session: Session
+  readonly user: User
   readonly userId: Session['userId']
 }
 
@@ -92,9 +105,11 @@ export function createExpressSessionMiddleware(authService: AuthService) {
     try {
       const resolved = await authService.resolveSession({ sessionToken })
       const session = await authService.touchSession({ sessionId: resolved.id })
+      const user = await authService.getUser(session.userId)
 
       request.auth = {
         session,
+        user,
         userId: session.userId,
       }
       next()
@@ -150,10 +165,17 @@ skip `touchSession(...)` here and call it only on the authenticated routes that 
 
 ```ts
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import { UniAuthErrorCode, isUniAuthError, type AuthService, type Session } from '@alyldas/uniauth'
+import {
+  UniAuthErrorCode,
+  isUniAuthError,
+  type AuthService,
+  type Session,
+  type User,
+} from '@alyldas/uniauth'
 
 interface FastifyRequestAuth {
   readonly session: Session
+  readonly user: User
   readonly userId: Session['userId']
 }
 
@@ -174,8 +196,10 @@ export function createFastifySessionPreHandler(authService: AuthService) {
 
     try {
       const resolved = await authService.resolveSession({ sessionToken })
+      const user = await authService.getUser(resolved.userId)
       request.auth = {
         session: resolved,
+        user,
         userId: resolved.userId,
       }
     } catch (error) {

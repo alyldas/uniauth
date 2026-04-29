@@ -33,6 +33,7 @@ identities, and email/phone are optional identity attributes.
 - `revokeUserSessions`
 - `resolveSession`
 - `touchSession`
+- `getUser`
 - `getUserSessions`
 - `createVerification`
 - `consumeVerification`

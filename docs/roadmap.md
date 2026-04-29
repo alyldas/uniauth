@@ -200,9 +200,13 @@ Tracking issues: #122.
 
 ## Next Release
 
-### v0.23 - Backlog To Be Defined
+### v0.23 - User Read Side
 
-- Next stabilizing or integrator-facing scope after the bulk session revocation release.
+- Public `getUser(userId)` API for loading the active local user snapshot by id.
+- Integrator-facing support for middleware and account-screen flows that already use local
+  sessions and identities.
+
+Tracking issues: #127.
 
 ## Versioning
 
