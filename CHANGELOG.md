@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0](https://github.com/alyldas/uniauth/compare/v0.22.0...v0.23.0) (2026-04-29)
+
+
+### Features
+
+* add public user read-side API ([78333ef](https://github.com/alyldas/uniauth/commit/78333ef1057fa409bd38cb24ecb896084120139b))
+
 ## [0.22.0](https://github.com/alyldas/uniauth/compare/v0.21.0...v0.22.0) (2026-04-29)
 
 
