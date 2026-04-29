@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/alyldas/uniauth/compare/v0.23.0...v0.24.0) (2026-04-29)
+
+
+### Features
+
+* add account security read-side APIs ([8550109](https://github.com/alyldas/uniauth/commit/85501095753b6a113f659b28ad91af49c1287dc4))
+
 ## [0.23.0](https://github.com/alyldas/uniauth/compare/v0.22.0...v0.23.0) (2026-04-29)
 
 
