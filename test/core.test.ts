@@ -84,6 +84,7 @@ describe('DefaultAuthService', () => {
     expect(result.sessionToken).toBeTypeOf('string')
     expect(result.sessionToken).not.toBe(result.session.id)
     expect(result.session.tokenHash).not.toBe(result.sessionToken)
+    expect(await service.getUser(result.user.id)).toBe(result.user)
     expect(await service.resolveSession({ sessionToken: result.sessionToken, now })).toBe(
       result.session,
     )

@@ -83,6 +83,10 @@ describe('DefaultAuthService edge cases', () => {
     })
 
     expect(explicitSession.session.metadata).toEqual({ manual: true })
+    expect(await defaultService.getUser(first.user.id)).toMatchObject({
+      id: first.user.id,
+      email: 'alice@example.com',
+    })
     expect(await defaultService.getUserIdentities(first.user.id)).toHaveLength(1)
     expect(
       (await defaultService.getUserSessions(first.user.id)).map((session) => session.id),
@@ -199,6 +203,11 @@ describe('DefaultAuthService edge cases', () => {
     ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
 
     await defaultStore.userRepo.update(second.user.id, { disabledAt: now })
+    expect(
+      await defaultService.getUser(second.user.id).catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
     expect(
       await defaultService.getUserIdentities(second.user.id).catch((caught: unknown) => caught),
     ).toMatchObject({

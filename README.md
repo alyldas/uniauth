@@ -32,6 +32,7 @@ license, subscription, private contract, or other written permission.
 - Creates local session records after successful sign-in.
 - Exposes local session read-side helpers for token resolution, activity touch, and user session
   listing.
+- Exposes a narrow `getUser(userId)` helper for loading the active local user snapshot by id.
 - Supports bulk local session revocation for sign-out-all-devices style account-security flows.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
 - Runs transaction-aware account merge over identities, credentials, sessions, and audit decisions

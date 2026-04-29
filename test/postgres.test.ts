@@ -283,10 +283,14 @@ describe('Postgres reference persistence', () => {
       first.session.id,
       second.session.id,
     ])
+    expect(await service.getUser(first.user.id)).toMatchObject({
+      id: first.user.id,
+      email: 'pg-list-sessions@example.com',
+    })
   })
 
   it('bulk-revokes active user sessions on Postgres while keeping the excluded session', async () => {
-    const { service } = await createPostgresTestKit()
+    const { service, store } = await createPostgresTestKit()
     const first = await service.signIn({
       assertion: {
         provider: 'email',
@@ -320,6 +324,10 @@ describe('Postgres reference persistence', () => {
       { id: second.session.id, status: SessionStatus.Revoked },
       { id: third.session.id, status: SessionStatus.Revoked },
     ])
+    await store.userRepo.update(first.user.id, { disabledAt: addSeconds(now, 40) })
+    await expect(service.getUser(first.user.id)).rejects.toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
   })
 
   it('applies the schema and supports repository round-trips', async () => {

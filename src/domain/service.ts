@@ -1,4 +1,4 @@
-import type { AuthIdentity, Credential, Session, Verification } from './entities.js'
+import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
 import type {
   AuthResult,
   ConsumeVerificationInput,
@@ -77,6 +77,7 @@ export interface AuthService {
   revokeUserSessions(input: RevokeUserSessionsInput): Promise<RevokeUserSessionsResult>
   resolveSession(input: ResolveSessionInput): Promise<Session>
   touchSession(input: TouchSessionInput): Promise<Session>
+  getUser(userId: UserId): Promise<User>
   getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]>
   getUserSessions(userId: UserId): Promise<readonly Session[]>
   createSession(input: CreateSessionInput): Promise<CreateSessionResult>

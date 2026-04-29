@@ -18,6 +18,7 @@ import {
   touchSession,
 } from './sessions.js'
 import { signIn } from './sign-in.js'
+import { getUser } from './users.js'
 import { consumeVerification, createVerification } from './verifications.js'
 import type { AuthPolicy } from './policy.js'
 import type {
@@ -57,6 +58,7 @@ import type {
   StartOtpChallengeResult,
   TouchSessionInput,
   UnlinkInput,
+  User,
   UserId,
   Verification,
 } from '../domain/types.js'
@@ -159,6 +161,10 @@ export class DefaultAuthService implements AuthService {
 
   async touchSession(input: TouchSessionInput): Promise<Session> {
     return touchSession(this.runtime, input)
+  }
+
+  async getUser(userId: UserId): Promise<User> {
+    return getUser(this.runtime, userId)
   }
 
   async getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]> {

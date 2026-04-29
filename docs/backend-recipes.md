@@ -97,6 +97,7 @@ app.get(
   (request, response) => {
     response.status(200).json({
       userId: request.auth.userId,
+      email: request.auth.user.email ?? null,
       sessionRecordId: request.auth.session.id,
     })
   },
@@ -107,8 +108,10 @@ That middleware should:
 
 - extract the session token from `Authorization: Bearer ...` or the session cookie;
 - call `authService.resolveSession({ sessionToken })`;
+- load the active local user through `authService.getUser(session.userId)` when the request context
+  needs a user snapshot;
 - optionally call `authService.touchSession({ sessionId })`;
-- attach `{ userId, session }` to `request.auth`;
+- attach `{ userId, user, session }` to `request.auth`;
 - map invalid or missing local sessions to `401 Authentication required.`
 
 Express ownership notes:
@@ -165,6 +168,7 @@ app.get(
   async (request, reply) => {
     return reply.send({
       userId: request.auth.userId,
+      email: request.auth.user.email ?? null,
       sessionRecordId: request.auth.session.id,
     })
   },
@@ -175,8 +179,10 @@ That preHandler should:
 
 - read the bearer token from `request.headers.authorization` or the cookie from `request.cookies`;
 - resolve it through `authService.resolveSession(...)`;
+- load the current active local user through `authService.getUser(session.userId)` if the handler
+  needs it;
 - optionally update activity through `authService.touchSession(...)`;
-- attach `{ userId, session }` to `request.auth`;
+- attach `{ userId, user, session }` to `request.auth`;
 - send `401 Authentication required.` for invalid or revoked local sessions.
 
 Fastify ownership notes:
