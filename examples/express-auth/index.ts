@@ -8,7 +8,6 @@ import {
   VerificationPurpose,
   createDefaultAuthPolicy,
   isUniAuthError,
-  type EmailSender,
   type Session,
   type UniAuthErrorCode as UniAuthErrorCodeType,
   type VerificationId,
@@ -18,6 +17,15 @@ import {
   InMemoryPasswordHasher,
   InMemoryRateLimiter,
 } from '@alyldas/uniauth/testing'
+import { ConsoleEmailSender } from '../shared/email.js'
+import {
+  AUTHENTICATION_REQUIRED_MESSAGE,
+  REQUEST_CANNOT_BE_COMPLETED_MESSAGE,
+  TOO_MANY_AUTH_ATTEMPTS_MESSAGE,
+  isSessionContextError,
+  readBearerToken,
+  readCookieHeaderToken,
+} from '../shared/http.js'
 
 interface ExpressAuthExample {
   readonly app: Express
@@ -49,41 +57,9 @@ class RequestValidationError extends Error {
   }
 }
 
-interface DeliveredEmail {
-  readonly to: string
-  readonly subject: string
-  readonly text: string
-  readonly metadata?: Record<string, unknown>
-}
-
-class ConsoleEmailSender implements EmailSender {
-  private readonly messages: DeliveredEmail[] = []
-
-  async sendEmail(input: DeliveredEmail): Promise<void> {
-    this.messages.push(input)
-    console.log(
-      JSON.stringify(
-        {
-          type: 'demo-email',
-          framework: 'express',
-          to: input.to,
-          subject: input.subject,
-          text: input.text,
-        },
-        null,
-        2,
-      ),
-    )
-  }
-
-  listMessages(): readonly DeliveredEmail[] {
-    return [...this.messages]
-  }
-}
-
 export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
   const store = new InMemoryAuthStore()
-  const emailSender = new ConsoleEmailSender()
+  const emailSender = new ConsoleEmailSender('express')
   const authService = new DefaultAuthService({
     repos: store,
     transaction: store,
@@ -166,7 +142,7 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
     const auth = request.auth
 
     if (!auth) {
-      response.status(401).json({ error: 'Authentication required.' })
+      response.status(401).json({ error: AUTHENTICATION_REQUIRED_MESSAGE })
       return
     }
 
@@ -185,7 +161,7 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
     }
 
     if (isPublicRequestError(error)) {
-      response.status(400).json({ error: 'Request cannot be completed.' })
+      response.status(400).json({ error: REQUEST_CANNOT_BE_COMPLETED_MESSAGE })
       return
     }
 
@@ -195,12 +171,12 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
     }
 
     if (error.code === UniAuthErrorCode.RateLimited) {
-      response.status(429).json({ error: 'Too many auth attempts.' })
+      response.status(429).json({ error: TOO_MANY_AUTH_ATTEMPTS_MESSAGE })
       return
     }
 
     response.status(400).json({
-      error: isNeutralPublicError(error.code) ? 'Request cannot be completed.' : error.message,
+      error: isNeutralPublicError(error.code) ? REQUEST_CANNOT_BE_COMPLETED_MESSAGE : error.message,
     })
   })
 
@@ -313,7 +289,7 @@ function createExpressSessionMiddleware(
       next()
     } catch (error) {
       if (isSessionContextError(error)) {
-        response.status(401).json({ error: 'Authentication required.' })
+        response.status(401).json({ error: AUTHENTICATION_REQUIRED_MESSAGE })
         return
       }
 
@@ -324,7 +300,7 @@ function createExpressSessionMiddleware(
 
 function requireExpressSession(request: Request, response: Response, next: NextFunction): void {
   if (!request.auth || request.auth.session.status !== SessionStatus.Active) {
-    response.status(401).json({ error: 'Authentication required.' })
+    response.status(401).json({ error: AUTHENTICATION_REQUIRED_MESSAGE })
     return
   }
 
@@ -334,36 +310,8 @@ function requireExpressSession(request: Request, response: Response, next: NextF
 function readExpressSessionToken(request: Request): string | undefined {
   return (
     readBearerToken(request.headers.authorization) ??
-    readCookieToken(request.headers.cookie, 'session')
+    readCookieHeaderToken(request.headers.cookie, 'session')
   )
-}
-
-function readBearerToken(header: string | undefined): string | undefined {
-  if (!header) {
-    return undefined
-  }
-
-  const [scheme, value] = header.split(/\s+/, 2)
-  return scheme?.toLowerCase() === 'bearer' && value?.trim() ? value.trim() : undefined
-}
-
-function readCookieToken(header: string | undefined, name: string): string | undefined {
-  if (!header) {
-    return undefined
-  }
-
-  for (const part of header.split(';')) {
-    const [rawName, ...rest] = part.split('=')
-
-    if (!rawName || rawName.trim() !== name) {
-      continue
-    }
-
-    const value = rest.join('=').trim()
-    return value ? decodeURIComponent(value) : undefined
-  }
-
-  return undefined
 }
 
 const neutralPublicErrorCodes = new Set<UniAuthErrorCodeType>([
@@ -377,14 +325,6 @@ const neutralPublicErrorCodes = new Set<UniAuthErrorCodeType>([
 
 function isNeutralPublicError(code: UniAuthErrorCodeType): boolean {
   return neutralPublicErrorCodes.has(code)
-}
-
-function isSessionContextError(error: unknown): boolean {
-  return (
-    isUniAuthError(error) &&
-    (error.code === UniAuthErrorCode.InvalidInput ||
-      error.code === UniAuthErrorCode.SessionNotFound)
-  )
 }
 
 function isPublicRequestError(error: unknown): boolean {
