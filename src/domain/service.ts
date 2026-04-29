@@ -16,6 +16,7 @@ import type {
   SignInInput,
   StartOtpChallengeInput,
   StartOtpChallengeResult,
+  TouchSessionInput,
   UnlinkInput,
 } from './flows.js'
 import type {
@@ -72,6 +73,7 @@ export interface AuthService {
   mergeAccounts(input: MergeAccountsInput): Promise<MergeResult>
   revokeSession(sessionId: SessionId): Promise<void>
   resolveSession(input: ResolveSessionInput): Promise<Session>
+  touchSession(input: TouchSessionInput): Promise<Session>
   getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]>
   createSession(input: CreateSessionInput): Promise<CreateSessionResult>
   createVerification(input: CreateVerificationInput): Promise<CreateVerificationResult>

@@ -95,6 +95,24 @@ describe('DefaultAuthService', () => {
     )
   })
 
+  it('touches active sessions without rewinding last seen activity', async () => {
+    const { service } = createInMemoryAuthKit()
+    const result = await service.signIn({ assertion: assertion(), now })
+    const touchedAt = addSeconds(now, 60)
+    const touched = await service.touchSession({
+      sessionId: result.session.id,
+      now: touchedAt,
+    })
+
+    expect(touched.lastSeenAt).toEqual(touchedAt)
+    expect(
+      await service.touchSession({
+        sessionId: result.session.id,
+        now: addSeconds(now, 30),
+      }),
+    ).toBe(touched)
+  })
+
   it('honors explicit zero TTL options in the in-memory testing kit', async () => {
     const { service } = createInMemoryAuthKit({
       clock: { now: () => now },
@@ -133,6 +151,14 @@ describe('DefaultAuthService', () => {
       code: UniAuthErrorCode.SessionNotFound,
     })
     await expect(
+      service.touchSession({
+        sessionId: expired.session.id,
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
       service.createSession({
         userId: signedIn.user.id,
         expiresAt: addSeconds(now, -1),
@@ -163,6 +189,12 @@ describe('DefaultAuthService', () => {
       createInMemoryAuthKit({ sessionTtlSeconds: Number.NaN }).service.signIn({
         assertion: assertion(),
         now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      service.touchSession({
+        sessionId: signedIn.session.id,
+        now: new Date('invalid'),
       }),
     ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
   })
@@ -224,6 +256,10 @@ describe('DefaultAuthService', () => {
     expect(await service.resolveSession({ sessionToken: signedIn.sessionToken })).toBe(
       signedIn.session,
     )
+    expect(await service.touchSession({ sessionId: signedIn.session.id })).toMatchObject({
+      id: signedIn.session.id,
+      lastSeenAt: now,
+    })
 
     const challenge = await service.startOtpChallenge({
       purpose: VerificationPurpose.SignIn,

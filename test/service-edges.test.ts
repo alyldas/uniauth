@@ -87,9 +87,26 @@ describe('DefaultAuthService edge cases', () => {
     expect(
       await defaultService.resolveSession({ sessionToken: explicitSession.sessionToken, now }),
     ).toBe(explicitSession.session)
+    expect(
+      await defaultService.touchSession({
+        sessionId: explicitSession.session.id,
+        now: addSeconds(now, 1),
+      }),
+    ).toMatchObject({
+      id: explicitSession.session.id,
+      lastSeenAt: addSeconds(now, 1),
+    })
     await defaultService.revokeSession(explicitSession.session.id)
     await expect(
       defaultService.resolveSession({ sessionToken: explicitSession.sessionToken, now }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      defaultService.touchSession({
+        sessionId: explicitSession.session.id,
+        now: addSeconds(now, 2),
+      }),
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.SessionNotFound,
     })
