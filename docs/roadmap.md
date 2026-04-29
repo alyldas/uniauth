@@ -164,13 +164,13 @@ Tracking issues: #99.
 
 ## Next Release
 
-### v0.18 - Backlog To Be Defined
+### v0.18 - Session Activity and Integration Boundaries
 
-- No tracking issues are assigned yet.
-- The next release will be defined after the next concrete feature or hardening slice is promoted
-  into GitHub issues.
+- Public session activity touch API for updating `lastSeenAt` after successful token resolution.
+- Provider token persistence boundary that stays application-owned outside UniAuth core.
+- Express and Fastify middleware recipes for mapping `sessionToken` into request auth context.
 
-Tracking issues: none.
+Tracking issues: #104, #105, #106.
 
 ## Versioning
 
