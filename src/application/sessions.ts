@@ -7,6 +7,7 @@ import type {
   ResolveSessionInput,
   Session,
   SessionId,
+  TouchSessionInput,
 } from '../domain/types.js'
 import { AuditEventType, SessionStatus } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
@@ -71,6 +72,27 @@ export async function resolveSession(
   return session
 }
 
+export async function touchSession(
+  runtime: AuthServiceRuntime,
+  input: TouchSessionInput,
+): Promise<Session> {
+  return runtime.transaction.run(async () => {
+    const now = input.now ?? runtime.clock.now()
+
+    assertValidDate(now, 'Session activity time is invalid.')
+
+    const session = await requireActiveSession(runtime, input.sessionId, now)
+
+    if (session.lastSeenAt && session.lastSeenAt.getTime() >= now.getTime()) {
+      return session
+    }
+
+    return runtime.repos.sessionRepo.update(session.id, {
+      lastSeenAt: now,
+    })
+  })
+}
+
 export async function createSessionRecord(
   runtime: AuthServiceRuntime,
   input: CreateSessionInput & { readonly now: Date },
@@ -117,6 +139,24 @@ function resolveSessionExpiresAt(
   }
 
   return addSeconds(input.now, runtime.sessionTtlSeconds)
+}
+
+async function requireActiveSession(
+  runtime: AuthServiceRuntime,
+  sessionId: SessionId,
+  now: Date,
+): Promise<Session> {
+  const session = await runtime.repos.sessionRepo.findById(sessionId)
+
+  if (
+    !session ||
+    session.status !== SessionStatus.Active ||
+    session.expiresAt.getTime() <= now.getTime()
+  ) {
+    throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
+  }
+
+  return session
 }
 
 function assertValidDate(date: Date, message: string): void {

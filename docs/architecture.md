@@ -31,6 +31,7 @@ identities, and email/phone are optional identity attributes.
 - `createSession`
 - `revokeSession`
 - `resolveSession`
+- `touchSession`
 - `createVerification`
 - `consumeVerification`
 

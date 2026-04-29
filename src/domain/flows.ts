@@ -84,6 +84,11 @@ export interface ResolveSessionInput {
   readonly now?: Date
 }
 
+export interface TouchSessionInput {
+  readonly sessionId: SessionId
+  readonly now?: Date
+}
+
 export interface CreateVerificationInput {
   readonly purpose: VerificationPurpose
   readonly target: string

@@ -48,6 +48,18 @@ const session = await authService.resolveSession({
 })
 ```
 
+Applications that track recent activity can then explicitly update `lastSeenAt` through the public
+service API:
+
+```ts
+await authService.touchSession({
+  sessionId: session.id,
+})
+```
+
+Keep this write policy application-owned. Touch on meaningful authenticated requests, not on every
+asset fetch, health check, or background poll.
+
 What stays application-owned:
 
 - CSRF protection for browser POST requests;
@@ -81,6 +93,7 @@ What stays application-owned:
 - token forwarding rules between services;
 - gateway or edge header normalization;
 - server middleware that resolves the session token back into application auth context;
+- the policy for when a resolved session should also be touched for activity tracking;
 - log redaction so bearer session tokens do not leak into access logs.
 
 ## Mobile And Native Clients

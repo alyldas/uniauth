@@ -9,7 +9,7 @@ import {
   startEmailPasswordRecovery,
 } from './passwords.js'
 import { type AuthServiceRuntime, createAuthServiceRuntime } from './runtime.js'
-import { createSession, resolveSession, revokeSession } from './sessions.js'
+import { createSession, resolveSession, revokeSession, touchSession } from './sessions.js'
 import { signIn } from './sign-in.js'
 import { consumeVerification, createVerification } from './verifications.js'
 import type { AuthPolicy } from './policy.js'
@@ -46,6 +46,7 @@ import type {
   StartEmailPasswordRecoveryResult,
   StartOtpChallengeInput,
   StartOtpChallengeResult,
+  TouchSessionInput,
   UnlinkInput,
   UserId,
   Verification,
@@ -141,6 +142,10 @@ export class DefaultAuthService implements AuthService {
 
   async resolveSession(input: ResolveSessionInput): Promise<Session> {
     return resolveSession(this.runtime, input)
+  }
+
+  async touchSession(input: TouchSessionInput): Promise<Session> {
+    return touchSession(this.runtime, input)
   }
 
   async getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]> {

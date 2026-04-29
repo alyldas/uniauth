@@ -1,6 +1,7 @@
 import { newDb } from 'pg-mem'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  addSeconds,
   type AuthPolicy,
   AuthIdentityStatus,
   ProviderTrustLevel,
@@ -230,6 +231,35 @@ describe('Postgres reference persistence', () => {
     })
 
     expect(await store.sessionRepo.listByUserId(signedIn.user.id)).toHaveLength(1)
+  })
+
+  it('touches active sessions on Postgres without rewinding last seen activity', async () => {
+    const { service } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-touch-session',
+        email: 'pg-touch-session@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const touchedAt = addSeconds(now, 60)
+    const touched = await service.touchSession({
+      sessionId: signedIn.session.id,
+      now: touchedAt,
+    })
+
+    expect(touched.lastSeenAt).toEqual(touchedAt)
+    expect(
+      await service.touchSession({
+        sessionId: signedIn.session.id,
+        now: addSeconds(now, 30),
+      }),
+    ).toMatchObject({
+      id: signedIn.session.id,
+      lastSeenAt: touchedAt,
+    })
   })
 
   it('applies the schema and supports repository round-trips', async () => {
