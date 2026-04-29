@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/alyldas/uniauth/compare/v0.19.0...v0.20.0) (2026-04-29)
+
+
+### Features
+
+* add session middleware recipes ([6e230ab](https://github.com/alyldas/uniauth/commit/6e230ab816a83020168405e25308a2855b07944f))
+
 ## [0.19.0](https://github.com/alyldas/uniauth/compare/v0.18.0...v0.19.0) (2026-04-29)
 
 
