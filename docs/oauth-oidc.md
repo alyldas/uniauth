@@ -8,6 +8,8 @@ the existing `AuthService`, `ProviderRegistry`, and `AuthPolicy` flow.
 
 ```ts
 import {
+  OAuthOidcTokenBindingKind,
+  createOAuthOidcTokenRecord,
   createOAuthOidcProvider,
   mapOAuthOidcProfileToAssertion,
   type OAuthOidcClient,
@@ -57,6 +59,8 @@ The client should return only the token fields needed to fetch the profile. Long
 belongs to the application and should happen outside UniAuth.
 If an application must retain provider tokens, store them behind an application-owned repository and
 keep only the local UniAuth session token in UniAuth-facing flows.
+Use `createOAuthOidcTokenRecord(...)` when you want one normalized shape for access, refresh, and
+ID tokens before persisting them. See [Provider token persistence](provider-token-persistence.md).
 
 ## Registration
 
@@ -133,6 +137,8 @@ createOAuthOidcProvider({
 - Keep provider secrets out of UniAuth configuration objects when possible; load them in the
   application-owned client.
 - Do not store access tokens, ID tokens, or refresh tokens in `ProviderIdentityAssertion.metadata`.
+- Refresh token rotation and provider revocation stay application-owned. See
+  [Provider token persistence](provider-token-persistence.md).
 - Exact `(provider, providerUserId)` matching still wins. Email, phone, username, and display fields
   are profile hints, not account ownership proof.
 - Auto-link remains controlled by `AuthPolicy`; OAuth/OIDC providers do not silently merge users.

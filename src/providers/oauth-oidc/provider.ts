@@ -77,6 +77,7 @@ function normalizeTokenSet(tokens: OAuthOidcTokenSet): OAuthOidcTokenSet {
 
   const tokenSet = tokens as OAuthOidcTokenSet
   const accessToken = readString(tokenSet.accessToken)
+  const refreshToken = readString(tokenSet.refreshToken)
   const idToken = readString(tokenSet.idToken)
 
   if (!accessToken && !idToken) {
@@ -85,6 +86,7 @@ function normalizeTokenSet(tokens: OAuthOidcTokenSet): OAuthOidcTokenSet {
 
   return {
     ...optionalProp('accessToken', accessToken),
+    ...optionalProp('refreshToken', refreshToken),
     ...optionalProp('idToken', idToken),
     ...optionalProp('tokenType', readString(tokenSet.tokenType)),
     ...optionalProp('expiresAt', tokenSet.expiresAt),

@@ -134,6 +134,9 @@ If both are present and disagree, the helper rejects the input.
   assertion metadata.
 - If you need token persistence, keep it in application-owned storage keyed by your own session or
   callback state.
+- If you want one stable record shape for that storage, use `createOAuthOidcTokenRecord(...)` from
+  the root package and bind it to your framework-owned callback state, local user id, or local
+  session id. See [Provider token persistence](provider-token-persistence.md).
 - UniAuth policy invariants still apply after mapping. A framework callback does not bypass
   `AuthPolicy`, last-identity rules, or exact provider identity matching.
 - These helpers are intentionally thin. If your integration needs framework-native session

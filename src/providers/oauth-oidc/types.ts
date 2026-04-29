@@ -1,5 +1,6 @@
 import type {
   AuthIdentityProvider,
+  ExtensibleString,
   FinishInput,
   ProviderIdentityAssertion,
 } from '../../domain/types.js'
@@ -14,10 +15,48 @@ export interface OAuthOidcAuthorizationCodeExchangeInput {
 
 export interface OAuthOidcTokenSet {
   readonly accessToken?: string
+  readonly refreshToken?: string
   readonly idToken?: string
   readonly tokenType?: string
   readonly expiresAt?: Date
   readonly scopes?: readonly string[]
+}
+
+export const OAuthOidcTokenBindingKind = {
+  CallbackState: 'callback-state',
+  Session: 'session',
+  Identity: 'identity',
+  User: 'user',
+} as const
+
+export type OAuthOidcTokenBindingKind = ExtensibleString<
+  (typeof OAuthOidcTokenBindingKind)[keyof typeof OAuthOidcTokenBindingKind]
+>
+
+export interface OAuthOidcTokenBinding {
+  readonly kind: OAuthOidcTokenBindingKind
+  readonly value: string
+}
+
+export interface OAuthOidcTokenRecord {
+  readonly provider: AuthIdentityProvider
+  readonly providerUserId: string
+  readonly binding: OAuthOidcTokenBinding
+  readonly accessToken?: string
+  readonly refreshToken?: string
+  readonly idToken?: string
+  readonly tokenType?: string
+  readonly expiresAt?: Date
+  readonly scopes?: readonly string[]
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface CreateOAuthOidcTokenRecordInput {
+  readonly provider: AuthIdentityProvider
+  readonly providerUserId: string
+  readonly binding: OAuthOidcTokenBinding
+  readonly tokens: OAuthOidcTokenSet
+  readonly metadata?: Record<string, unknown>
 }
 
 export interface OAuthOidcFetchProfileInput {
