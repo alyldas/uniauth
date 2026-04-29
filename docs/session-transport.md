@@ -12,11 +12,12 @@ This document keeps the boundary explicit for three common transports:
 
 ## Browser Cookies
 
-Browser-first applications usually map `result.sessionToken` into a session cookie immediately after
-a successful finish flow.
+Browser-first applications usually map `result.sessionToken` into a sealed or encrypted session
+cookie immediately after a successful finish flow.
 
 Minimum expectations:
 
+- seal or encrypt the raw bearer token before writing the cookie value;
 - `httpOnly: true`;
 - `secure: true` in production;
 - explicit `sameSite`;
@@ -31,7 +32,7 @@ const result = await authService.finishOtpSignIn({
   secret: body.code,
 })
 
-response.cookie('session', result.sessionToken, {
+response.cookie('session', sealSessionToken(result.sessionToken), {
   httpOnly: true,
   secure: true,
   sameSite: 'lax',
@@ -39,12 +40,16 @@ response.cookie('session', result.sessionToken, {
 })
 ```
 
-On later requests, resolve the token through UniAuth instead of treating `Session.id` as the client
-credential:
+`sealSessionToken(...)` and `unsealSessionToken(...)` are application-owned helpers backed by key
+material from the deployment environment. The runnable examples in this repository use
+`UNIAUTH_EXAMPLE_SESSION_COOKIE_KEY` for that key material. On later requests, unseal the cookie and
+resolve the token through UniAuth instead of treating `Session.id` as the client credential:
 
 ```ts
+const sessionToken = unsealSessionToken(request.cookies.session)
+
 const session = await authService.resolveSession({
-  sessionToken: request.cookies.session,
+  sessionToken,
 })
 const user = await authService.getUser(session.userId)
 
@@ -95,7 +100,8 @@ declare global {
 export function createExpressSessionMiddleware(authService: AuthService) {
   return async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     const sessionToken =
-      readBearerToken(request.headers.authorization) ?? readCookieToken(request.headers.cookie)
+      readBearerToken(request.headers.authorization) ??
+      unsealSessionToken(readCookieToken(request.headers.cookie))
 
     if (!sessionToken) {
       next()
@@ -188,7 +194,8 @@ declare module 'fastify' {
 export function createFastifySessionPreHandler(authService: AuthService) {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     const sessionToken =
-      readBearerToken(request.headers.authorization) ?? request.cookies.session?.trim()
+      readBearerToken(request.headers.authorization) ??
+      unsealSessionToken(request.cookies.session?.trim())
 
     if (!sessionToken) {
       return

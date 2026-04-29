@@ -25,6 +25,11 @@ import {
   readBearerToken,
   readCookieValue,
 } from '../shared/http.js'
+import {
+  assertSessionCookieSealingConfigured,
+  sealSessionCookieValue,
+  unsealSessionCookieValue,
+} from '../shared/session-cookie.js'
 import { serializeAccountSecuritySnapshot } from '../shared/views.js'
 
 interface FastifyAuthExample {
@@ -46,6 +51,8 @@ declare module 'fastify' {
 }
 
 export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
+  assertSessionCookieSealingConfigured()
+
   const store = new InMemoryAuthStore()
   const emailSender = new ConsoleEmailSender('fastify')
   const authService = new DefaultAuthService({
@@ -121,7 +128,7 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
         metadata: { transport: 'fastify', route: 'otp-finish' },
       })
 
-      reply.setCookie('session', result.sessionToken, {
+      reply.setCookie('session', sealSessionCookieValue(result.sessionToken), {
         httpOnly: true,
         sameSite: 'lax',
         secure: true,
@@ -289,7 +296,10 @@ async function requireFastifySession(request: FastifyRequest, reply: FastifyRepl
 }
 
 function readFastifySessionToken(request: FastifyRequest): string | undefined {
-  return readBearerToken(request.headers.authorization) ?? readCookieValue(request.cookies.session)
+  return (
+    readBearerToken(request.headers.authorization) ??
+    unsealSessionCookieValue(readCookieValue(request.cookies.session))
+  )
 }
 
 const neutralPublicErrorCodes = new Set<UniAuthErrorCodeType>([

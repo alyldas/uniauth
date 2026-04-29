@@ -74,7 +74,7 @@ app.post('/auth/password/sign-in', async (req, res, next) => {
       password: req.body.password,
     })
 
-    res.cookie('session', result.sessionToken, {
+    res.cookie('session', sealSessionToken(result.sessionToken), {
       httpOnly: true,
       sameSite: 'lax',
       secure: true,
@@ -149,7 +149,7 @@ app.post('/auth/magic/finish', async (request, reply) => {
     secret: request.body.secret,
   })
 
-  reply.setCookie('session', result.sessionToken, {
+  reply.setCookie('session', sealSessionToken(result.sessionToken), {
     httpOnly: true,
     sameSite: 'lax',
     secure: true,
@@ -220,7 +220,7 @@ export class PasswordAuthController {
   ) {
     const result = await this.auth.signInWithPassword(body)
 
-    res.cookie('session', result.sessionToken, {
+    res.cookie('session', sealSessionToken(result.sessionToken), {
       httpOnly: true,
       sameSite: 'lax',
       secure: true,
@@ -256,7 +256,7 @@ export async function POST(request: Request) {
     secret: body.secret,
   })
 
-  cookies().set('session', result.sessionToken, {
+  cookies().set('session', sealSessionToken(result.sessionToken), {
     httpOnly: true,
     sameSite: 'lax',
     secure: true,
@@ -306,6 +306,7 @@ application-level concerns whenever a browser can trigger authenticated state ch
 
 Minimum expectations:
 
+- seal or encrypt raw bearer session tokens before storing them in browser cookies;
 - use `httpOnly`, `secure`, and explicit `sameSite` for session cookies;
 - scope cookies to the smallest practical path/domain;
 - protect browser POST routes with CSRF controls or same-site guarantees that actually match your

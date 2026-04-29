@@ -114,7 +114,7 @@ Messenger providers stay app-owned at bootstrap and transport layers:
 - load bot tokens in server-only code;
 - register providers in the same bootstrap where `ProviderRegistry` and `AuthService` are created;
 - pass raw signed `initData` from your HTTP or RPC boundary into `finishInput.payload`;
-- issue browser cookies, redirects, and CSRF/state handling in the application layer after
+- issue sealed browser cookies, redirects, and CSRF/state handling in the application layer after
   `service.signIn(...)` returns a local session.
 
 ### Telegram Mini App Route
@@ -145,7 +145,7 @@ export async function postTelegramMiniAppSignIn(request: Request) {
     status: 200,
     sessionCookie: {
       name: 'session',
-      value: result.sessionToken,
+      value: sealSessionToken(result.sessionToken),
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
@@ -186,7 +186,7 @@ export async function postMaxWebAppSignIn(request: Request) {
     status: 200,
     sessionCookie: {
       name: 'session',
-      value: result.sessionToken,
+      value: sealSessionToken(result.sessionToken),
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
