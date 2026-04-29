@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/alyldas/uniauth/compare/v0.21.0...v0.22.0) (2026-04-29)
+
+
+### Features
+
+* add bulk user session revocation API ([3119ec4](https://github.com/alyldas/uniauth/commit/3119ec461ab25f0a767e62150f9ca7f8ecaeec5b))
+
 ## [0.21.0](https://github.com/alyldas/uniauth/compare/v0.20.0...v0.21.0) (2026-04-29)
 
 
