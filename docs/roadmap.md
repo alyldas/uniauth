@@ -162,15 +162,28 @@ Tracking issues: #93, #94, #95.
 
 Tracking issues: #99.
 
-## Next Release
-
-### v0.18 - Session Activity and Integration Boundaries
+### v0.18 - Session Activity
 
 - Public session activity touch API for updating `lastSeenAt` after successful token resolution.
-- Provider token persistence boundary that stays application-owned outside UniAuth core.
+
+Tracking issues: #104.
+
+### v0.19 - Provider Token Persistence Boundary
+
+- App-owned OAuth/OIDC token persistence helper and typed binding contract.
+- Explicit rotation and provider-side revocation ownership outside UniAuth core.
+- OAuth/OIDC wiring example updated to persist tokens under callback state and rebind them to the
+  local session.
+
+Tracking issues: #106.
+
+## Next Release
+
+### v0.20 - Session Middleware Recipes
+
 - Express and Fastify middleware recipes for mapping `sessionToken` into request auth context.
 
-Tracking issues: #104, #105, #106.
+Tracking issues: #105.
 
 ## Versioning
 
