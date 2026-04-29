@@ -95,7 +95,9 @@ input, delegates code exchange and profile fetching to an application-owned clie
 validated profile into `ProviderIdentityAssertion`, and leaves authorization URL creation, callback
 routes, state and nonce validation, redirect URI policy, provider secrets, HTTP clients, and token
 storage outside core. If provider tokens must survive beyond profile fetch, applications should keep
-them in app-owned persistence keyed by local auth/session state, not inside core assertions.
+them in app-owned persistence keyed by local auth/session state, not inside core assertions. The
+root package exports a narrow `createOAuthOidcTokenRecord(...)` helper for this app-owned boundary
+without moving token lifecycle into core.
 Applications can additionally attach normalized trust context to assertions so `AuthPolicy` can make
 auto-link, explicit-link, and merge decisions without receiving raw SDK objects.
 

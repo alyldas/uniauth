@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   AuditEventType,
+  OAuthOidcTokenBindingKind,
   UniAuthErrorCode,
+  createOAuthOidcTokenRecord,
   createOAuthOidcProvider,
   mapOAuthOidcProfileToAssertion,
   type OAuthOidcAuthorizationCodeExchangeInput,
@@ -58,6 +60,7 @@ describe('OAuth/OIDC provider contract', () => {
     const client = new RecordingOAuthOidcClient(
       {
         accessToken: ' access-token ',
+        refreshToken: ' refresh-token ',
         tokenType: 'Bearer',
         scopes: ['openid', 'email'],
       },
@@ -105,6 +108,7 @@ describe('OAuth/OIDC provider contract', () => {
     expect(client.fetchProfileInput).toEqual({
       tokens: {
         accessToken: 'access-token',
+        refreshToken: 'refresh-token',
         tokenType: 'Bearer',
         scopes: ['openid', 'email'],
       },
@@ -128,6 +132,7 @@ describe('OAuth/OIDC provider contract', () => {
       },
     })
     expect(assertion.metadata).not.toHaveProperty('accessToken')
+    expect(assertion.metadata).not.toHaveProperty('refreshToken')
     expect(assertion.metadata).not.toHaveProperty('idToken')
   })
 
@@ -254,6 +259,71 @@ describe('OAuth/OIDC provider contract', () => {
     })
   })
 
+  it('creates normalized token records for application-owned persistence', () => {
+    expect(
+      createOAuthOidcTokenRecord({
+        provider: ' example-oauth ',
+        providerUserId: ' subject-123 ',
+        binding: {
+          kind: OAuthOidcTokenBindingKind.CallbackState,
+          value: ' state-123 ',
+        },
+        tokens: {
+          accessToken: ' access-token ',
+          refreshToken: ' refresh-token ',
+          idToken: ' id-token ',
+          tokenType: ' Bearer ',
+          expiresAt: now,
+          scopes: ['openid', ' email ', 'openid', '   '],
+        },
+        metadata: {
+          tenantId: 'tenant-1',
+        },
+      }),
+    ).toEqual({
+      provider: 'example-oauth',
+      providerUserId: 'subject-123',
+      binding: {
+        kind: OAuthOidcTokenBindingKind.CallbackState,
+        value: 'state-123',
+      },
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      idToken: 'id-token',
+      tokenType: 'Bearer',
+      expiresAt: now,
+      scopes: ['openid', 'email'],
+      metadata: {
+        tenantId: 'tenant-1',
+      },
+    })
+  })
+
+  it('supports refresh-token-only records and drops blank optional persistence fields', () => {
+    expect(
+      createOAuthOidcTokenRecord({
+        provider: 'example-oauth',
+        providerUserId: 'subject-456',
+        binding: {
+          kind: OAuthOidcTokenBindingKind.User,
+          value: 'user-456',
+        },
+        tokens: {
+          refreshToken: ' refresh-token ',
+          scopes: ['   '],
+        },
+      }),
+    ).toEqual({
+      provider: 'example-oauth',
+      providerUserId: 'subject-456',
+      binding: {
+        kind: OAuthOidcTokenBindingKind.User,
+        value: 'user-456',
+      },
+      refreshToken: 'refresh-token',
+    })
+  })
+
   it('rejects incomplete OAuth/OIDC inputs', async () => {
     await expectInvalid(() =>
       createOAuthOidcProvider({
@@ -290,6 +360,97 @@ describe('OAuth/OIDC provider contract', () => {
         providerId: 'oauth',
         client: new RecordingOAuthOidcClient({ accessToken: 'token' }, { subject: '   ' }),
       }).finish({ code: 'code' }),
+    )
+
+    await expectInvalid(() =>
+      createOAuthOidcTokenRecord({
+        provider: 'oauth',
+        providerUserId: 'subject',
+        binding: {
+          kind: OAuthOidcTokenBindingKind.Session,
+          value: 'session-1',
+        },
+        tokens: {},
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcTokenRecord({
+        provider: 'oauth',
+        providerUserId: 'subject',
+        binding: {
+          kind: '   ',
+          value: 'session-1',
+        },
+        tokens: {
+          refreshToken: 'refresh-token',
+        },
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcTokenRecord({
+        provider: 'oauth',
+        providerUserId: 'subject',
+        binding: undefined as unknown as {
+          kind: string
+          value: string
+        },
+        tokens: {
+          refreshToken: 'refresh-token',
+        },
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcTokenRecord({
+        provider: 'oauth',
+        providerUserId: 'subject',
+        binding: {
+          kind: OAuthOidcTokenBindingKind.User,
+          value: 'user-1',
+        },
+        tokens: undefined as unknown as OAuthOidcTokenSet,
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcTokenRecord({
+        provider: 'oauth',
+        providerUserId: 'subject',
+        binding: {
+          kind: OAuthOidcTokenBindingKind.User,
+          value: 'user-1',
+        },
+        tokens: {
+          refreshToken: 'refresh-token',
+          expiresAt: new Date('invalid'),
+        },
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcTokenRecord({
+        provider: 'oauth',
+        providerUserId: 'subject',
+        binding: {
+          kind: OAuthOidcTokenBindingKind.User,
+          value: 'user-1',
+        },
+        tokens: {
+          refreshToken: 'refresh-token',
+          scopes: ['openid', 42] as unknown as readonly string[],
+        },
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcTokenRecord({
+        provider: 'oauth',
+        providerUserId: 'subject',
+        binding: {
+          kind: OAuthOidcTokenBindingKind.User,
+          value: 'user-1',
+        },
+        tokens: {
+          refreshToken: 'refresh-token',
+        },
+        metadata: 'not-an-object' as unknown as Record<string, unknown>,
+      }),
     )
   })
 })

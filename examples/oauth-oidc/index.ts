@@ -1,10 +1,15 @@
 import { fileURLToPath } from 'node:url'
 import {
   DefaultAuthService,
+  OAuthOidcTokenBindingKind,
+  createOAuthOidcTokenRecord,
   createOAuthOidcProvider,
   type OAuthOidcAuthorizationCodeExchangeInput,
   type OAuthOidcClient,
   type OAuthOidcFetchProfileInput,
+  type OAuthOidcProfile,
+  type OAuthOidcTokenBinding,
+  type OAuthOidcTokenRecord,
 } from '@alyldas/uniauth'
 import {
   InMemoryAuthStore,
@@ -47,37 +52,67 @@ interface RedirectResponse {
     readonly userId: string
     readonly identityId: string
     readonly provider: string
+    readonly tokenBinding: OAuthOidcTokenBinding
   }
   readonly cookies: readonly [SessionCookie, ClearedCookie, ClearedCookie, ClearedCookie]
+}
+
+class DemoProviderTokenStore {
+  private readonly records = new Map<string, OAuthOidcTokenRecord>()
+
+  save(record: OAuthOidcTokenRecord): void {
+    this.records.set(this.key(record.binding), record)
+  }
+
+  rebind(from: OAuthOidcTokenBinding, to: OAuthOidcTokenBinding): OAuthOidcTokenRecord {
+    const record = this.records.get(this.key(from))
+
+    if (!record) {
+      throw new Error('Provider token record was not found.')
+    }
+
+    this.records.delete(this.key(from))
+    const next = { ...record, binding: to }
+    this.records.set(this.key(next.binding), next)
+
+    return next
+  }
+
+  find(binding: OAuthOidcTokenBinding): OAuthOidcTokenRecord | undefined {
+    return this.records.get(this.key(binding))
+  }
+
+  private key(binding: OAuthOidcTokenBinding): string {
+    return `${binding.kind}\u0000${binding.value}`
+  }
 }
 
 class DemoOidcClient implements OAuthOidcClient {
   private readonly exchangeInputs: OAuthOidcAuthorizationCodeExchangeInput[] = []
   private readonly profileInputs: OAuthOidcFetchProfileInput[] = []
 
-  async exchangeCode(
-    input: OAuthOidcAuthorizationCodeExchangeInput,
-  ): Promise<{ accessToken: string; tokenType: string; scopes: readonly string[] }> {
+  constructor(private readonly tokenStore: DemoProviderTokenStore) {}
+
+  async exchangeCode(input: OAuthOidcAuthorizationCodeExchangeInput): Promise<{
+    accessToken: string
+    refreshToken: string
+    tokenType: string
+    scopes: readonly string[]
+  }> {
     this.exchangeInputs.push(input)
 
     return {
       accessToken: `demo-access-token-for:${input.code}`,
+      refreshToken: `demo-refresh-token-for:${input.code}`,
       tokenType: 'Bearer',
       scopes: ['openid', 'email', 'profile'],
     }
   }
 
-  async fetchProfile(input: OAuthOidcFetchProfileInput): Promise<{
-    subject: string
-    email: string
-    emailVerified: true
-    displayName: string
-    issuer: string
-    preferredUsername: string
-  }> {
+  async fetchProfile(input: OAuthOidcFetchProfileInput): Promise<OAuthOidcProfile> {
     this.profileInputs.push(input)
 
-    return {
+    const profile = {
       subject: 'oidc-user-123',
       email: 'alice@example.com',
       emailVerified: true,
@@ -85,6 +120,27 @@ class DemoOidcClient implements OAuthOidcClient {
       issuer: 'https://issuer.example.test',
       preferredUsername: 'alice',
     }
+
+    if (!input.state) {
+      throw new Error('OAuth state is required for provider token persistence.')
+    }
+
+    this.tokenStore.save(
+      createOAuthOidcTokenRecord({
+        provider: 'demo-oidc',
+        providerUserId: profile.subject,
+        binding: {
+          kind: OAuthOidcTokenBindingKind.CallbackState,
+          value: input.state,
+        },
+        tokens: input.tokens,
+        metadata: {
+          issuer: profile.issuer,
+        },
+      }),
+    )
+
+    return profile
   }
 
   listExchangeInputs(): readonly OAuthOidcAuthorizationCodeExchangeInput[] {
@@ -98,7 +154,8 @@ class DemoOidcClient implements OAuthOidcClient {
 
 const store = new InMemoryAuthStore()
 const providerRegistry = new InMemoryProviderRegistry()
-const oidcClient = new DemoOidcClient()
+const tokenStore = new DemoProviderTokenStore()
+const oidcClient = new DemoOidcClient(tokenStore)
 
 providerRegistry.register(
   createOAuthOidcProvider({
@@ -155,6 +212,16 @@ async function finishOidcCallback(request: CallbackRequest): Promise<RedirectRes
       },
     },
   })
+  const tokenBinding = tokenStore.rebind(
+    {
+      kind: OAuthOidcTokenBindingKind.CallbackState,
+      value: request.query.state,
+    },
+    {
+      kind: OAuthOidcTokenBindingKind.Session,
+      value: result.session.id,
+    },
+  ).binding
 
   return {
     status: 302,
@@ -163,6 +230,7 @@ async function finishOidcCallback(request: CallbackRequest): Promise<RedirectRes
       userId: result.user.id,
       identityId: result.identity.id,
       provider: result.identity.provider,
+      tokenBinding,
     },
     cookies: [
       buildSessionCookie(result.sessionToken),
@@ -193,6 +261,7 @@ export async function runOAuthOidcExample(): Promise<void> {
     clearedCookies: response.cookies.slice(1),
     exchangeInput: oidcClient.listExchangeInputs().at(-1),
     profileInput: oidcClient.listProfileInputs().at(-1),
+    tokenRecord: tokenStore.find(response.body.tokenBinding),
     userId: response.body.userId,
     identityId: response.body.identityId,
   })

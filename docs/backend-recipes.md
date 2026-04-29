@@ -233,6 +233,7 @@ The repository keeps small transport-facing examples alongside these framework n
 - [Fastify auth module example](../examples/fastify-auth/index.ts)
 - [OTP backend wiring example](../examples/otp-backend/index.ts)
 - [OAuth / OIDC wiring example](../examples/oauth-oidc/index.ts)
+- [Provider token persistence](provider-token-persistence.md)
 - [Messenger provider wiring notes](messenger-providers.md)
 
 ## Cookie And CSRF Rules

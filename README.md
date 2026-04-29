@@ -271,6 +271,8 @@ launch data. See [Messenger providers](docs/messenger-providers.md).
 
 OAuth/OIDC providers use an SDK-free client contract for authorization-code finish flows. See
 [OAuth / OIDC providers](docs/oauth-oidc.md).
+If provider tokens need to survive beyond profile fetch, keep them in app-owned storage and use the
+public helper described in [Provider token persistence](docs/provider-token-persistence.md).
 
 Optional Better Auth and Auth.js bridge helpers live in their own subpath so the core package stays
 free of framework runtime dependencies. See [Auth bridges](docs/bridges.md).
@@ -520,6 +522,7 @@ contact `alyldas@ya.ru`.
 - [Session transport recipes](docs/session-transport.md)
 - [Messenger providers](docs/messenger-providers.md)
 - [OAuth / OIDC providers](docs/oauth-oidc.md)
+- [Provider token persistence](docs/provider-token-persistence.md)
 - [Postgres persistence](docs/postgres.md)
 - [Comparison](docs/comparison.md)
 - [Licensing and attribution](docs/licensing.md)
