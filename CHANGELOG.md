@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/alyldas/uniauth/compare/v0.18.0...v0.19.0) (2026-04-29)
+
+
+### Features
+
+* add provider token persistence boundary ([ca8a2d6](https://github.com/alyldas/uniauth/commit/ca8a2d6bc175a83b45f7190b004ed69610360f63))
+
 ## [0.18.0](https://github.com/alyldas/uniauth/compare/v0.17.0...v0.18.0) (2026-04-29)
 
 
