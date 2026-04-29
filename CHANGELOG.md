@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/alyldas/uniauth/compare/v0.20.0...v0.21.0) (2026-04-29)
+
+
+### Features
+
+* add public user session listing API ([25bfb92](https://github.com/alyldas/uniauth/commit/25bfb9281aa98a1224b6e29f154f6c75c5819487))
+
 ## [0.20.0](https://github.com/alyldas/uniauth/compare/v0.19.0...v0.20.0) (2026-04-29)
 
 
