@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/alyldas/uniauth/compare/v0.17.0...v0.18.0) (2026-04-29)
+
+
+### Features
+
+* add session activity touch API ([65a80cb](https://github.com/alyldas/uniauth/commit/65a80cb24005a2fed666e63b1fa848a65bdb93f5))
+
 ## [0.17.0](https://github.com/alyldas/uniauth/compare/v0.16.0...v0.17.0) (2026-04-29)
 
 
