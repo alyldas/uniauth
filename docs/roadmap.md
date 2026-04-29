@@ -177,13 +177,17 @@ Tracking issues: #104.
 
 Tracking issues: #106.
 
-## Next Release
-
 ### v0.20 - Session Middleware Recipes
 
 - Express and Fastify middleware recipes for mapping `sessionToken` into request auth context.
 
 Tracking issues: #105.
+
+## Next Release
+
+### v0.21 - Backlog To Be Defined
+
+- Next stabilizing or integrator-facing scope after the session middleware recipes release.
 
 ## Versioning
 
