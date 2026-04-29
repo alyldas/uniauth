@@ -11,6 +11,19 @@ UniAuth still does not own HTTP routes, UI, cookies, or client payload shaping. 
 must decide what to expose and must not leak server-only fields such as `passwordHash`,
 `tokenHash`, or `secretHash`.
 
+Prefer the built-in safe projection helpers for these flows:
+
+```ts
+const snapshot = toAccountSecuritySnapshot({
+  user,
+  identities,
+  credentials,
+  sessions,
+})
+
+const verificationStatus = toVerificationStatusView(verification)
+```
+
 ## Recommended Read-Side Shape
 
 The minimal server-side composition usually looks like this:
@@ -20,6 +33,12 @@ const user = await authService.getUser(userId)
 const identities = await authService.getUserIdentities(userId)
 const credentials = await authService.getUserCredentials(userId)
 const sessions = await authService.getUserSessions(userId)
+const snapshot = toAccountSecuritySnapshot({
+  user,
+  identities,
+  credentials,
+  sessions,
+})
 ```
 
 Keep the response client-safe:
@@ -27,25 +46,26 @@ Keep the response client-safe:
 ```ts
 return {
   user: {
-    id: user.id,
-    email: user.email ?? null,
-    displayName: user.displayName ?? null,
+    id: snapshot.user.id,
+    email: snapshot.user.email ?? null,
+    displayName: snapshot.user.displayName ?? null,
   },
-  identities: identities.map((identity) => ({
+  identities: snapshot.identities.map((identity) => ({
     id: identity.id,
     provider: identity.provider,
     status: identity.status,
     email: identity.email ?? null,
     phone: identity.phone ?? null,
+    trustLevel: identity.trustLevel ?? null,
   })),
-  credentials: credentials.map((credential) => ({
+  credentials: snapshot.credentials.map((credential) => ({
     id: credential.id,
     type: credential.type,
     subject: credential.subject,
     createdAt: credential.createdAt.toISOString(),
     updatedAt: credential.updatedAt.toISOString(),
   })),
-  sessions: sessions.map((session) => ({
+  sessions: snapshot.sessions.map((session) => ({
     id: session.id,
     status: session.status,
     createdAt: session.createdAt.toISOString(),
@@ -98,6 +118,7 @@ UniAuth now exposes:
 
 ```ts
 const verification = await authService.getVerification(verificationId)
+const verificationStatus = toVerificationStatusView(verification)
 ```
 
 Use it for:
@@ -111,11 +132,11 @@ When exposing this outward, serialize only safe fields:
 
 ```ts
 return {
-  id: verification.id,
-  purpose: verification.purpose,
-  status: verification.status,
-  expiresAt: verification.expiresAt.toISOString(),
-  consumedAt: verification.consumedAt?.toISOString() ?? null,
+  id: verificationStatus.id,
+  purpose: verificationStatus.purpose,
+  status: verificationStatus.status,
+  expiresAt: verificationStatus.expiresAt.toISOString(),
+  consumedAt: verificationStatus.consumedAt?.toISOString() ?? null,
 }
 ```
 

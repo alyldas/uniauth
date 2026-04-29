@@ -6,9 +6,9 @@ import {
   SessionStatus,
   UniAuthErrorCode,
   VerificationPurpose,
-  type Credential,
   createDefaultAuthPolicy,
   isUniAuthError,
+  toAccountSecuritySnapshot,
   type Session,
   type User,
   type UniAuthErrorCode as UniAuthErrorCodeType,
@@ -28,6 +28,7 @@ import {
   readBearerToken,
   readCookieHeaderToken,
 } from '../shared/http.js'
+import { serializeAccountSecuritySnapshot } from '../shared/views.js'
 
 interface ExpressAuthExample {
   readonly app: Express
@@ -179,30 +180,14 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
           authService.getUserCredentials(auth.user.id),
           authService.getUserSessions(auth.user.id),
         ])
-
-        response.status(200).json({
-          user: {
-            id: auth.user.id,
-            email: auth.user.email ?? null,
-            displayName: auth.user.displayName ?? null,
-          },
-          identities: identities.map((identity) => ({
-            id: identity.id,
-            provider: identity.provider,
-            status: identity.status,
-            email: identity.email ?? null,
-            phone: identity.phone ?? null,
-          })),
-          credentials: credentials.map((credential) => serializeCredentialForClient(credential)),
-          sessions: sessions.map((session) => ({
-            id: session.id,
-            status: session.status,
-            createdAt: session.createdAt.toISOString(),
-            expiresAt: session.expiresAt.toISOString(),
-            lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
-            revokedAt: session.revokedAt?.toISOString() ?? null,
-          })),
+        const snapshot = toAccountSecuritySnapshot({
+          user: auth.user,
+          identities,
+          credentials,
+          sessions,
         })
+
+        response.status(200).json(serializeAccountSecuritySnapshot(snapshot))
       } catch (error) {
         next(error)
       }
@@ -316,16 +301,6 @@ function writeSessionCookie(response: Response, sessionToken: string): void {
     secure: true,
     path: '/',
   })
-}
-
-function serializeCredentialForClient(credential: Credential) {
-  return {
-    id: credential.id,
-    type: credential.type,
-    subject: credential.subject,
-    createdAt: credential.createdAt.toISOString(),
-    updatedAt: credential.updatedAt.toISOString(),
-  }
 }
 
 function createExpressSessionMiddleware(

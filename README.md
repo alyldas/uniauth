@@ -35,6 +35,7 @@ license, subscription, private contract, or other written permission.
 - Exposes a narrow `getUser(userId)` helper for loading the active local user snapshot by id.
 - Exposes read-side helpers for credential and verification lookups through the public service
   layer.
+- Exposes safe projection helpers for account-security and verification-status read-side flows.
 - Supports bulk local session revocation for sign-out-all-devices style account-security flows.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
 - Runs transaction-aware account merge over identities, credentials, sessions, and audit decisions
@@ -162,6 +163,8 @@ import {
   createHmacSecretHasher,
   createScryptSecretHasher,
   isUniAuthError,
+  toAccountSecuritySnapshot,
+  toVerificationStatusView,
   type AuthNormalizer,
   type AuthProvider,
   type AuthService,
@@ -270,6 +273,20 @@ const result = await service.signIn({
     },
   },
 })
+```
+
+For account-security or verification-status pages, prefer the safe projection helpers instead of
+serializing raw entities directly:
+
+```ts
+const snapshot = toAccountSecuritySnapshot({
+  user,
+  identities,
+  credentials,
+  sessions,
+})
+
+const verificationStatus = toVerificationStatusView(verification)
 ```
 
 Messenger Mini App providers are SDK-free `AuthProvider` adapters for signed Telegram and MAX

@@ -38,6 +38,8 @@ identities, and email/phone are optional identity attributes.
 - `getUserSessions`
 - `createVerification`
 - `getVerification`
+- `toAccountSecuritySnapshot`
+- `toVerificationStatusView`
 - `consumeVerification`
 
 It delegates authorization decisions to `AuthPolicy` and storage/provider/sender work to ports.
