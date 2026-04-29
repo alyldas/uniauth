@@ -13,7 +13,7 @@ import {
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
 import { generateSecret } from '../utils/secrets.js'
-import { addSeconds } from '../utils/time.js'
+import { addSeconds, assertValidDate } from '../utils/time.js'
 
 type CreateVerificationRecordInput = CreateVerificationInput & {
   readonly now: Date
@@ -133,10 +133,4 @@ function resolveVerificationExpiresAt(
   }
 
   return addSeconds(input.now, ttlSeconds)
-}
-
-function assertValidDate(date: Date, message: string): void {
-  if (Number.isNaN(date.getTime())) {
-    throw invalidInput(message)
-  }
 }

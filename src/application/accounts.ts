@@ -18,6 +18,7 @@ import type {
   LinkResult,
   MergeAccountsInput,
   MergeResult,
+  Session,
   SessionId,
   UnlinkInput,
   UserId,
@@ -33,6 +34,21 @@ const PolicyDenialReason = {
   MergeDenied: 'merge-denied',
   MergeCredentialConflict: 'merge-credential-conflict',
 } as const
+
+interface MergeDeniedAudit {
+  readonly userId: UserId
+  readonly metadata: Record<string, unknown>
+}
+
+interface MergeState {
+  readonly sourceUser: User
+  readonly targetUser: User
+  readonly sourceIdentities: readonly AuthIdentity[]
+  readonly targetIdentities: readonly AuthIdentity[]
+  readonly sourceCredentials: readonly Credential[]
+  readonly targetCredentials: readonly Credential[]
+  readonly sourceSessions: readonly Session[]
+}
 
 export async function link(runtime: AuthServiceRuntime, input: LinkInput): Promise<LinkResult> {
   return runtime.transaction.run(async () => {
@@ -96,9 +112,7 @@ export async function unlink(runtime: AuthServiceRuntime, input: UnlinkInput): P
       throw new UniAuthError(UniAuthErrorCode.IdentityNotFound, 'Identity was not found.')
     }
 
-    const activeIdentities = (await runtime.repos.identityRepo.listByUserId(user.id)).filter(
-      isActiveIdentity,
-    )
+    const activeIdentities = await listActiveIdentitiesForUser(runtime, user.id)
     const allowed = await runtime.policy.canUnlinkIdentity({
       user,
       identity,
@@ -138,152 +152,85 @@ export async function mergeAccounts(
   input: MergeAccountsInput,
 ): Promise<MergeResult> {
   const now = input.now ?? runtime.clock.now()
-  let deniedAudit:
-    | {
-        readonly userId: UserId
-        readonly metadata: Record<string, unknown>
-      }
-    | undefined
+  let deniedAudit: MergeDeniedAudit | undefined
 
   try {
     return await runtime.transaction.run(async () => {
-      const sourceUser = await runtime.repos.userRepo.findById(input.sourceUserId)
-      const targetUser = await getActiveUser(runtime, input.targetUserId)
-
-      if (!sourceUser) {
-        throw new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
-      }
-
-      if (sourceUser.id === targetUser.id) {
-        throw invalidInput('Source and target users must be different.')
-      }
-
-      await ensureReAuth(
+      const state = await loadMergeState(runtime, input, now)
+      const alreadyMergedResult = await resolveAlreadyMergedResult(
         runtime,
-        AuthPolicyAction.MergeAccounts,
-        targetUser.id,
-        input.reAuthenticatedAt,
+        state,
         now,
+        input.metadata,
       )
 
-      const sourceIdentities = (
-        await runtime.repos.identityRepo.listByUserId(sourceUser.id)
-      ).filter(isActiveIdentity)
-      const targetIdentities = (
-        await runtime.repos.identityRepo.listByUserId(targetUser.id)
-      ).filter(isActiveIdentity)
-      const sourceCredentials = await runtime.repos.credentialRepo.listByUserId(sourceUser.id)
-      const targetCredentials = await runtime.repos.credentialRepo.listByUserId(targetUser.id)
-      const sourceSessions = await runtime.repos.sessionRepo.listByUserId(sourceUser.id)
-
-      if (sourceUser.disabledAt) {
-        if (!isAlreadyMergedSource(sourceIdentities, sourceCredentials, sourceSessions)) {
-          throw new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
-        }
-
-        const result = createMergeResult({
-          sourceUser,
-          targetUser,
-        })
-
-        await audit(runtime, AuditEventType.AccountsMerged, now, {
-          userId: targetUser.id,
-          metadata: buildMergeAuditMetadata({
-            decision: 'already-merged',
-            sourceUserId: sourceUser.id,
-            result,
-            requestMetadata: input.metadata,
-          }),
-        })
-
-        return result
+      if (alreadyMergedResult) {
+        return alreadyMergedResult
       }
 
-      const allowed = await runtime.policy.canMergeUsers({
-        sourceUser,
-        targetUser,
-        sourceIdentityCount: sourceIdentities.length,
-        sourceIdentities,
-        targetIdentities,
+      const mergeAllowed = await runtime.policy.canMergeUsers({
+        sourceUser: state.sourceUser,
+        targetUser: state.targetUser,
+        sourceIdentityCount: state.sourceIdentities.length,
+        sourceIdentities: state.sourceIdentities,
+        targetIdentities: state.targetIdentities,
       })
 
-      if (!allowed) {
-        deniedAudit = {
-          userId: targetUser.id,
-          metadata: { reason: PolicyDenialReason.MergeDenied, sourceUserId: sourceUser.id },
-        }
+      if (!mergeAllowed) {
+        deniedAudit = createMergeDeniedAudit({
+          reason: PolicyDenialReason.MergeDenied,
+          targetUserId: state.targetUser.id,
+          sourceUserId: state.sourceUser.id,
+        })
         throw new UniAuthError(UniAuthErrorCode.PolicyDenied, 'Auth policy denied this action.')
       }
 
       const conflictingCredentialTypes = findCredentialConflictTypes(
-        sourceCredentials,
-        targetCredentials,
+        state.sourceCredentials,
+        state.targetCredentials,
       )
 
       if (conflictingCredentialTypes.length > 0) {
-        deniedAudit = {
-          userId: targetUser.id,
-          metadata: {
-            reason: PolicyDenialReason.MergeCredentialConflict,
-            sourceUserId: sourceUser.id,
-            credentialTypes: conflictingCredentialTypes,
-            ...optionalProp('requestMetadata', input.metadata),
-          },
-        }
+        deniedAudit = createMergeDeniedAudit({
+          reason: PolicyDenialReason.MergeCredentialConflict,
+          targetUserId: state.targetUser.id,
+          sourceUserId: state.sourceUser.id,
+          requestMetadata: input.metadata,
+          metadata: { credentialTypes: conflictingCredentialTypes },
+        })
         throw new UniAuthError(
           UniAuthErrorCode.CredentialAlreadyExists,
           'Credential already exists.',
         )
       }
 
-      const movedIdentityIds: IdentityId[] = []
-      const movedCredentialIds: CredentialId[] = []
-      const revokedSessionIds: SessionId[] = []
-
-      for (const identity of sourceIdentities) {
-        await runtime.repos.identityRepo.update(identity.id, {
-          userId: targetUser.id,
-          updatedAt: now,
-        })
-        movedIdentityIds.push(identity.id)
-      }
-
-      for (const credential of sourceCredentials) {
-        await runtime.repos.credentialRepo.update(credential.id, {
-          userId: targetUser.id,
-          updatedAt: now,
-        })
-        movedCredentialIds.push(credential.id)
-      }
-
-      const disabledSourceUser = await runtime.repos.userRepo.update(sourceUser.id, {
-        disabledAt: now,
-        updatedAt: now,
-      })
-
-      for (const session of sourceSessions) {
-        if (session.status === SessionStatus.Active) {
-          await runtime.repos.sessionRepo.update(session.id, {
-            status: SessionStatus.Revoked,
-            revokedAt: now,
-          })
-          revokedSessionIds.push(session.id)
-        }
-      }
-
+      const movedIdentityIds = await moveIdentitiesToTarget(
+        runtime,
+        state.sourceIdentities,
+        state.targetUser.id,
+        now,
+      )
+      const movedCredentialIds = await moveCredentialsToTarget(
+        runtime,
+        state.sourceCredentials,
+        state.targetUser.id,
+        now,
+      )
+      const disabledSourceUser = await disableSourceUser(runtime, state.sourceUser.id, now)
+      const revokedSessionIds = await revokeActiveSessions(runtime, state.sourceSessions, now)
       const result = createMergeResult({
         sourceUser: disabledSourceUser,
-        targetUser,
+        targetUser: state.targetUser,
         movedIdentityIds,
         movedCredentialIds,
         revokedSessionIds,
       })
 
       await audit(runtime, AuditEventType.AccountsMerged, now, {
-        userId: targetUser.id,
+        userId: state.targetUser.id,
         metadata: buildMergeAuditMetadata({
           decision: 'merged',
-          sourceUserId: sourceUser.id,
+          sourceUserId: state.sourceUser.id,
           result,
           requestMetadata: input.metadata,
         }),
@@ -306,6 +253,182 @@ export async function getUserIdentities(
 ): Promise<readonly AuthIdentity[]> {
   await getActiveUser(runtime, userId)
   return runtime.repos.identityRepo.listByUserId(userId)
+}
+
+async function loadMergeState(
+  runtime: AuthServiceRuntime,
+  input: MergeAccountsInput,
+  now: Date,
+): Promise<MergeState> {
+  const sourceUser = await runtime.repos.userRepo.findById(input.sourceUserId)
+  const targetUser = await getActiveUser(runtime, input.targetUserId)
+
+  if (!sourceUser) {
+    throw new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
+  }
+
+  if (sourceUser.id === targetUser.id) {
+    throw invalidInput('Source and target users must be different.')
+  }
+
+  await ensureReAuth(
+    runtime,
+    AuthPolicyAction.MergeAccounts,
+    targetUser.id,
+    input.reAuthenticatedAt,
+    now,
+  )
+
+  const [sourceIdentities, targetIdentities, sourceCredentials, targetCredentials, sourceSessions] =
+    await Promise.all([
+      listActiveIdentitiesForUser(runtime, sourceUser.id),
+      listActiveIdentitiesForUser(runtime, targetUser.id),
+      runtime.repos.credentialRepo.listByUserId(sourceUser.id),
+      runtime.repos.credentialRepo.listByUserId(targetUser.id),
+      runtime.repos.sessionRepo.listByUserId(sourceUser.id),
+    ])
+
+  return {
+    sourceUser,
+    targetUser,
+    sourceIdentities,
+    targetIdentities,
+    sourceCredentials,
+    targetCredentials,
+    sourceSessions,
+  }
+}
+
+async function resolveAlreadyMergedResult(
+  runtime: AuthServiceRuntime,
+  state: MergeState,
+  now: Date,
+  requestMetadata: Record<string, unknown> | undefined,
+): Promise<MergeResult | undefined> {
+  if (!state.sourceUser.disabledAt) {
+    return undefined
+  }
+
+  if (
+    !isAlreadyMergedSource(state.sourceIdentities, state.sourceCredentials, state.sourceSessions)
+  ) {
+    throw new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
+  }
+
+  const result = createMergeResult({
+    sourceUser: state.sourceUser,
+    targetUser: state.targetUser,
+  })
+
+  await audit(runtime, AuditEventType.AccountsMerged, now, {
+    userId: state.targetUser.id,
+    metadata: buildMergeAuditMetadata({
+      decision: 'already-merged',
+      sourceUserId: state.sourceUser.id,
+      result,
+      requestMetadata,
+    }),
+  })
+
+  return result
+}
+
+async function moveIdentitiesToTarget(
+  runtime: AuthServiceRuntime,
+  identities: readonly AuthIdentity[],
+  targetUserId: UserId,
+  now: Date,
+): Promise<readonly IdentityId[]> {
+  const movedIdentityIds: IdentityId[] = []
+
+  for (const identity of identities) {
+    await runtime.repos.identityRepo.update(identity.id, {
+      userId: targetUserId,
+      updatedAt: now,
+    })
+    movedIdentityIds.push(identity.id)
+  }
+
+  return movedIdentityIds
+}
+
+async function moveCredentialsToTarget(
+  runtime: AuthServiceRuntime,
+  credentials: readonly Credential[],
+  targetUserId: UserId,
+  now: Date,
+): Promise<readonly CredentialId[]> {
+  const movedCredentialIds: CredentialId[] = []
+
+  for (const credential of credentials) {
+    await runtime.repos.credentialRepo.update(credential.id, {
+      userId: targetUserId,
+      updatedAt: now,
+    })
+    movedCredentialIds.push(credential.id)
+  }
+
+  return movedCredentialIds
+}
+
+async function disableSourceUser(
+  runtime: AuthServiceRuntime,
+  sourceUserId: UserId,
+  now: Date,
+): Promise<User> {
+  return runtime.repos.userRepo.update(sourceUserId, {
+    disabledAt: now,
+    updatedAt: now,
+  })
+}
+
+async function revokeActiveSessions(
+  runtime: AuthServiceRuntime,
+  sessions: readonly Session[],
+  now: Date,
+): Promise<readonly SessionId[]> {
+  const revokedSessionIds: SessionId[] = []
+
+  for (const session of sessions) {
+    if (session.status !== SessionStatus.Active) {
+      continue
+    }
+
+    await runtime.repos.sessionRepo.update(session.id, {
+      status: SessionStatus.Revoked,
+      revokedAt: now,
+    })
+    revokedSessionIds.push(session.id)
+  }
+
+  return revokedSessionIds
+}
+
+async function listActiveIdentitiesForUser(
+  runtime: AuthServiceRuntime,
+  userId: UserId,
+): Promise<readonly AuthIdentity[]> {
+  return (await runtime.repos.identityRepo.listByUserId(userId)).filter(isActiveIdentity)
+}
+
+function createMergeDeniedAudit(input: {
+  readonly reason:
+    | typeof PolicyDenialReason.MergeDenied
+    | typeof PolicyDenialReason.MergeCredentialConflict
+  readonly targetUserId: UserId
+  readonly sourceUserId: UserId
+  readonly metadata?: Record<string, unknown> | undefined
+  readonly requestMetadata?: Record<string, unknown> | undefined
+}): MergeDeniedAudit {
+  return {
+    userId: input.targetUserId,
+    metadata: {
+      ...input.metadata,
+      reason: input.reason,
+      sourceUserId: input.sourceUserId,
+      ...optionalProp('requestMetadata', input.requestMetadata),
+    },
+  }
 }
 
 function findCredentialConflictTypes(

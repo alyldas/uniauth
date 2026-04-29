@@ -12,7 +12,7 @@ import type {
 import { AuditEventType, SessionStatus } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
 import { generateSecret, hashSecret } from '../utils/secrets.js'
-import { addSeconds } from '../utils/time.js'
+import { addSeconds, assertValidDate } from '../utils/time.js'
 
 export async function createSession(
   runtime: AuthServiceRuntime,
@@ -157,10 +157,4 @@ async function requireActiveSession(
   }
 
   return session
-}
-
-function assertValidDate(date: Date, message: string): void {
-  if (Number.isNaN(date.getTime())) {
-    throw invalidInput(message)
-  }
 }
