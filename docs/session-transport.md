@@ -60,6 +60,153 @@ await authService.touchSession({
 Keep this write policy application-owned. Touch on meaningful authenticated requests, not on every
 asset fetch, health check, or background poll.
 
+### Express Middleware Recipe
+
+```ts
+import type { NextFunction, Request, Response } from 'express'
+import { UniAuthErrorCode, isUniAuthError, type AuthService, type Session } from '@alyldas/uniauth'
+
+interface ExpressRequestAuth {
+  readonly session: Session
+  readonly userId: Session['userId']
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      auth?: ExpressRequestAuth
+    }
+  }
+}
+
+export function createExpressSessionMiddleware(authService: AuthService) {
+  return async (request: Request, response: Response, next: NextFunction): Promise<void> => {
+    const sessionToken =
+      readBearerToken(request.headers.authorization) ?? readCookieToken(request.headers.cookie)
+
+    if (!sessionToken) {
+      next()
+      return
+    }
+
+    try {
+      const resolved = await authService.resolveSession({ sessionToken })
+      const session = await authService.touchSession({ sessionId: resolved.id })
+
+      request.auth = {
+        session,
+        userId: session.userId,
+      }
+      next()
+    } catch (error) {
+      if (
+        isUniAuthError(error) &&
+        (error.code === UniAuthErrorCode.InvalidInput ||
+          error.code === UniAuthErrorCode.SessionNotFound)
+      ) {
+        response.status(401).json({ error: 'Authentication required.' })
+        return
+      }
+
+      next(error)
+    }
+  }
+}
+
+function readBearerToken(header: string | undefined): string | undefined {
+  if (!header) {
+    return undefined
+  }
+
+  const [scheme, value] = header.split(/\s+/, 2)
+  return scheme?.toLowerCase() === 'bearer' && value?.trim() ? value.trim() : undefined
+}
+
+function readCookieToken(header: string | undefined): string | undefined {
+  if (!header) {
+    return undefined
+  }
+
+  for (const part of header.split(';')) {
+    const [name, ...rest] = part.split('=')
+
+    if (name.trim() !== 'session') {
+      continue
+    }
+
+    const value = rest.join('=').trim()
+    return value ? decodeURIComponent(value) : undefined
+  }
+
+  return undefined
+}
+```
+
+Attach the middleware only where browser/API auth context is needed, or pair it with a small
+`requireSession` guard for protected routes. If activity writes are too expensive for every request,
+skip `touchSession(...)` here and call it only on the authenticated routes that matter.
+
+### Fastify preHandler Recipe
+
+```ts
+import type { FastifyReply, FastifyRequest } from 'fastify'
+import { UniAuthErrorCode, isUniAuthError, type AuthService, type Session } from '@alyldas/uniauth'
+
+interface FastifyRequestAuth {
+  readonly session: Session
+  readonly userId: Session['userId']
+}
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    auth?: FastifyRequestAuth
+  }
+}
+
+export function createFastifySessionPreHandler(authService: AuthService) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    const sessionToken =
+      readBearerToken(request.headers.authorization) ?? request.cookies.session?.trim()
+
+    if (!sessionToken) {
+      return
+    }
+
+    try {
+      const resolved = await authService.resolveSession({ sessionToken })
+      request.auth = {
+        session: resolved,
+        userId: resolved.userId,
+      }
+    } catch (error) {
+      if (
+        isUniAuthError(error) &&
+        (error.code === UniAuthErrorCode.InvalidInput ||
+          error.code === UniAuthErrorCode.SessionNotFound)
+      ) {
+        await reply.status(401).send({ error: 'Authentication required.' })
+        return
+      }
+
+      throw error
+    }
+  }
+}
+
+function readBearerToken(header: string | undefined): string | undefined {
+  if (!header) {
+    return undefined
+  }
+
+  const [scheme, value] = header.split(/\s+/, 2)
+  return scheme?.toLowerCase() === 'bearer' && value?.trim() ? value.trim() : undefined
+}
+```
+
+Fastify users often keep `touchSession(...)` in a second protected-route hook or in the route
+handler itself, so lightweight public requests can resolve auth context without forcing an activity
+write every time.
+
 What stays application-owned:
 
 - CSRF protection for browser POST requests;
@@ -138,6 +285,8 @@ Treat logout as two coordinated steps:
 See also:
 
 - [Backend integration recipes](backend-recipes.md)
+- [Express auth module example](../examples/express-auth/index.ts)
+- [Fastify auth module example](../examples/fastify-auth/index.ts)
 - [Local auth flows](local-auth.md)
 - [Security model](security.md)
 - [Threat model](threat-model.md)
