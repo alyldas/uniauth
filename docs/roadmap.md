@@ -206,8 +206,6 @@ Tracking issues: #122.
 
 Tracking issues: #127.
 
-## Next Release
-
 ### v0.24 - Account Security Read Side
 
 - Public `getUserCredentials(userId)` and `getVerification(verificationId)` APIs.
@@ -215,6 +213,12 @@ Tracking issues: #127.
   service layer.
 
 Tracking issues: #131, #132, #133.
+
+## Next Release
+
+### v0.25 - Backlog To Be Defined
+
+- Next stabilizing or integrator-facing scope after the account-security read-side release.
 
 ## Versioning
 
