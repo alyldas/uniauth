@@ -285,6 +285,43 @@ describe('Postgres reference persistence', () => {
     ])
   })
 
+  it('bulk-revokes active user sessions on Postgres while keeping the excluded session', async () => {
+    const { service } = await createPostgresTestKit()
+    const first = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-bulk-revoke',
+        email: 'pg-bulk-revoke@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const second = await service.createSession({
+      userId: first.user.id,
+      now: addSeconds(now, 10),
+    })
+    const third = await service.createSession({
+      userId: first.user.id,
+      now: addSeconds(now, 20),
+    })
+
+    const result = await service.revokeUserSessions({
+      userId: first.user.id,
+      exceptSessionId: first.session.id,
+      now: addSeconds(now, 30),
+    })
+
+    expect(result).toEqual({
+      userId: first.user.id,
+      revokedSessionIds: [second.session.id, third.session.id],
+    })
+    expect(await service.getUserSessions(first.user.id)).toMatchObject([
+      { id: first.session.id, status: SessionStatus.Active },
+      { id: second.session.id, status: SessionStatus.Revoked },
+      { id: third.session.id, status: SessionStatus.Revoked },
+    ])
+  })
+
   it('applies the schema and supports repository round-trips', async () => {
     const { pool, store } = await createPostgresTestKit()
     const idGenerator = createSequentialIdGenerator('pg-repo')

@@ -211,6 +211,17 @@ describe('DefaultAuthService edge cases', () => {
     })
     expect(
       await defaultService
+        .revokeUserSessions({
+          userId: first.user.id,
+          exceptSessionId: asSessionId('missing-session'),
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    expect(
+      await defaultService
         .mergeAccounts({
           sourceUserId: asUserId('missing-source'),
           targetUserId: first.user.id,

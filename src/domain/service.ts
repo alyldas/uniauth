@@ -12,6 +12,8 @@ import type {
   LinkResult,
   MergeAccountsInput,
   MergeResult,
+  RevokeUserSessionsInput,
+  RevokeUserSessionsResult,
   ResolveSessionInput,
   SignInInput,
   StartOtpChallengeInput,
@@ -72,6 +74,7 @@ export interface AuthService {
   unlink(input: UnlinkInput): Promise<void>
   mergeAccounts(input: MergeAccountsInput): Promise<MergeResult>
   revokeSession(sessionId: SessionId): Promise<void>
+  revokeUserSessions(input: RevokeUserSessionsInput): Promise<RevokeUserSessionsResult>
   resolveSession(input: ResolveSessionInput): Promise<Session>
   touchSession(input: TouchSessionInput): Promise<Session>
   getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]>

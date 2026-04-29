@@ -4,6 +4,8 @@ import { audit, getActiveUser } from './support.js'
 import type {
   CreateSessionInput,
   CreateSessionResult,
+  RevokeUserSessionsInput,
+  RevokeUserSessionsResult,
   ResolveSessionInput,
   Session,
   SessionId,
@@ -32,20 +34,42 @@ export async function revokeSession(
 ): Promise<void> {
   await runtime.transaction.run(async () => {
     const now = runtime.clock.now()
-    const session = await runtime.repos.sessionRepo.findById(sessionId)
+    const session = await requireStoredSession(runtime, sessionId)
+    await revokeSessionRecord(runtime, session, now)
+  })
+}
 
-    if (!session) {
+export async function revokeUserSessions(
+  runtime: AuthServiceRuntime,
+  input: RevokeUserSessionsInput,
+): Promise<RevokeUserSessionsResult> {
+  return runtime.transaction.run(async () => {
+    const now = input.now ?? runtime.clock.now()
+    const user = await getActiveUser(runtime, input.userId)
+    const sessions = await runtime.repos.sessionRepo.listByUserId(user.id)
+
+    if (
+      input.exceptSessionId &&
+      !sessions.some((session) => session.id === input.exceptSessionId)
+    ) {
       throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
     }
 
-    await runtime.repos.sessionRepo.update(session.id, {
-      status: SessionStatus.Revoked,
-      revokedAt: now,
-    })
-    await audit(runtime, AuditEventType.SessionRevoked, now, {
-      userId: session.userId,
-      sessionId: session.id,
-    })
+    const revokedSessionIds: SessionId[] = []
+
+    for (const session of sessions) {
+      if (session.id === input.exceptSessionId || session.status !== SessionStatus.Active) {
+        continue
+      }
+
+      await revokeSessionRecord(runtime, session, now)
+      revokedSessionIds.push(session.id)
+    }
+
+    return {
+      userId: user.id,
+      revokedSessionIds,
+    }
   })
 }
 
@@ -166,4 +190,32 @@ async function requireActiveSession(
   }
 
   return session
+}
+
+async function requireStoredSession(
+  runtime: AuthServiceRuntime,
+  sessionId: SessionId,
+): Promise<Session> {
+  const session = await runtime.repos.sessionRepo.findById(sessionId)
+
+  if (!session) {
+    throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
+  }
+
+  return session
+}
+
+async function revokeSessionRecord(
+  runtime: AuthServiceRuntime,
+  session: Session,
+  now: Date,
+): Promise<void> {
+  await runtime.repos.sessionRepo.update(session.id, {
+    status: SessionStatus.Revoked,
+    revokedAt: now,
+  })
+  await audit(runtime, AuditEventType.SessionRevoked, now, {
+    userId: session.userId,
+    sessionId: session.id,
+  })
 }

@@ -30,6 +30,7 @@ identities, and email/phone are optional identity attributes.
 - `mergeAccounts`
 - `createSession`
 - `revokeSession`
+- `revokeUserSessions`
 - `resolveSession`
 - `touchSession`
 - `getUserSessions`
