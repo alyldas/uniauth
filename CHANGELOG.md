@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/alyldas/uniauth/compare/v0.16.0...v0.17.0) (2026-04-29)
+
+
+### Features
+
+* add session token resolution API ([8b7aa03](https://github.com/alyldas/uniauth/commit/8b7aa034d21fd8bf0f61c24ae7792abd1b34301e))
+
 ## [0.16.0](https://github.com/alyldas/uniauth/compare/v0.15.0...v0.16.0) (2026-04-28)
 
 
