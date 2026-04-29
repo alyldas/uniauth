@@ -7,9 +7,9 @@ import {
   SessionStatus,
   UniAuthErrorCode,
   VerificationPurpose,
-  type Credential,
   createDefaultAuthPolicy,
   isUniAuthError,
+  toAccountSecuritySnapshot,
   type Session,
   type User,
   type UniAuthErrorCode as UniAuthErrorCodeType,
@@ -25,6 +25,7 @@ import {
   readBearerToken,
   readCookieValue,
 } from '../shared/http.js'
+import { serializeAccountSecuritySnapshot } from '../shared/views.js'
 
 interface FastifyAuthExample {
   readonly app: FastifyInstance
@@ -176,30 +177,14 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
         authService.getUserCredentials(auth.user.id),
         authService.getUserSessions(auth.user.id),
       ])
-
-      return reply.status(200).send({
-        user: {
-          id: auth.user.id,
-          email: auth.user.email ?? null,
-          displayName: auth.user.displayName ?? null,
-        },
-        identities: identities.map((identity) => ({
-          id: identity.id,
-          provider: identity.provider,
-          status: identity.status,
-          email: identity.email ?? null,
-          phone: identity.phone ?? null,
-        })),
-        credentials: credentials.map((credential) => serializeCredentialForClient(credential)),
-        sessions: sessions.map((session) => ({
-          id: session.id,
-          status: session.status,
-          createdAt: session.createdAt.toISOString(),
-          expiresAt: session.expiresAt.toISOString(),
-          lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
-          revokedAt: session.revokedAt?.toISOString() ?? null,
-        })),
+      const snapshot = toAccountSecuritySnapshot({
+        user: auth.user,
+        identities,
+        credentials,
+        sessions,
       })
+
+      return reply.status(200).send(serializeAccountSecuritySnapshot(snapshot))
     },
   )
 
@@ -328,16 +313,6 @@ function isFastifyPublicRequestError(error: unknown): boolean {
   const candidate = error as { statusCode?: unknown; validation?: unknown }
 
   return candidate.statusCode === 400 || candidate.validation !== undefined
-}
-
-function serializeCredentialForClient(credential: Credential) {
-  return {
-    id: credential.id,
-    type: credential.type,
-    subject: credential.subject,
-    createdAt: credential.createdAt.toISOString(),
-    updatedAt: credential.updatedAt.toISOString(),
-  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

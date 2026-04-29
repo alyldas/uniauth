@@ -123,7 +123,8 @@ Express ownership notes:
 - Keep route-neutral errors neutral at the HTTP layer too; do not translate invalid credentials into
   account existence hints.
 - For account-security screens that list sign-in methods or devices, prefer the dedicated
-  [Account security recipes](account-security.md) instead of reading adapter internals.
+  [Account security recipes](account-security.md) and the built-in safe projection helpers instead
+  of reading adapter internals.
 
 ## Fastify
 
@@ -196,7 +197,8 @@ Fastify ownership notes:
 - For a fuller copyable recipe, including token extraction helpers and failure mapping, see
   [Session transport recipes](session-transport.md).
 - For sign-in-method and device-management screens, compose the public read-side methods described
-  in [Account security recipes](account-security.md).
+  in [Account security recipes](account-security.md) and project outward data through the safe
+  helper layer.
 
 ## Nest
 

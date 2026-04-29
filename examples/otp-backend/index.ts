@@ -3,11 +3,12 @@ import {
   DefaultAuthService,
   OtpChannel,
   VerificationPurpose,
+  toVerificationStatusView,
   type EmailSender,
-  type Verification,
   type VerificationId,
 } from '@alyldas/uniauth'
 import { InMemoryAuthStore, InMemoryRateLimiter } from '@alyldas/uniauth/testing'
+import { serializeVerificationStatusView } from '../shared/views.js'
 
 interface JsonRequest<TBody> {
   readonly body: TBody
@@ -114,26 +115,14 @@ async function postOtpFinish(
   }
 }
 
-async function getVerificationStatus(verificationId: VerificationId): Promise<
-  JsonResponse<{
-    verificationId: string
-    purpose: Verification['purpose']
-    status: Verification['status']
-    expiresAt: string
-    consumedAt: string | null
-  }>
-> {
+async function getVerificationStatus(
+  verificationId: VerificationId,
+): Promise<JsonResponse<ReturnType<typeof serializeVerificationStatusView>>> {
   const verification = await authService.getVerification(verificationId)
 
   return {
     status: 200,
-    body: {
-      verificationId: verification.id,
-      purpose: verification.purpose,
-      status: verification.status,
-      expiresAt: verification.expiresAt.toISOString(),
-      consumedAt: verification.consumedAt?.toISOString() ?? null,
-    },
+    body: serializeVerificationStatusView(toVerificationStatusView(verification)),
   }
 }
 

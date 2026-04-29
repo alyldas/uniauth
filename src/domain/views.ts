@@ -1,0 +1,133 @@
+import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
+import type { ProviderTrustLevel } from './kinds.js'
+
+export interface AccountSecurityUserView {
+  readonly id: User['id']
+  readonly displayName?: string
+  readonly email?: string
+  readonly phone?: string
+  readonly createdAt: Date
+  readonly updatedAt: Date
+  readonly disabledAt?: Date
+}
+
+export interface AccountSecurityIdentityView {
+  readonly id: AuthIdentity['id']
+  readonly provider: AuthIdentity['provider']
+  readonly status: AuthIdentity['status']
+  readonly email?: string
+  readonly emailVerified?: boolean
+  readonly phone?: string
+  readonly phoneVerified?: boolean
+  readonly trustLevel?: ProviderTrustLevel
+  readonly createdAt: Date
+  readonly updatedAt: Date
+  readonly disabledAt?: Date
+}
+
+export interface AccountSecurityCredentialView {
+  readonly id: Credential['id']
+  readonly type: Credential['type']
+  readonly subject: Credential['subject']
+  readonly createdAt: Date
+  readonly updatedAt: Date
+}
+
+export interface AccountSecuritySessionView {
+  readonly id: Session['id']
+  readonly status: Session['status']
+  readonly createdAt: Date
+  readonly expiresAt: Date
+  readonly revokedAt?: Date
+  readonly lastSeenAt?: Date
+}
+
+export interface AccountSecuritySnapshot {
+  readonly user: AccountSecurityUserView
+  readonly identities: readonly AccountSecurityIdentityView[]
+  readonly credentials: readonly AccountSecurityCredentialView[]
+  readonly sessions: readonly AccountSecuritySessionView[]
+}
+
+export interface VerificationStatusView {
+  readonly id: Verification['id']
+  readonly purpose: Verification['purpose']
+  readonly status: Verification['status']
+  readonly expiresAt: Date
+  readonly consumedAt?: Date
+}
+
+export function toAccountSecurityUserView(user: User): AccountSecurityUserView {
+  return {
+    id: user.id,
+    ...(user.displayName ? { displayName: user.displayName } : {}),
+    ...(user.email ? { email: user.email } : {}),
+    ...(user.phone ? { phone: user.phone } : {}),
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    ...(user.disabledAt ? { disabledAt: user.disabledAt } : {}),
+  }
+}
+
+export function toAccountSecurityIdentityView(identity: AuthIdentity): AccountSecurityIdentityView {
+  return {
+    id: identity.id,
+    provider: identity.provider,
+    status: identity.status,
+    ...(identity.email ? { email: identity.email } : {}),
+    ...(identity.emailVerified !== undefined ? { emailVerified: identity.emailVerified } : {}),
+    ...(identity.phone ? { phone: identity.phone } : {}),
+    ...(identity.phoneVerified !== undefined ? { phoneVerified: identity.phoneVerified } : {}),
+    ...(identity.trust?.level ? { trustLevel: identity.trust.level } : {}),
+    createdAt: identity.createdAt,
+    updatedAt: identity.updatedAt,
+    ...(identity.disabledAt ? { disabledAt: identity.disabledAt } : {}),
+  }
+}
+
+export function toAccountSecurityCredentialView(
+  credential: Credential,
+): AccountSecurityCredentialView {
+  return {
+    id: credential.id,
+    type: credential.type,
+    subject: credential.subject,
+    createdAt: credential.createdAt,
+    updatedAt: credential.updatedAt,
+  }
+}
+
+export function toAccountSecuritySessionView(session: Session): AccountSecuritySessionView {
+  return {
+    id: session.id,
+    status: session.status,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    ...(session.revokedAt ? { revokedAt: session.revokedAt } : {}),
+    ...(session.lastSeenAt ? { lastSeenAt: session.lastSeenAt } : {}),
+  }
+}
+
+export function toAccountSecuritySnapshot(input: {
+  readonly user: User
+  readonly identities: readonly AuthIdentity[]
+  readonly credentials: readonly Credential[]
+  readonly sessions: readonly Session[]
+}): AccountSecuritySnapshot {
+  return {
+    user: toAccountSecurityUserView(input.user),
+    identities: input.identities.map((identity) => toAccountSecurityIdentityView(identity)),
+    credentials: input.credentials.map((credential) => toAccountSecurityCredentialView(credential)),
+    sessions: input.sessions.map((session) => toAccountSecuritySessionView(session)),
+  }
+}
+
+export function toVerificationStatusView(verification: Verification): VerificationStatusView {
+  return {
+    id: verification.id,
+    purpose: verification.purpose,
+    status: verification.status,
+    expiresAt: verification.expiresAt,
+    ...(verification.consumedAt ? { consumedAt: verification.consumedAt } : {}),
+  }
+}
