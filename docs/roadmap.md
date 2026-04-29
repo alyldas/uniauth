@@ -183,8 +183,6 @@ Tracking issues: #106.
 
 Tracking issues: #105.
 
-## Next Release
-
 ### v0.21 - User Session Read Side
 
 - Public `getUserSessions(userId)` API for listing local sessions of an active user.
@@ -192,6 +190,12 @@ Tracking issues: #105.
   without reaching into storage adapters directly.
 
 Tracking issues: #118.
+
+## Next Release
+
+### v0.22 - Backlog To Be Defined
+
+- Next stabilizing or integrator-facing scope after the user session read-side release.
 
 ## Versioning
 
