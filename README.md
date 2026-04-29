@@ -392,7 +392,7 @@ console.log(magicResult.identity.provider === EMAIL_MAGIC_LINK_PROVIDER_ID)
 
 Password credentials use a dedicated `CredentialRepo` and a `PasswordHasher` port. Production apps
 should provide an adapter backed by their chosen password hashing runtime and parameters; the
-in-memory testing kit only ships a deterministic test hasher.
+in-memory testing kit only ships a low-cost `scrypt` test hasher.
 
 ```ts
 const passwordHasher: PasswordHasher = {

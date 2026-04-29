@@ -18,7 +18,7 @@ import {
   type Session,
   type Verification,
 } from '../src'
-import { InMemoryAuthStore } from '../src/testing'
+import { InMemoryAuthStore, InMemoryPasswordHasher } from '../src/testing'
 import { identity, now, user } from './helpers.js'
 
 describe('InMemoryAuthStore', () => {
@@ -90,12 +90,13 @@ describe('InMemoryAuthStore', () => {
       providerUserId: 'oauth-alice-2',
     })
 
+    const passwordHasher = new InMemoryPasswordHasher()
     const credential: Credential = {
       id: asCredentialId('credential-1'),
       userId: createdUser.id,
       type: CredentialType.Password,
       subject: 'alice@example.com',
-      passwordHash: hashSecret('password'),
+      passwordHash: await passwordHasher.hash('password'),
       createdAt: now,
       updatedAt: now,
     }
@@ -105,7 +106,7 @@ describe('InMemoryAuthStore', () => {
       userId: otherUser.id,
       type: CredentialType.Password,
       subject: 'second@example.com',
-      passwordHash: hashSecret('password'),
+      passwordHash: await passwordHasher.hash('password'),
       createdAt: now,
       updatedAt: now,
     }
@@ -114,7 +115,7 @@ describe('InMemoryAuthStore', () => {
       userId: createdUser.id,
       type: CredentialType.Password,
       subject: 'same-user@example.com',
-      passwordHash: hashSecret('password'),
+      passwordHash: await passwordHasher.hash('password'),
       createdAt: now,
       updatedAt: now,
     }
@@ -135,10 +136,11 @@ describe('InMemoryAuthStore', () => {
       code: UniAuthErrorCode.CredentialAlreadyExists,
     })
     expect(await store.credentialRepo.create(secondCredential)).toBe(secondCredential)
+    const updatedPasswordHash = await passwordHasher.hash('new')
     expect(
-      await store.credentialRepo.update(credential.id, { passwordHash: hashSecret('new') }),
+      await store.credentialRepo.update(credential.id, { passwordHash: updatedPasswordHash }),
     ).toMatchObject({
-      passwordHash: hashSecret('new'),
+      passwordHash: updatedPasswordHash,
     })
     expect(
       await store.credentialRepo
@@ -289,5 +291,17 @@ describe('InMemoryAuthStore', () => {
     expect(store.listAuditEvents().map((event) => event.id)).toEqual([
       asAuditEventId('audit-nested'),
     ])
+  })
+
+  it('hashes in-memory passwords with the test scrypt adapter', async () => {
+    const passwordHasher = new InMemoryPasswordHasher()
+    const passwordHash = await passwordHasher.hash('correct-password')
+
+    expect(passwordHash).toMatch(/^test-password:scrypt:/)
+    expect(await passwordHasher.verify('correct-password', passwordHash)).toBe(true)
+    expect(await passwordHasher.verify('wrong-password', passwordHash)).toBe(false)
+    expect(await passwordHasher.verify('correct-password', 'sha256:not-a-password-hash')).toBe(
+      false,
+    )
   })
 })

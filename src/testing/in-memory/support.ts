@@ -4,7 +4,17 @@ import type {
   RateLimitDecision,
   RateLimiter,
 } from '../../ports.js'
-import { hashSecret } from '../../utils/secrets.js'
+import { createScryptSecretHasher } from '../../utils/secrets.js'
+
+const TEST_PASSWORD_HASH_PREFIX = 'test-password:'
+const testPasswordScryptHasher = createScryptSecretHasher({
+  cost: 16,
+  blockSize: 1,
+  parallelization: 1,
+  keyLength: 16,
+  saltByteLength: 8,
+  maxmem: 1024 * 1024,
+})
 
 export class InMemoryRateLimiter implements RateLimiter {
   private readonly attempts: RateLimitAttempt[] = []
@@ -30,10 +40,17 @@ export class InMemoryRateLimiter implements RateLimiter {
 
 export class InMemoryPasswordHasher implements PasswordHasher {
   async hash(password: string): Promise<string> {
-    return `test-password:${hashSecret(password)}`
+    return `${TEST_PASSWORD_HASH_PREFIX}${await testPasswordScryptHasher.hash(password)}`
   }
 
   async verify(password: string, passwordHash: string): Promise<boolean> {
-    return passwordHash === (await this.hash(password))
+    if (!passwordHash.startsWith(TEST_PASSWORD_HASH_PREFIX)) {
+      return false
+    }
+
+    return await testPasswordScryptHasher.verify(
+      password,
+      passwordHash.slice(TEST_PASSWORD_HASH_PREFIX.length),
+    )
   }
 }
