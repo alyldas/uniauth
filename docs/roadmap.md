@@ -191,14 +191,18 @@ Tracking issues: #105.
 
 Tracking issues: #118.
 
-## Next Release
-
 ### v0.22 - Bulk Session Revocation
 
 - Public bulk local session revocation through `revokeUserSessions(...)`.
 - Optional `exceptSessionId` support for sign-out-other-devices account-security flows.
 
 Tracking issues: #122.
+
+## Next Release
+
+### v0.23 - Backlog To Be Defined
+
+- Next stabilizing or integrator-facing scope after the bulk session revocation release.
 
 ## Versioning
 
