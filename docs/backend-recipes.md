@@ -122,6 +122,8 @@ Express ownership notes:
   recovery start, and OTP start.
 - Keep route-neutral errors neutral at the HTTP layer too; do not translate invalid credentials into
   account existence hints.
+- For account-security screens that list sign-in methods or devices, prefer the dedicated
+  [Account security recipes](account-security.md) instead of reading adapter internals.
 
 ## Fastify
 
@@ -193,6 +195,8 @@ Fastify ownership notes:
   rather than introducing a Fastify-specific auth dispatcher.
 - For a fuller copyable recipe, including token extraction helpers and failure mapping, see
   [Session transport recipes](session-transport.md).
+- For sign-in-method and device-management screens, compose the public read-side methods described
+  in [Account security recipes](account-security.md).
 
 ## Nest
 

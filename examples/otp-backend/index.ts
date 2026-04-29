@@ -4,6 +4,7 @@ import {
   OtpChannel,
   VerificationPurpose,
   type EmailSender,
+  type Verification,
   type VerificationId,
 } from '@alyldas/uniauth'
 import { InMemoryAuthStore, InMemoryRateLimiter } from '@alyldas/uniauth/testing'
@@ -113,6 +114,29 @@ async function postOtpFinish(
   }
 }
 
+async function getVerificationStatus(verificationId: VerificationId): Promise<
+  JsonResponse<{
+    verificationId: string
+    purpose: Verification['purpose']
+    status: Verification['status']
+    expiresAt: string
+    consumedAt: string | null
+  }>
+> {
+  const verification = await authService.getVerification(verificationId)
+
+  return {
+    status: 200,
+    body: {
+      verificationId: verification.id,
+      purpose: verification.purpose,
+      status: verification.status,
+      expiresAt: verification.expiresAt.toISOString(),
+      consumedAt: verification.consumedAt?.toISOString() ?? null,
+    },
+  }
+}
+
 function extractOtpCode(message: DeliveredEmail): string {
   const match = /\b(\d{4,8})\b/u.exec(message.text)
 
@@ -151,18 +175,26 @@ export async function runOtpBackendExample(): Promise<void> {
     throw new Error('Expected the application-owned sender to capture one email message.')
   }
 
+  const pendingVerification = await getVerificationStatus(
+    parseVerificationId(startResponse.body.verificationId),
+  )
   const finishResponse = await postOtpFinish({
     body: {
       verificationId: startResponse.body.verificationId,
       code: extractOtpCode(deliveredEmail),
     },
   })
+  const consumedVerification = await getVerificationStatus(
+    parseVerificationId(startResponse.body.verificationId),
+  )
 
   console.log({
     startStatus: startResponse.status,
+    pendingVerification: pendingVerification.body,
     deliveredTo: deliveredEmail.to,
     deliveredText: deliveredEmail.text,
     finishStatus: finishResponse.status,
+    consumedVerification: consumedVerification.body,
     sessionCookie: finishResponse.cookies?.[0],
     userId: finishResponse.body.userId,
   })

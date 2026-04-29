@@ -289,6 +289,36 @@ describe('Postgres reference persistence', () => {
     })
   })
 
+  it('reads credentials and verifications through the public service surface on Postgres', async () => {
+    const { service } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-read-side-credential',
+        email: 'pg-read-side-credential@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const credential = await service.setPassword({
+      userId: signedIn.user.id,
+      email: 'pg-read-side-credential@example.com',
+      password: 'pg-password',
+      now: addSeconds(now, 1),
+    })
+    const createdVerification = await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'pg-read-side-credential@example.com',
+      secret: '654321',
+      now: addSeconds(now, 2),
+    })
+
+    expect(await service.getUserCredentials(signedIn.user.id)).toEqual([credential])
+    expect(await service.getVerification(createdVerification.verification.id)).toEqual(
+      createdVerification.verification,
+    )
+  })
+
   it('bulk-revokes active user sessions on Postgres while keeping the excluded session', async () => {
     const { service, store } = await createPostgresTestKit()
     const first = await service.signIn({

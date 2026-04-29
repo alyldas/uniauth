@@ -33,6 +33,8 @@ license, subscription, private contract, or other written permission.
 - Exposes local session read-side helpers for token resolution, activity touch, and user session
   listing.
 - Exposes a narrow `getUser(userId)` helper for loading the active local user snapshot by id.
+- Exposes read-side helpers for credential and verification lookups through the public service
+  layer.
 - Supports bulk local session revocation for sign-out-all-devices style account-security flows.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
 - Runs transaction-aware account merge over identities, credentials, sessions, and audit decisions
@@ -517,6 +519,7 @@ contact `alyldas@ya.ru`.
 - [Development](docs/development.md)
 - [Architecture](docs/architecture.md)
 - [Backend integration recipes](docs/backend-recipes.md)
+- [Account security recipes](docs/account-security.md)
 - [Auth bridges](docs/bridges.md)
 - [Security model](docs/security.md)
 - [Threat model](docs/threat-model.md)

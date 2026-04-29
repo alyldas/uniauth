@@ -53,6 +53,8 @@ describe('package exports', () => {
     expect(core.createHmacSecretHasher).toBeTypeOf('function')
     expect(core.createScryptSecretHasher).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getUser).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.getUserCredentials).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.getVerification).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeUserSessions).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getUserSessions).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.touchSession).toBeTypeOf('function')

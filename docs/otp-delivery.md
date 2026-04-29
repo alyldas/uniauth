@@ -46,6 +46,10 @@ For a small HTTP-facing composition example around `startOtpChallenge(...)`,
 `finishOtpSignIn(...)`, app-owned sender wiring, and session-cookie issuance, see
 [OTP backend wiring example](../examples/otp-backend/index.ts).
 
+Applications that need to poll or inspect one verification record after creation can do that
+through the public `authService.getVerification(verificationId)` read-side helper. Keep any
+serialized response narrow and never expose `secretHash` outside trusted server-side tooling.
+
 ## What Core Owns
 
 UniAuth owns only the generic auth semantics:

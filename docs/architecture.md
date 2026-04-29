@@ -34,8 +34,10 @@ identities, and email/phone are optional identity attributes.
 - `resolveSession`
 - `touchSession`
 - `getUser`
+- `getUserCredentials`
 - `getUserSessions`
 - `createVerification`
+- `getVerification`
 - `consumeVerification`
 
 It delegates authorization decisions to `AuthPolicy` and storage/provider/sender work to ports.
