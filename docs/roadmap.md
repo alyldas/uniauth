@@ -214,14 +214,18 @@ Tracking issues: #127.
 
 Tracking issues: #131, #132, #133.
 
-## Next Release
-
 ### v0.25 - Safe Read-Side Projections
 
 - Public safe projection helpers for account-security and verification-status flows.
 - Examples and docs moved from ad hoc serializers to the shared public helper layer.
 
 Tracking issues: #137.
+
+## Next Release
+
+### v0.26 - Backlog To Be Defined
+
+- Next stabilizing or integrator-facing scope after the safe read-side projections release.
 
 ## Versioning
 
