@@ -198,8 +198,6 @@ Tracking issues: #118.
 
 Tracking issues: #122.
 
-## Next Release
-
 ### v0.23 - User Read Side
 
 - Public `getUser(userId)` API for loading the active local user snapshot by id.
@@ -207,6 +205,12 @@ Tracking issues: #122.
   sessions and identities.
 
 Tracking issues: #127.
+
+## Next Release
+
+### v0.24 - Backlog To Be Defined
+
+- Next stabilizing or integrator-facing scope after the user read-side release.
 
 ## Versioning
 
