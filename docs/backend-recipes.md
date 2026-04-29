@@ -56,8 +56,8 @@ and release flow, see [Development](development.md) and the root [release checkl
 Use Express when you want explicit middleware order and fully manual response handling.
 
 See the runnable [Express auth module example](../examples/express-auth/index.ts) for a larger
-module-shaped variant that includes app-owned sender wiring, session cookie issuance, and neutral
-error mapping.
+module-shaped variant that includes app-owned sender wiring, session cookie issuance, session
+resolution middleware, and neutral error mapping.
 
 ```ts
 import express from 'express'
@@ -87,6 +87,30 @@ app.post('/auth/password/sign-in', async (req, res, next) => {
 })
 ```
 
+Express session middleware can stay equally thin:
+
+```ts
+app.get(
+  '/me',
+  createExpressSessionMiddleware(authService),
+  requireExpressSession,
+  (request, response) => {
+    response.status(200).json({
+      userId: request.auth.userId,
+      sessionRecordId: request.auth.session.id,
+    })
+  },
+)
+```
+
+That middleware should:
+
+- extract the session token from `Authorization: Bearer ...` or the session cookie;
+- call `authService.resolveSession({ sessionToken })`;
+- optionally call `authService.touchSession({ sessionId })`;
+- attach `{ userId, session }` to `request.auth`;
+- map invalid or missing local sessions to `401 Authentication required.`
+
 Express ownership notes:
 
 - Validate body shape before calling UniAuth.
@@ -101,8 +125,8 @@ Express ownership notes:
 Use Fastify when you want schema-driven request validation and plugin-based server composition.
 
 See the runnable [Fastify auth module example](../examples/fastify-auth/index.ts) for a
-module-shaped variant that keeps Fastify schemas, cookie transport, and app-owned sender adapters in
-the framework layer.
+module-shaped variant that keeps Fastify schemas, cookie transport, app-owned sender adapters, and
+session preHandlers in the framework layer.
 
 ```ts
 import Fastify from 'fastify'
@@ -130,12 +154,39 @@ app.post('/auth/magic/finish', async (request, reply) => {
 })
 ```
 
+Fastify session resolution fits naturally into a `preHandler`:
+
+```ts
+app.get(
+  '/me',
+  {
+    preHandler: [createFastifySessionPreHandler(authService), requireFastifySession],
+  },
+  async (request, reply) => {
+    return reply.send({
+      userId: request.auth.userId,
+      sessionRecordId: request.auth.session.id,
+    })
+  },
+)
+```
+
+That preHandler should:
+
+- read the bearer token from `request.headers.authorization` or the cookie from `request.cookies`;
+- resolve it through `authService.resolveSession(...)`;
+- optionally update activity through `authService.touchSession(...)`;
+- attach `{ userId, session }` to `request.auth`;
+- send `401 Authentication required.` for invalid or revoked local sessions.
+
 Fastify ownership notes:
 
 - Let Fastify schemas reject malformed input before it reaches UniAuth.
 - Keep cookie and CSRF plugins in the Fastify layer, not in sender/provider adapters.
 - If delivery goes through queues, keep that inside your `EmailSender` or `SmsSender` adapters
   rather than introducing a Fastify-specific auth dispatcher.
+- For a fuller copyable recipe, including token extraction helpers and failure mapping, see
+  [Session transport recipes](session-transport.md).
 
 ## Nest
 

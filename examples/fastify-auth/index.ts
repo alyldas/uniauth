@@ -1,14 +1,16 @@
 import { fileURLToPath } from 'node:url'
 import cookie from '@fastify/cookie'
-import Fastify, { type FastifyInstance } from 'fastify'
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify'
 import {
   DefaultAuthService,
   OtpChannel,
+  SessionStatus,
   UniAuthErrorCode,
   VerificationPurpose,
   createDefaultAuthPolicy,
   isUniAuthError,
   type EmailSender,
+  type Session,
   type UniAuthErrorCode as UniAuthErrorCodeType,
   type VerificationId,
 } from '@alyldas/uniauth'
@@ -25,6 +27,17 @@ interface DeliveredEmail {
   readonly subject: string
   readonly text: string
   readonly metadata?: Record<string, unknown>
+}
+
+interface FastifyRequestAuth {
+  readonly session: Session
+  readonly userId: Session['userId']
+}
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    auth?: FastifyRequestAuth
+  }
 }
 
 class ConsoleEmailSender implements EmailSender {
@@ -65,6 +78,10 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
   const app = Fastify()
 
   await app.register(cookie)
+  app.decorateRequest('auth')
+  const sessionPreHandler = createFastifySessionPreHandler(authService, {
+    touch: true,
+  })
 
   app.post<{
     Body: {
@@ -138,6 +155,27 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
     },
   )
 
+  app.get(
+    '/me',
+    {
+      preHandler: [sessionPreHandler, requireFastifySession],
+    },
+    async (request, reply) => {
+      const auth = request.auth
+
+      if (!auth) {
+        return reply.status(401).send({ error: 'Authentication required.' })
+      }
+
+      return reply.status(200).send({
+        userId: auth.userId,
+        sessionRecordId: auth.session.id,
+        sessionStatus: auth.session.status,
+        lastSeenAt: auth.session.lastSeenAt?.toISOString() ?? null,
+      })
+    },
+  )
+
   app.setErrorHandler((error, _request, reply) => {
     if (isFastifyPublicRequestError(error)) {
       reply.status(400).send({ error: 'Request cannot be completed.' })
@@ -178,7 +216,7 @@ export async function runFastifyAuthExample(): Promise<void> {
         type: 'demo-server',
         framework: 'fastify',
         port,
-        routes: ['POST /auth/otp/start', 'POST /auth/otp/finish'],
+        routes: ['POST /auth/otp/start', 'POST /auth/otp/finish', 'GET /me'],
         note: 'OTP codes are printed by the application-owned email sender.',
       },
       null,
@@ -191,8 +229,66 @@ function parseVerificationId(value: string): VerificationId {
   return value.trim() as VerificationId
 }
 
+function createFastifySessionPreHandler(
+  authService: DefaultAuthService,
+  options: {
+    readonly touch?: boolean
+  } = {},
+) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    const sessionToken = readFastifySessionToken(request)
+
+    if (!sessionToken) {
+      return
+    }
+
+    try {
+      const resolved = await authService.resolveSession({ sessionToken })
+      const session = options.touch
+        ? await authService.touchSession({ sessionId: resolved.id })
+        : resolved
+
+      request.auth = {
+        session,
+        userId: session.userId,
+      }
+    } catch (error) {
+      if (isSessionContextError(error)) {
+        await reply.status(401).send({ error: 'Authentication required.' })
+        return
+      }
+
+      throw error
+    }
+  }
+}
+
+async function requireFastifySession(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  if (!request.auth || request.auth.session.status !== SessionStatus.Active) {
+    await reply.status(401).send({ error: 'Authentication required.' })
+  }
+}
+
+function readFastifySessionToken(request: FastifyRequest): string | undefined {
+  return readBearerToken(request.headers.authorization) ?? readCookieValue(request.cookies.session)
+}
+
+function readBearerToken(header: string | undefined): string | undefined {
+  if (!header) {
+    return undefined
+  }
+
+  const [scheme, value] = header.split(/\s+/, 2)
+  return scheme?.toLowerCase() === 'bearer' && value?.trim() ? value.trim() : undefined
+}
+
+function readCookieValue(value: string | undefined): string | undefined {
+  return value?.trim() || undefined
+}
+
 const neutralPublicErrorCodes = new Set<UniAuthErrorCodeType>([
   UniAuthErrorCode.InvalidInput,
+  UniAuthErrorCode.SessionNotFound,
   UniAuthErrorCode.VerificationNotFound,
   UniAuthErrorCode.VerificationExpired,
   UniAuthErrorCode.VerificationConsumed,
@@ -201,6 +297,14 @@ const neutralPublicErrorCodes = new Set<UniAuthErrorCodeType>([
 
 function isNeutralPublicError(code: UniAuthErrorCodeType): boolean {
   return neutralPublicErrorCodes.has(code)
+}
+
+function isSessionContextError(error: unknown): boolean {
+  return (
+    isUniAuthError(error) &&
+    (error.code === UniAuthErrorCode.InvalidInput ||
+      error.code === UniAuthErrorCode.SessionNotFound)
+  )
 }
 
 function isFastifyPublicRequestError(error: unknown): boolean {

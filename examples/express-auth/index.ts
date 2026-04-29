@@ -3,11 +3,13 @@ import express, { type Express, type NextFunction, type Request, type Response }
 import {
   DefaultAuthService,
   OtpChannel,
+  SessionStatus,
   UniAuthErrorCode,
   VerificationPurpose,
   createDefaultAuthPolicy,
   isUniAuthError,
   type EmailSender,
+  type Session,
   type UniAuthErrorCode as UniAuthErrorCodeType,
   type VerificationId,
 } from '@alyldas/uniauth'
@@ -27,6 +29,17 @@ interface ExpressAuthExample {
 interface DemoAccount {
   readonly email: string
   readonly password: string
+}
+
+interface ExpressRequestAuth {
+  readonly session: Session
+  readonly userId: Session['userId']
+}
+
+declare module 'express-serve-static-core' {
+  interface Request {
+    auth?: ExpressRequestAuth
+  }
 }
 
 class RequestValidationError extends Error {
@@ -83,6 +96,10 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
   const app = express()
 
   app.use(express.json())
+
+  const sessionMiddleware = createExpressSessionMiddleware(authService, {
+    touch: true,
+  })
 
   app.post('/auth/password/sign-in', async (request, response, next) => {
     try {
@@ -145,6 +162,22 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
     }
   })
 
+  app.get('/me', sessionMiddleware, requireExpressSession, (request, response) => {
+    const auth = request.auth
+
+    if (!auth) {
+      response.status(401).json({ error: 'Authentication required.' })
+      return
+    }
+
+    response.status(200).json({
+      userId: auth.userId,
+      sessionRecordId: auth.session.id,
+      sessionStatus: auth.session.status,
+      lastSeenAt: auth.session.lastSeenAt?.toISOString() ?? null,
+    })
+  })
+
   app.use((error: unknown, _request: Request, response: Response, next: NextFunction): void => {
     if (response.headersSent) {
       next(error)
@@ -191,7 +224,12 @@ export async function runExpressAuthExample(): Promise<void> {
           framework: 'express',
           port,
           demoAccount: example.demoAccount,
-          routes: ['POST /auth/password/sign-in', 'POST /auth/otp/start', 'POST /auth/otp/finish'],
+          routes: [
+            'POST /auth/password/sign-in',
+            'POST /auth/otp/start',
+            'POST /auth/otp/finish',
+            'GET /me',
+          ],
           note: 'OTP codes are printed by the application-owned email sender.',
         },
         null,
@@ -248,6 +286,86 @@ function writeSessionCookie(response: Response, sessionToken: string): void {
   })
 }
 
+function createExpressSessionMiddleware(
+  authService: DefaultAuthService,
+  options: {
+    readonly touch?: boolean
+  } = {},
+) {
+  return async (request: Request, response: Response, next: NextFunction): Promise<void> => {
+    const sessionToken = readExpressSessionToken(request)
+
+    if (!sessionToken) {
+      next()
+      return
+    }
+
+    try {
+      const resolved = await authService.resolveSession({ sessionToken })
+      const session = options.touch
+        ? await authService.touchSession({ sessionId: resolved.id })
+        : resolved
+
+      request.auth = {
+        session,
+        userId: session.userId,
+      }
+      next()
+    } catch (error) {
+      if (isSessionContextError(error)) {
+        response.status(401).json({ error: 'Authentication required.' })
+        return
+      }
+
+      next(error)
+    }
+  }
+}
+
+function requireExpressSession(request: Request, response: Response, next: NextFunction): void {
+  if (!request.auth || request.auth.session.status !== SessionStatus.Active) {
+    response.status(401).json({ error: 'Authentication required.' })
+    return
+  }
+
+  next()
+}
+
+function readExpressSessionToken(request: Request): string | undefined {
+  return (
+    readBearerToken(request.headers.authorization) ??
+    readCookieToken(request.headers.cookie, 'session')
+  )
+}
+
+function readBearerToken(header: string | undefined): string | undefined {
+  if (!header) {
+    return undefined
+  }
+
+  const [scheme, value] = header.split(/\s+/, 2)
+  return scheme?.toLowerCase() === 'bearer' && value?.trim() ? value.trim() : undefined
+}
+
+function readCookieToken(header: string | undefined, name: string): string | undefined {
+  if (!header) {
+    return undefined
+  }
+
+  for (const part of header.split(';')) {
+    const [rawName, ...rest] = part.split('=')
+
+    if (!rawName || rawName.trim() !== name) {
+      continue
+    }
+
+    const value = rest.join('=').trim()
+    return value ? decodeURIComponent(value) : undefined
+  }
+
+  return undefined
+}
+
 const neutralPublicErrorCodes = new Set<UniAuthErrorCodeType>([
   UniAuthErrorCode.InvalidCredentials,
   UniAuthErrorCode.InvalidInput,
@@ -259,6 +377,14 @@ const neutralPublicErrorCodes = new Set<UniAuthErrorCodeType>([
 
 function isNeutralPublicError(code: UniAuthErrorCodeType): boolean {
   return neutralPublicErrorCodes.has(code)
+}
+
+function isSessionContextError(error: unknown): boolean {
+  return (
+    isUniAuthError(error) &&
+    (error.code === UniAuthErrorCode.InvalidInput ||
+      error.code === UniAuthErrorCode.SessionNotFound)
+  )
 }
 
 function isPublicRequestError(error: unknown): boolean {
