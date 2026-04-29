@@ -9,7 +9,13 @@ import {
   startEmailPasswordRecovery,
 } from './passwords.js'
 import { type AuthServiceRuntime, createAuthServiceRuntime } from './runtime.js'
-import { createSession, resolveSession, revokeSession, touchSession } from './sessions.js'
+import {
+  createSession,
+  getUserSessions,
+  resolveSession,
+  revokeSession,
+  touchSession,
+} from './sessions.js'
 import { signIn } from './sign-in.js'
 import { consumeVerification, createVerification } from './verifications.js'
 import type { AuthPolicy } from './policy.js'
@@ -150,6 +156,10 @@ export class DefaultAuthService implements AuthService {
 
   async getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]> {
     return getUserIdentities(this.runtime, userId)
+  }
+
+  async getUserSessions(userId: UserId): Promise<readonly Session[]> {
+    return getUserSessions(this.runtime, userId)
   }
 
   async createSession(input: CreateSessionInput): Promise<CreateSessionResult> {

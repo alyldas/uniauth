@@ -30,6 +30,8 @@ license, subscription, private contract, or other written permission.
 - Maps Auth.js and Better Auth OAuth callback data into `ProviderIdentityAssertion` through the
   optional `@alyldas/uniauth/bridges` entry point.
 - Creates local session records after successful sign-in.
+- Exposes local session read-side helpers for token resolution, activity touch, and user session
+  listing.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
 - Runs transaction-aware account merge over identities, credentials, sessions, and audit decisions
   when the configured `UnitOfWork` supports atomic rollback.

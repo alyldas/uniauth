@@ -52,6 +52,7 @@ describe('package exports', () => {
     expect(core.createAuthNormalizer).toBeTypeOf('function')
     expect(core.createHmacSecretHasher).toBeTypeOf('function')
     expect(core.createScryptSecretHasher).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.getUserSessions).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.touchSession).toBeTypeOf('function')
     expect(core.createMaxWebAppProvider).toBeTypeOf('function')
     expect(core.createOAuthOidcProvider).toBeTypeOf('function')
