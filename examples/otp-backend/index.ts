@@ -8,6 +8,10 @@ import {
   type VerificationId,
 } from '@alyldas/uniauth'
 import { InMemoryAuthStore, InMemoryRateLimiter } from '@alyldas/uniauth/testing'
+import {
+  assertSessionCookieSealingConfigured,
+  sealSessionCookieValue,
+} from '../shared/session-cookie.js'
 import { serializeVerificationStatusView } from '../shared/views.js'
 
 interface JsonRequest<TBody> {
@@ -68,10 +72,10 @@ const authService = new DefaultAuthService({
   rateLimiter: new InMemoryRateLimiter(),
 })
 
-function buildSessionCookie(sessionId: string): SessionCookie {
+function buildSessionCookie(sessionToken: string): SessionCookie {
   return {
     name: 'session',
-    value: sessionId,
+    value: sealSessionCookieValue(sessionToken),
     httpOnly: true,
     sameSite: 'lax',
     secure: true,
@@ -153,6 +157,8 @@ function parseVerificationId(value: string): VerificationId {
 }
 
 export async function runOtpBackendExample(): Promise<void> {
+  assertSessionCookieSealingConfigured()
+
   const startResponse = await postOtpStart({
     body: {
       email: 'alice@example.com',

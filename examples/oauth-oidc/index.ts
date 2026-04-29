@@ -16,6 +16,10 @@ import {
   InMemoryProviderRegistry,
   InMemoryRateLimiter,
 } from '@alyldas/uniauth/testing'
+import {
+  assertSessionCookieSealingConfigured,
+  sealSessionCookieValue,
+} from '../shared/session-cookie.js'
 
 interface CallbackRequest {
   readonly query: {
@@ -177,10 +181,10 @@ function assertStateMatches(expected: string, received: string): void {
   }
 }
 
-function buildSessionCookie(sessionId: string): SessionCookie {
+function buildSessionCookie(sessionToken: string): SessionCookie {
   return {
     name: 'session',
-    value: sessionId,
+    value: sealSessionCookieValue(sessionToken),
     httpOnly: true,
     sameSite: 'lax',
     secure: true,
@@ -242,6 +246,8 @@ async function finishOidcCallback(request: CallbackRequest): Promise<RedirectRes
 }
 
 export async function runOAuthOidcExample(): Promise<void> {
+  assertSessionCookieSealingConfigured()
+
   const response = await finishOidcCallback({
     query: {
       code: 'demo-authorization-code',

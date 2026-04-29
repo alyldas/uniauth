@@ -28,6 +28,11 @@ import {
   readBearerToken,
   readCookieHeaderToken,
 } from '../shared/http.js'
+import {
+  assertSessionCookieSealingConfigured,
+  sealSessionCookieValue,
+  unsealSessionCookieValue,
+} from '../shared/session-cookie.js'
 import { serializeAccountSecuritySnapshot } from '../shared/views.js'
 
 interface ExpressAuthExample {
@@ -62,6 +67,8 @@ class RequestValidationError extends Error {
 }
 
 export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
+  assertSessionCookieSealingConfigured()
+
   const store = new InMemoryAuthStore()
   const emailSender = new ConsoleEmailSender('express')
   const authService = new DefaultAuthService({
@@ -295,7 +302,7 @@ function parseVerificationId(value: string): VerificationId {
 }
 
 function writeSessionCookie(response: Response, sessionToken: string): void {
-  response.cookie('session', sessionToken, {
+  response.cookie('session', sealSessionCookieValue(sessionToken), {
     httpOnly: true,
     sameSite: 'lax',
     secure: true,
@@ -353,7 +360,7 @@ function requireExpressSession(request: Request, response: Response, next: NextF
 function readExpressSessionToken(request: Request): string | undefined {
   return (
     readBearerToken(request.headers.authorization) ??
-    readCookieHeaderToken(request.headers.cookie, 'session')
+    unsealSessionCookieValue(readCookieHeaderToken(request.headers.cookie, 'session'))
   )
 }
 
