@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.1](https://github.com/alyldas/uniauth/compare/v0.25.0...v0.25.1) (2026-04-29)
+
+
+### Bug Fixes
+
+* harden in-memory password hashing ([#143](https://github.com/alyldas/uniauth/issues/143)) ([89d666f](https://github.com/alyldas/uniauth/commit/89d666fbfffe87f9661f11a94d94b479f2f2ee42))
+* seal example session cookies ([#145](https://github.com/alyldas/uniauth/issues/145)) ([6f37350](https://github.com/alyldas/uniauth/commit/6f37350b629e7ee8932baf39161b495f42f4e140))
+
 ## [0.25.0](https://github.com/alyldas/uniauth/compare/v0.24.0...v0.25.0) (2026-04-29)
 
 
