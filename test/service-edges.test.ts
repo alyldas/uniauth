@@ -8,6 +8,7 @@ import {
   asIdentityId,
   asSessionId,
   asUserId,
+  asVerificationId,
   createDefaultAuthPolicy,
 } from '../src'
 import { InMemoryAuthStore, InMemoryPasswordHasher, createInMemoryAuthKit } from '../src/testing'
@@ -217,6 +218,18 @@ describe('DefaultAuthService edge cases', () => {
       await defaultService.getUserSessions(second.user.id).catch((caught: unknown) => caught),
     ).toMatchObject({
       code: UniAuthErrorCode.UserNotFound,
+    })
+    expect(
+      await defaultService.getUserCredentials(second.user.id).catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
+    expect(
+      await defaultService
+        .getVerification(asVerificationId('missing-verification'))
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
     })
     expect(
       await defaultService

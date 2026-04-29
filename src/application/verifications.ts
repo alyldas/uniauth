@@ -31,6 +31,19 @@ export async function createVerification(
   })
 }
 
+export async function getVerification(
+  runtime: AuthServiceRuntime,
+  verificationId: Verification['id'],
+): Promise<Verification> {
+  const verification = await runtime.repos.verificationRepo.findById(verificationId)
+
+  if (!verification) {
+    throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
+  }
+
+  return verification
+}
+
 export async function consumeVerification(
   runtime: AuthServiceRuntime,
   input: ConsumeVerificationInput,

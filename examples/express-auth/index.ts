@@ -6,6 +6,7 @@ import {
   SessionStatus,
   UniAuthErrorCode,
   VerificationPurpose,
+  type Credential,
   createDefaultAuthPolicy,
   isUniAuthError,
   type Session,
@@ -160,6 +161,54 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
     })
   })
 
+  app.get(
+    '/account/security',
+    sessionMiddleware,
+    requireExpressSession,
+    async (request, response, next) => {
+      try {
+        const auth = request.auth
+
+        if (!auth) {
+          response.status(401).json({ error: AUTHENTICATION_REQUIRED_MESSAGE })
+          return
+        }
+
+        const [identities, credentials, sessions] = await Promise.all([
+          authService.getUserIdentities(auth.user.id),
+          authService.getUserCredentials(auth.user.id),
+          authService.getUserSessions(auth.user.id),
+        ])
+
+        response.status(200).json({
+          user: {
+            id: auth.user.id,
+            email: auth.user.email ?? null,
+            displayName: auth.user.displayName ?? null,
+          },
+          identities: identities.map((identity) => ({
+            id: identity.id,
+            provider: identity.provider,
+            status: identity.status,
+            email: identity.email ?? null,
+            phone: identity.phone ?? null,
+          })),
+          credentials: credentials.map((credential) => serializeCredentialForClient(credential)),
+          sessions: sessions.map((session) => ({
+            id: session.id,
+            status: session.status,
+            createdAt: session.createdAt.toISOString(),
+            expiresAt: session.expiresAt.toISOString(),
+            lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
+            revokedAt: session.revokedAt?.toISOString() ?? null,
+          })),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   app.use((error: unknown, _request: Request, response: Response, next: NextFunction): void => {
     if (response.headersSent) {
       next(error)
@@ -211,6 +260,7 @@ export async function runExpressAuthExample(): Promise<void> {
             'POST /auth/otp/start',
             'POST /auth/otp/finish',
             'GET /me',
+            'GET /account/security',
           ],
           note: 'OTP codes are printed by the application-owned email sender.',
         },
@@ -266,6 +316,16 @@ function writeSessionCookie(response: Response, sessionToken: string): void {
     secure: true,
     path: '/',
   })
+}
+
+function serializeCredentialForClient(credential: Credential) {
+  return {
+    id: credential.id,
+    type: credential.type,
+    subject: credential.subject,
+    createdAt: credential.createdAt.toISOString(),
+    updatedAt: credential.updatedAt.toISOString(),
+  }
 }
 
 function createExpressSessionMiddleware(

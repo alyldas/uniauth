@@ -208,9 +208,13 @@ Tracking issues: #127.
 
 ## Next Release
 
-### v0.24 - Backlog To Be Defined
+### v0.24 - Account Security Read Side
 
-- Next stabilizing or integrator-facing scope after the user read-side release.
+- Public `getUserCredentials(userId)` and `getVerification(verificationId)` APIs.
+- Account-security recipes for sign-in-method and device-management screens on top of the public
+  service layer.
+
+Tracking issues: #131, #132, #133.
 
 ## Versioning
 

@@ -79,8 +79,10 @@ export interface AuthService {
   touchSession(input: TouchSessionInput): Promise<Session>
   getUser(userId: UserId): Promise<User>
   getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]>
+  getUserCredentials(userId: UserId): Promise<readonly Credential[]>
   getUserSessions(userId: UserId): Promise<readonly Session[]>
   createSession(input: CreateSessionInput): Promise<CreateSessionResult>
   createVerification(input: CreateVerificationInput): Promise<CreateVerificationResult>
+  getVerification(verificationId: VerificationId): Promise<Verification>
   consumeVerification(input: ConsumeVerificationInput): Promise<Verification>
 }

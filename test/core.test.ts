@@ -114,6 +114,36 @@ describe('DefaultAuthService', () => {
     ).toBe(touched)
   })
 
+  it('reads local credentials and verifications through the public service surface', async () => {
+    const { service } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        provider: 'email',
+        providerUserId: 'credential-reader',
+        email: 'credential-reader@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const credential = await service.setPassword({
+      userId: signedIn.user.id,
+      email: 'credential-reader@example.com',
+      password: 'secret-password',
+      now,
+    })
+    const createdVerification = await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'credential-reader@example.com',
+      secret: '123456',
+      now,
+    })
+
+    expect(await service.getUserCredentials(signedIn.user.id)).toEqual([credential])
+    expect(await service.getVerification(createdVerification.verification.id)).toEqual(
+      createdVerification.verification,
+    )
+  })
+
   it('bulk-revokes active user sessions while optionally keeping one session active', async () => {
     const { service, store } = createInMemoryAuthKit()
     const signedIn = await service.signIn({ assertion: assertion(), now })

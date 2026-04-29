@@ -7,6 +7,7 @@ import {
   SessionStatus,
   UniAuthErrorCode,
   VerificationPurpose,
+  type Credential,
   createDefaultAuthPolicy,
   isUniAuthError,
   type Session,
@@ -158,6 +159,50 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
     },
   )
 
+  app.get(
+    '/account/security',
+    {
+      preHandler: [sessionPreHandler, requireFastifySession],
+    },
+    async (request, reply) => {
+      const auth = request.auth
+
+      if (!auth) {
+        return reply.status(401).send({ error: AUTHENTICATION_REQUIRED_MESSAGE })
+      }
+
+      const [identities, credentials, sessions] = await Promise.all([
+        authService.getUserIdentities(auth.user.id),
+        authService.getUserCredentials(auth.user.id),
+        authService.getUserSessions(auth.user.id),
+      ])
+
+      return reply.status(200).send({
+        user: {
+          id: auth.user.id,
+          email: auth.user.email ?? null,
+          displayName: auth.user.displayName ?? null,
+        },
+        identities: identities.map((identity) => ({
+          id: identity.id,
+          provider: identity.provider,
+          status: identity.status,
+          email: identity.email ?? null,
+          phone: identity.phone ?? null,
+        })),
+        credentials: credentials.map((credential) => serializeCredentialForClient(credential)),
+        sessions: sessions.map((session) => ({
+          id: session.id,
+          status: session.status,
+          createdAt: session.createdAt.toISOString(),
+          expiresAt: session.expiresAt.toISOString(),
+          lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
+          revokedAt: session.revokedAt?.toISOString() ?? null,
+        })),
+      })
+    },
+  )
+
   app.setErrorHandler((error, _request, reply) => {
     if (isFastifyPublicRequestError(error)) {
       reply.status(400).send({ error: REQUEST_CANNOT_BE_COMPLETED_MESSAGE })
@@ -198,7 +243,12 @@ export async function runFastifyAuthExample(): Promise<void> {
         type: 'demo-server',
         framework: 'fastify',
         port,
-        routes: ['POST /auth/otp/start', 'POST /auth/otp/finish', 'GET /me'],
+        routes: [
+          'POST /auth/otp/start',
+          'POST /auth/otp/finish',
+          'GET /me',
+          'GET /account/security',
+        ],
         note: 'OTP codes are printed by the application-owned email sender.',
       },
       null,
@@ -278,6 +328,16 @@ function isFastifyPublicRequestError(error: unknown): boolean {
   const candidate = error as { statusCode?: unknown; validation?: unknown }
 
   return candidate.statusCode === 400 || candidate.validation !== undefined
+}
+
+function serializeCredentialForClient(credential: Credential) {
+  return {
+    id: credential.id,
+    type: credential.type,
+    subject: credential.subject,
+    createdAt: credential.createdAt.toISOString(),
+    updatedAt: credential.updatedAt.toISOString(),
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

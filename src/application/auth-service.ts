@@ -1,4 +1,5 @@
 import { getUserIdentities, link, mergeAccounts, unlink } from './accounts.js'
+import { getUserCredentials } from './credentials.js'
 import { finishEmailMagicLinkSignIn, startEmailMagicLinkSignIn } from './magic-link.js'
 import { finishOtpChallenge, finishOtpSignIn, startOtpChallenge } from './otp.js'
 import {
@@ -19,7 +20,7 @@ import {
 } from './sessions.js'
 import { signIn } from './sign-in.js'
 import { getUser } from './users.js'
-import { consumeVerification, createVerification } from './verifications.js'
+import { consumeVerification, createVerification, getVerification } from './verifications.js'
 import type { AuthPolicy } from './policy.js'
 import type {
   AuthIdentity,
@@ -61,6 +62,7 @@ import type {
   User,
   UserId,
   Verification,
+  VerificationId,
 } from '../domain/types.js'
 import type {
   AuthServiceInfrastructure,
@@ -171,6 +173,10 @@ export class DefaultAuthService implements AuthService {
     return getUserIdentities(this.runtime, userId)
   }
 
+  async getUserCredentials(userId: UserId): Promise<readonly Credential[]> {
+    return getUserCredentials(this.runtime, userId)
+  }
+
   async getUserSessions(userId: UserId): Promise<readonly Session[]> {
     return getUserSessions(this.runtime, userId)
   }
@@ -181,6 +187,10 @@ export class DefaultAuthService implements AuthService {
 
   async createVerification(input: CreateVerificationInput): Promise<CreateVerificationResult> {
     return createVerification(this.runtime, input)
+  }
+
+  async getVerification(verificationId: VerificationId): Promise<Verification> {
+    return getVerification(this.runtime, verificationId)
   }
 
   async consumeVerification(input: ConsumeVerificationInput): Promise<Verification> {
