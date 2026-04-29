@@ -152,8 +152,6 @@ Tracking issues: #86, #87, #88.
 
 Tracking issues: #93, #94, #95.
 
-## Next Release
-
 ### v0.17 - Session Read API and Secret Storage Hardening
 
 - Public session read-side API through `AuthService.resolveSession`.
@@ -163,6 +161,16 @@ Tracking issues: #93, #94, #95.
 - Package gate alignment between local `npm run check` and CI, including dependency audit.
 
 Tracking issues: #99.
+
+## Next Release
+
+### v0.18 - Backlog To Be Defined
+
+- No tracking issues are assigned yet.
+- The next release will be defined after the next concrete feature or hardening slice is promoted
+  into GitHub issues.
+
+Tracking issues: none.
 
 ## Versioning
 
