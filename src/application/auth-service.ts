@@ -14,6 +14,7 @@ import {
   getUserSessions,
   resolveSession,
   revokeSession,
+  revokeUserSessions,
   touchSession,
 } from './sessions.js'
 import { signIn } from './sign-in.js'
@@ -40,6 +41,8 @@ import type {
   LinkResult,
   MergeAccountsInput,
   MergeResult,
+  RevokeUserSessionsInput,
+  RevokeUserSessionsResult,
   ResolveSessionInput,
   Session,
   SessionId,
@@ -144,6 +147,10 @@ export class DefaultAuthService implements AuthService {
 
   async revokeSession(sessionId: SessionId): Promise<void> {
     return revokeSession(this.runtime, sessionId)
+  }
+
+  async revokeUserSessions(input: RevokeUserSessionsInput): Promise<RevokeUserSessionsResult> {
+    return revokeUserSessions(this.runtime, input)
   }
 
   async resolveSession(input: ResolveSessionInput): Promise<Session> {

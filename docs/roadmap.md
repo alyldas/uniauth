@@ -193,9 +193,12 @@ Tracking issues: #118.
 
 ## Next Release
 
-### v0.22 - Backlog To Be Defined
+### v0.22 - Bulk Session Revocation
 
-- Next stabilizing or integrator-facing scope after the user session read-side release.
+- Public bulk local session revocation through `revokeUserSessions(...)`.
+- Optional `exceptSessionId` support for sign-out-other-devices account-security flows.
+
+Tracking issues: #122.
 
 ## Versioning
 

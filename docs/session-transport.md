@@ -275,6 +275,12 @@ Treat logout as two coordinated steps:
    - delete the bearer token from client state;
    - delete the mobile-stored session token.
 
+For sign-out-all-devices or device-management screens, applications can first call
+`authService.getUserSessions(userId)` and then revoke the active subset through
+`authService.revokeUserSessions({ userId, exceptSessionId })`. UniAuth still does not clear cookies
+or bearer stores for those clients; the application must remove the transport artifact on each
+device as it becomes aware of the revoked local session.
+
 ## Security Notes
 
 - Session transport is not part of the package public API surface; it is deployment policy.

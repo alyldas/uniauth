@@ -113,6 +113,41 @@ describe('DefaultAuthService', () => {
     ).toBe(touched)
   })
 
+  it('bulk-revokes active user sessions while optionally keeping one session active', async () => {
+    const { service, store } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({ assertion: assertion(), now })
+    const second = await service.createSession({
+      userId: signedIn.user.id,
+      now: addSeconds(now, 10),
+    })
+    const third = await service.createSession({
+      userId: signedIn.user.id,
+      now: addSeconds(now, 20),
+    })
+
+    const result = await service.revokeUserSessions({
+      userId: signedIn.user.id,
+      exceptSessionId: signedIn.session.id,
+      now: addSeconds(now, 30),
+    })
+
+    expect(result).toEqual({
+      userId: signedIn.user.id,
+      revokedSessionIds: [second.session.id, third.session.id],
+    })
+    expect(await service.getUserSessions(signedIn.user.id)).toMatchObject([
+      { id: signedIn.session.id, status: SessionStatus.Active },
+      { id: second.session.id, status: SessionStatus.Revoked },
+      { id: third.session.id, status: SessionStatus.Revoked },
+    ])
+    expect(
+      store
+        .listAuditEvents()
+        .filter((event) => event.type === AuditEventType.SessionRevoked)
+        .map((event) => event.sessionId),
+    ).toEqual([second.session.id, third.session.id])
+  })
+
   it('honors explicit zero TTL options in the in-memory testing kit', async () => {
     const { service } = createInMemoryAuthKit({
       clock: { now: () => now },
@@ -274,6 +309,25 @@ describe('DefaultAuthService', () => {
     })
 
     expect(finished.session.status).toBe(SessionStatus.Active)
+  })
+
+  it('uses the runtime clock when bulk-revoking user sessions', async () => {
+    const { service } = createInMemoryAuthKit({
+      clock: { now: () => now },
+    })
+    const signedIn = await service.signIn({ assertion: assertion() })
+    const second = await service.createSession({
+      userId: signedIn.user.id,
+    })
+
+    expect(await service.revokeUserSessions({ userId: signedIn.user.id })).toEqual({
+      userId: signedIn.user.id,
+      revokedSessionIds: [signedIn.session.id, second.session.id],
+    })
+    expect(await service.getUserSessions(signedIn.user.id)).toMatchObject([
+      { id: signedIn.session.id, status: SessionStatus.Revoked, revokedAt: now },
+      { id: second.session.id, status: SessionStatus.Revoked, revokedAt: now },
+    ])
   })
 
   it('uses exact provider identity match before any profile matching', async () => {

@@ -89,6 +89,17 @@ export interface TouchSessionInput {
   readonly now?: Date
 }
 
+export interface RevokeUserSessionsInput {
+  readonly userId: UserId
+  readonly exceptSessionId?: SessionId
+  readonly now?: Date
+}
+
+export interface RevokeUserSessionsResult {
+  readonly userId: UserId
+  readonly revokedSessionIds: readonly SessionId[]
+}
+
 export interface CreateVerificationInput {
   readonly purpose: VerificationPurpose
   readonly target: string
