@@ -221,15 +221,27 @@ Tracking issues: #131, #132, #133.
 
 Tracking issues: #137.
 
-## Next Release
-
 ### v0.26 - Account Security Aggregate Read Side
 
 - Public `getAccountSecuritySnapshot(userId)` API for one-shot account-security pages and API
   handlers.
 - Examples and docs moved from manual multi-call composition to the aggregate read-side method.
 
-Tracking issues: #148, #149, #150, #151, #152.
+Tracking issues: #148.
+
+## Next Release
+
+### v0.27 - Internal Decomposition and Docs Cleanup
+
+- Split Postgres persistence by repository slice so storage changes stay smaller and easier to
+  review.
+- Split core and Postgres integration suites by behavior so regressions are easier to localize.
+- Decompose provider sign-in orchestration into smaller internal steps without widening the public
+  API.
+- Reduce overlap across backend, session, and account-security guides after the new aggregate
+  read-side surface landed.
+
+Tracking issues: #149, #150, #151, #152.
 
 ## Versioning
 
