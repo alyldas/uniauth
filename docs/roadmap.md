@@ -229,8 +229,6 @@ Tracking issues: #137.
 
 Tracking issues: #148.
 
-## Next Release
-
 ### v0.27 - Internal Decomposition and Docs Cleanup
 
 - Split Postgres persistence by repository slice so storage changes stay smaller and easier to
@@ -242,6 +240,13 @@ Tracking issues: #148.
   read-side surface landed.
 
 Tracking issues: #149, #150, #151, #152.
+
+## Next Release
+
+### v0.28 - Backlog To Be Defined
+
+- Next backlog intentionally left open after the v0.27 maintenance batch landed on `main` without a
+  package release.
 
 ## Versioning
 
