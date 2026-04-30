@@ -1,3 +1,4 @@
+import { getAccountSecuritySnapshot } from './account-security.js'
 import { getUserIdentities, link, mergeAccounts, unlink } from './accounts.js'
 import { getUserCredentials } from './credentials.js'
 import { finishEmailMagicLinkSignIn, startEmailMagicLinkSignIn } from './magic-link.js'
@@ -24,6 +25,7 @@ import { consumeVerification, createVerification, getVerification } from './veri
 import type { AuthPolicy } from './policy.js'
 import type {
   AuthIdentity,
+  AccountSecuritySnapshot,
   AuthResult,
   AuthService,
   ChangePasswordInput,
@@ -179,6 +181,10 @@ export class DefaultAuthService implements AuthService {
 
   async getUserSessions(userId: UserId): Promise<readonly Session[]> {
     return getUserSessions(this.runtime, userId)
+  }
+
+  async getAccountSecuritySnapshot(userId: UserId): Promise<AccountSecuritySnapshot> {
+    return getAccountSecuritySnapshot(this.runtime, userId)
   }
 
   async createSession(input: CreateSessionInput): Promise<CreateSessionResult> {

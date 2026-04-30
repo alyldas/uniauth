@@ -11,15 +11,10 @@ UniAuth still does not own HTTP routes, UI, cookies, or client payload shaping. 
 must decide what to expose and must not leak server-only fields such as `passwordHash`,
 `tokenHash`, or `secretHash`.
 
-Prefer the built-in safe projection helpers for these flows:
+Prefer the built-in read-side and projection helpers for these flows:
 
 ```ts
-const snapshot = toAccountSecuritySnapshot({
-  user,
-  identities,
-  credentials,
-  sessions,
-})
+const snapshot = await authService.getAccountSecuritySnapshot(userId)
 
 const verificationStatus = toVerificationStatusView(verification)
 ```
@@ -29,16 +24,7 @@ const verificationStatus = toVerificationStatusView(verification)
 The minimal server-side composition usually looks like this:
 
 ```ts
-const user = await authService.getUser(userId)
-const identities = await authService.getUserIdentities(userId)
-const credentials = await authService.getUserCredentials(userId)
-const sessions = await authService.getUserSessions(userId)
-const snapshot = toAccountSecuritySnapshot({
-  user,
-  identities,
-  credentials,
-  sessions,
-})
+const snapshot = await authService.getAccountSecuritySnapshot(userId)
 ```
 
 Keep the response client-safe:
@@ -87,7 +73,7 @@ Do not serialize:
 For device-list or active-session screens:
 
 1. resolve the current local session from the transport;
-2. load all local sessions through `authService.getUserSessions(userId)`;
+2. load the aggregate view through `authService.getAccountSecuritySnapshot(userId)`;
 3. present a sanitized session list;
 4. revoke one or many sessions through:
    - `authService.revokeSession(sessionId)`
@@ -100,10 +86,9 @@ after a revoke.
 
 For sign-in method screens:
 
-1. load identities through `authService.getUserIdentities(userId)`;
-2. load credentials through `authService.getUserCredentials(userId)`;
-3. present provider ids, statuses, email or phone hints, and credential types;
-4. use `unlink(...)`, `setPassword(...)`, `changePassword(...)`, or new provider link flows for
+1. load the aggregate view through `authService.getAccountSecuritySnapshot(userId)`;
+2. present provider ids, statuses, email or phone hints, and credential types;
+3. use `unlink(...)`, `setPassword(...)`, `changePassword(...)`, or new provider link flows for
    mutations.
 
 Keep the same public security rules:

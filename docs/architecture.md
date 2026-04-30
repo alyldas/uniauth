@@ -36,6 +36,7 @@ identities, and email/phone are optional identity attributes.
 - `getUser`
 - `getUserCredentials`
 - `getUserSessions`
+- `getAccountSecuritySnapshot`
 - `createVerification`
 - `getVerification`
 - `toAccountSecuritySnapshot`

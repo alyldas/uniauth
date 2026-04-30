@@ -4,6 +4,7 @@ import {
   addSeconds,
   type AuthPolicy,
   AuthIdentityStatus,
+  PASSWORD_PROVIDER_ID,
   ProviderTrustLevel,
   SessionStatus,
   UniAuthErrorCode,
@@ -317,6 +318,51 @@ describe('Postgres reference persistence', () => {
     expect(await service.getVerification(createdVerification.verification.id)).toEqual(
       createdVerification.verification,
     )
+    expect(await service.getAccountSecuritySnapshot(signedIn.user.id)).toEqual({
+      user: {
+        id: signedIn.user.id,
+        email: 'pg-read-side-credential@example.com',
+        createdAt: signedIn.user.createdAt,
+        updatedAt: signedIn.user.updatedAt,
+      },
+      identities: [
+        {
+          id: signedIn.identity.id,
+          provider: signedIn.identity.provider,
+          status: signedIn.identity.status,
+          email: 'pg-read-side-credential@example.com',
+          emailVerified: true,
+          createdAt: signedIn.identity.createdAt,
+          updatedAt: signedIn.identity.updatedAt,
+        },
+        {
+          provider: PASSWORD_PROVIDER_ID,
+          status: 'active',
+          email: 'pg-read-side-credential@example.com',
+          emailVerified: true,
+          id: expect.any(String),
+          createdAt: credential.createdAt,
+          updatedAt: credential.updatedAt,
+        },
+      ],
+      credentials: [
+        {
+          id: credential.id,
+          type: credential.type,
+          subject: credential.subject,
+          createdAt: credential.createdAt,
+          updatedAt: credential.updatedAt,
+        },
+      ],
+      sessions: [
+        {
+          id: signedIn.session.id,
+          status: signedIn.session.status,
+          createdAt: signedIn.session.createdAt,
+          expiresAt: signedIn.session.expiresAt,
+        },
+      ],
+    })
   })
 
   it('bulk-revokes active user sessions on Postgres while keeping the excluded session', async () => {

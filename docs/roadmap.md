@@ -223,9 +223,13 @@ Tracking issues: #137.
 
 ## Next Release
 
-### v0.26 - Backlog To Be Defined
+### v0.26 - Account Security Aggregate Read Side
 
-- Next stabilizing or integrator-facing scope after the safe read-side projections release.
+- Public `getAccountSecuritySnapshot(userId)` API for one-shot account-security pages and API
+  handlers.
+- Examples and docs moved from manual multi-call composition to the aggregate read-side method.
+
+Tracking issues: #148, #149, #150, #151, #152.
 
 ## Versioning
 

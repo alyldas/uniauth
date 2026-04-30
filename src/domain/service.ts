@@ -1,4 +1,5 @@
 import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
+import type { AccountSecuritySnapshot } from './views.js'
 import type {
   AuthResult,
   ConsumeVerificationInput,
@@ -81,6 +82,7 @@ export interface AuthService {
   getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]>
   getUserCredentials(userId: UserId): Promise<readonly Credential[]>
   getUserSessions(userId: UserId): Promise<readonly Session[]>
+  getAccountSecuritySnapshot(userId: UserId): Promise<AccountSecuritySnapshot>
   createSession(input: CreateSessionInput): Promise<CreateSessionResult>
   createVerification(input: CreateVerificationInput): Promise<CreateVerificationResult>
   getVerification(verificationId: VerificationId): Promise<Verification>

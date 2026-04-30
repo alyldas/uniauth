@@ -8,7 +8,6 @@ import {
   VerificationPurpose,
   createDefaultAuthPolicy,
   isUniAuthError,
-  toAccountSecuritySnapshot,
   type Session,
   type User,
   type UniAuthErrorCode as UniAuthErrorCodeType,
@@ -182,17 +181,7 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
           return
         }
 
-        const [identities, credentials, sessions] = await Promise.all([
-          authService.getUserIdentities(auth.user.id),
-          authService.getUserCredentials(auth.user.id),
-          authService.getUserSessions(auth.user.id),
-        ])
-        const snapshot = toAccountSecuritySnapshot({
-          user: auth.user,
-          identities,
-          credentials,
-          sessions,
-        })
+        const snapshot = await authService.getAccountSecuritySnapshot(auth.user.id)
 
         response.status(200).json(serializeAccountSecuritySnapshot(snapshot))
       } catch (error) {
