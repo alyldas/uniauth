@@ -84,8 +84,8 @@
   ],
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
-    "@commitlint/cli": "^20.5.0",
-    "@commitlint/config-conventional": "^20.5.0",
+    "@commitlint/cli": "^20.5.3",
+    "@commitlint/config-conventional": "^20.5.3",
     "@fastify/cookie": "^11.0.2",
     "@types/express": "^5.0.6",
     "@types/node": "^22.19.17",
@@ -101,7 +101,7 @@
     "publint": "^0.3.18",
     "tsup": "^8.0.0",
     "typescript": "^6.0.0",
-    "typescript-eslint": "^8.0.0",
+    "typescript-eslint": "^8.59.1",
     "vitest": "^4.0.0"
   }
 }
