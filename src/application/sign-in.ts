@@ -1,6 +1,5 @@
 import { optionalProp } from './optional.js'
 import type { AuthServiceRuntime } from './runtime.js'
-import { createSessionRecord } from './sessions.js'
 import {
   audit,
   enforceRateLimit,
@@ -8,36 +7,27 @@ import {
   isActiveIdentity,
   rateLimitKey,
 } from './support.js'
+import { findAutoLinkTarget } from './sign-in/auto-link.js'
+import { resolveAssertion } from './sign-in/assertion.js'
+import {
+  auditSuccessfulSignIn,
+  createIdentityFromAssertion,
+  createSessionForSignIn,
+  createUserFromAssertion,
+  SignInAuditMode,
+  type SignInWithAssertionInput,
+} from './sign-in/materialize.js'
 import {
   AuditEventType,
-  AuthIdentityStatus,
-  type AuthIdentity,
   type AuthResult,
-  type CreateSessionResult,
-  type FinishInput,
-  ProviderTrustLevel,
   type ProviderIdentityAssertion,
-  type ProviderTrustContext,
-  type Session,
   type SignInInput,
-  type User,
 } from '../domain/types.js'
-import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
 import { RateLimitAction } from '../ports.js'
 
-const SignInAuditMode = {
-  Exact: 'exact',
-  AutoLink: 'auto-link',
-  NewUser: 'new-user',
-} as const
-
-type SignInAuditMode = (typeof SignInAuditMode)[keyof typeof SignInAuditMode]
-
-interface SignInWithAssertionInput {
-  readonly now: Date
-  readonly sessionExpiresAt?: Date
-  readonly metadata?: Record<string, unknown>
-}
+export { findAutoLinkTarget } from './sign-in/auto-link.js'
+export { normalizeAssertion, resolveAssertion } from './sign-in/assertion.js'
+export { createIdentityFromAssertion, createUserFromAssertion } from './sign-in/materialize.js'
 
 export async function signIn(runtime: AuthServiceRuntime, input: SignInInput): Promise<AuthResult> {
   const now = input.now ?? runtime.clock.now()
@@ -145,245 +135,4 @@ export async function signInWithAssertion(
     isNewUser: true,
     isNewIdentity: true,
   }
-}
-
-async function createSessionForSignIn(
-  runtime: AuthServiceRuntime,
-  user: User,
-  input: SignInWithAssertionInput,
-): Promise<CreateSessionResult> {
-  return createSessionRecord(runtime, {
-    userId: user.id,
-    now: input.now,
-    ...optionalProp('expiresAt', input.sessionExpiresAt),
-    ...optionalProp('metadata', input.metadata),
-  })
-}
-
-async function auditSuccessfulSignIn(
-  runtime: AuthServiceRuntime,
-  mode: SignInAuditMode,
-  input: SignInWithAssertionInput,
-  user: User,
-  identity: AuthIdentity,
-  session: Session,
-): Promise<void> {
-  await audit(runtime, AuditEventType.SignIn, input.now, {
-    userId: user.id,
-    identityId: identity.id,
-    sessionId: session.id,
-    metadata: { mode },
-  })
-}
-
-export async function resolveAssertion(
-  runtime: AuthServiceRuntime,
-  input: {
-    readonly assertion?: ProviderIdentityAssertion
-    readonly provider?: string
-    readonly finishInput?: FinishInput
-  },
-): Promise<ProviderIdentityAssertion> {
-  if (input.assertion) {
-    return normalizeAssertion(runtime, input.assertion)
-  }
-
-  if (!input.provider || !input.finishInput) {
-    throw invalidInput('Either assertion or provider finish input is required.')
-  }
-
-  if (!runtime.providerRegistry) {
-    throw new UniAuthError(UniAuthErrorCode.ProviderNotFound, 'Auth provider was not found.')
-  }
-
-  const provider = await runtime.providerRegistry.get(input.provider)
-
-  if (!provider) {
-    throw new UniAuthError(UniAuthErrorCode.ProviderNotFound, 'Auth provider was not found.')
-  }
-
-  return normalizeAssertion(runtime, await provider.finish(input.finishInput))
-}
-
-export function normalizeAssertion(
-  runtime: Pick<AuthServiceRuntime, 'normalizer'>,
-  assertion: Partial<ProviderIdentityAssertion>,
-): ProviderIdentityAssertion {
-  const provider = assertion.provider?.trim() ?? ''
-  const providerUserId = assertion.providerUserId?.trim() ?? ''
-
-  if (!provider || !providerUserId) {
-    throw invalidInput('Provider and provider user id are required.')
-  }
-
-  const email = normalizeOptionalClaim(assertion.email, runtime.normalizer.normalizeEmail)
-  const phone = normalizeOptionalClaim(assertion.phone, runtime.normalizer.normalizePhone)
-  const displayName = assertion.displayName?.trim() || undefined
-
-  return {
-    provider,
-    providerUserId,
-    ...(email
-      ? {
-          email,
-          emailVerified: assertion.emailVerified === true,
-        }
-      : {}),
-    ...(phone
-      ? {
-          phone,
-          phoneVerified: assertion.phoneVerified === true,
-        }
-      : {}),
-    ...optionalProp('displayName', displayName),
-    ...optionalProp('trust', normalizeProviderTrust(assertion.trust)),
-    ...optionalProp('metadata', assertion.metadata),
-  }
-}
-
-function normalizeOptionalClaim(
-  value: string | undefined,
-  normalize: (value: string) => string,
-): string | undefined {
-  if (value === undefined) {
-    return undefined
-  }
-
-  const trimmed = value.trim()
-
-  if (!trimmed) {
-    return undefined
-  }
-
-  return normalize(trimmed)
-}
-
-function normalizeProviderTrust(
-  trust: ProviderIdentityAssertion['trust'],
-): ProviderTrustContext | undefined {
-  if (!trust) {
-    return undefined
-  }
-
-  if (typeof trust.level !== 'string') {
-    throw invalidInput('Provider trust level must be a string.')
-  }
-
-  const level = trust.level.trim() as ProviderTrustLevel
-
-  if (
-    level !== ProviderTrustLevel.Trusted &&
-    level !== ProviderTrustLevel.Neutral &&
-    level !== ProviderTrustLevel.Untrusted
-  ) {
-    throw invalidInput('Provider trust level must be trusted, neutral, or untrusted.')
-  }
-
-  if (trust.signals !== undefined && !Array.isArray(trust.signals)) {
-    throw invalidInput('Provider trust signals must be an array of strings.')
-  }
-
-  const signals = trust.signals
-    ?.map((signal) => {
-      if (typeof signal !== 'string') {
-        throw invalidInput('Provider trust signals must be an array of strings.')
-      }
-
-      return signal.trim()
-    })
-    .filter((signal) => signal.length > 0)
-
-  return {
-    level,
-    ...(signals && signals.length > 0 ? { signals: [...new Set(signals)] } : {}),
-    ...optionalProp('metadata', trust.metadata),
-  }
-}
-
-async function findAutoLinkTarget(
-  runtime: AuthServiceRuntime,
-  assertion: ProviderIdentityAssertion,
-): Promise<User | undefined> {
-  const candidateIdentities = new Map<string, AuthIdentity>()
-
-  if (assertion.email && assertion.emailVerified === true) {
-    for (const identity of await runtime.repos.identityRepo.findByVerifiedEmail(assertion.email)) {
-      if (isActiveIdentity(identity)) {
-        candidateIdentities.set(identity.id, identity)
-      }
-    }
-  }
-
-  if (assertion.phone && assertion.phoneVerified === true) {
-    for (const identity of await runtime.repos.identityRepo.findByVerifiedPhone(assertion.phone)) {
-      if (isActiveIdentity(identity)) {
-        candidateIdentities.set(identity.id, identity)
-      }
-    }
-  }
-
-  const identities = [...candidateIdentities.values()]
-  const userIds = [...new Set(identities.map((identity) => identity.userId))]
-
-  if (userIds.length !== 1) {
-    return undefined
-  }
-
-  const targetUser = await runtime.repos.userRepo.findById(userIds[0]!)
-
-  if (!targetUser || targetUser.disabledAt) {
-    return undefined
-  }
-
-  const allowed = await runtime.policy.canAutoLink({
-    assertion,
-    targetUser,
-    existingIdentities: identities,
-  })
-
-  return allowed ? targetUser : undefined
-}
-
-export async function createUserFromAssertion(
-  runtime: AuthServiceRuntime,
-  assertion: ProviderIdentityAssertion,
-  now: Date,
-): Promise<User> {
-  const user: User = {
-    id: runtime.idGenerator.userId(),
-    createdAt: now,
-    updatedAt: now,
-    ...optionalProp('displayName', assertion.displayName),
-    ...(assertion.email && assertion.emailVerified === true ? { email: assertion.email } : {}),
-    ...(assertion.phone && assertion.phoneVerified === true ? { phone: assertion.phone } : {}),
-  }
-
-  return runtime.repos.userRepo.create(user)
-}
-
-export async function createIdentityFromAssertion(
-  runtime: AuthServiceRuntime,
-  user: User,
-  assertion: ProviderIdentityAssertion,
-  now: Date,
-): Promise<AuthIdentity> {
-  const identity: AuthIdentity = {
-    id: runtime.idGenerator.identityId(),
-    userId: user.id,
-    provider: assertion.provider,
-    providerUserId: assertion.providerUserId,
-    status: AuthIdentityStatus.Active,
-    createdAt: now,
-    updatedAt: now,
-    ...(assertion.email
-      ? { email: assertion.email, emailVerified: assertion.emailVerified === true }
-      : {}),
-    ...(assertion.phone
-      ? { phone: assertion.phone, phoneVerified: assertion.phoneVerified === true }
-      : {}),
-    ...optionalProp('trust', assertion.trust),
-    ...optionalProp('metadata', assertion.metadata),
-  }
-
-  return runtime.repos.identityRepo.create(identity)
 }
