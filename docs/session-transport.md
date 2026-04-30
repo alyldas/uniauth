@@ -10,6 +10,16 @@ This document keeps the boundary explicit for three common transports:
 - API bearer transport;
 - mobile or native client token storage.
 
+Use this document for:
+
+- token extraction and transport policy;
+- request auth middleware or preHandler shape;
+- logout and revoke transport cleanup.
+
+Use [Backend integration recipes](backend-recipes.md) for framework bootstrap and route/controller
+composition. Use [Account security recipes](account-security.md) for device lists, sign-in methods,
+and verification inspection after you already trust the caller and know the target `userId`.
+
 ## Browser Cookies
 
 Browser-first applications usually map `result.sessionToken` into a sealed or encrypted session
@@ -238,6 +248,10 @@ Fastify users often keep `touchSession(...)` in a second protected-route hook or
 handler itself, so lightweight public requests can resolve auth context without forcing an activity
 write every time.
 
+If one authenticated request also needs device lists or sign-in methods, resolve the transport here
+and then hand off to `authService.getAccountSecuritySnapshot(userId)` as described in
+[Account security recipes](account-security.md).
+
 What stays application-owned:
 
 - CSRF protection for browser POST requests;
@@ -311,6 +325,9 @@ For sign-out-all-devices or device-management screens, applications can first ca
 `authService.revokeUserSessions({ userId, exceptSessionId })`. UniAuth still does not clear cookies
 or bearer stores for those clients; the application must remove the transport artifact on each
 device as it becomes aware of the revoked local session.
+
+For the account-security screen shape and safe outward projection, continue in
+[Account security recipes](account-security.md).
 
 ## Security Notes
 

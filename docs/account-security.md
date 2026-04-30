@@ -11,6 +11,11 @@ UniAuth still does not own HTTP routes, UI, cookies, or client payload shaping. 
 must decide what to expose and must not leak server-only fields such as `passwordHash`,
 `tokenHash`, or `secretHash`.
 
+This document starts after transport resolution. Use [Session transport recipes](session-transport.md)
+to turn cookies or bearer headers into a trusted local session and `userId`. Use
+[Backend integration recipes](backend-recipes.md) for framework-specific bootstrap and route
+composition.
+
 Prefer the built-in read-side and projection helpers for these flows:
 
 ```ts

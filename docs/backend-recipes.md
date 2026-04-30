@@ -6,6 +6,17 @@ orchestration, policy checks, verification lifecycle, and local session records.
 
 Use these recipes as transport composition patterns, not as framework bindings inside the package.
 
+Use this document for:
+
+- service bootstrap;
+- framework route/controller composition;
+- server-module ownership boundaries.
+
+Use [Session transport recipes](session-transport.md) for token extraction, cookie vs bearer
+transport, and request auth middleware/preHandler shape. Use
+[Account security recipes](account-security.md) for device lists, sign-in method screens, and safe
+read-side projections.
+
 ## Shared Bootstrap
 
 Keep service construction in one server-only module:
@@ -87,32 +98,10 @@ app.post('/auth/password/sign-in', async (req, res, next) => {
 })
 ```
 
-Express session middleware can stay equally thin:
-
-```ts
-app.get(
-  '/me',
-  createExpressSessionMiddleware(authService),
-  requireExpressSession,
-  (request, response) => {
-    response.status(200).json({
-      userId: request.auth.userId,
-      email: request.auth.user.email ?? null,
-      sessionRecordId: request.auth.session.id,
-    })
-  },
-)
-```
-
-That middleware should:
-
-- extract the session token from `Authorization: Bearer ...` or the session cookie;
-- call `authService.resolveSession({ sessionToken })`;
-- load the active local user through `authService.getUser(session.userId)` when the request context
-  needs a user snapshot;
-- optionally call `authService.touchSession({ sessionId })`;
-- attach `{ userId, user, session }` to `request.auth`;
-- map invalid or missing local sessions to `401 Authentication required.`
+For Express session middleware shape, bearer-vs-cookie extraction, and `touchSession(...)`
+placement, use [Session transport recipes](session-transport.md). The runnable
+[Express auth module example](../examples/express-auth/index.ts) already shows that middleware in
+context.
 
 Express ownership notes:
 
@@ -122,11 +111,8 @@ Express ownership notes:
   recovery start, and OTP start.
 - Keep route-neutral errors neutral at the HTTP layer too; do not translate invalid credentials into
   account existence hints.
-- For account-security screens that list sign-in methods or devices, prefer the dedicated
-  [Account security recipes](account-security.md) and the built-in safe projection helpers instead
-  of reading adapter internals.
-- Prefer `authService.getAccountSecuritySnapshot(userId)` when one request needs the whole
-  account-security view.
+- For account-security screens, use [Account security recipes](account-security.md) and the
+  built-in safe projection helpers instead of reading adapter internals.
 
 ## Fastify
 
@@ -162,33 +148,10 @@ app.post('/auth/magic/finish', async (request, reply) => {
 })
 ```
 
-Fastify session resolution fits naturally into a `preHandler`:
-
-```ts
-app.get(
-  '/me',
-  {
-    preHandler: [createFastifySessionPreHandler(authService), requireFastifySession],
-  },
-  async (request, reply) => {
-    return reply.send({
-      userId: request.auth.userId,
-      email: request.auth.user.email ?? null,
-      sessionRecordId: request.auth.session.id,
-    })
-  },
-)
-```
-
-That preHandler should:
-
-- read the bearer token from `request.headers.authorization` or the cookie from `request.cookies`;
-- resolve it through `authService.resolveSession(...)`;
-- load the current active local user through `authService.getUser(session.userId)` if the handler
-  needs it;
-- optionally update activity through `authService.touchSession(...)`;
-- attach `{ userId, user, session }` to `request.auth`;
-- send `401 Authentication required.` for invalid or revoked local sessions.
+For Fastify session `preHandler` shape, token extraction, and neutral `401` mapping, use
+[Session transport recipes](session-transport.md). The runnable
+[Fastify auth module example](../examples/fastify-auth/index.ts) keeps that logic in the framework
+layer.
 
 Fastify ownership notes:
 
@@ -196,11 +159,9 @@ Fastify ownership notes:
 - Keep cookie and CSRF plugins in the Fastify layer, not in sender/provider adapters.
 - If delivery goes through queues, keep that inside your `EmailSender` or `SmsSender` adapters
   rather than introducing a Fastify-specific auth dispatcher.
-- For a fuller copyable recipe, including token extraction helpers and failure mapping, see
-  [Session transport recipes](session-transport.md).
-- For sign-in-method and device-management screens, compose the public read-side methods described
-  in [Account security recipes](account-security.md) and project outward data through the safe
-  helper layer.
+- For a fuller copyable token/session recipe, see [Session transport recipes](session-transport.md).
+- For sign-in-method and device-management screens, use
+  [Account security recipes](account-security.md).
 
 ## Nest
 
