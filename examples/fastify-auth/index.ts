@@ -9,7 +9,6 @@ import {
   VerificationPurpose,
   createDefaultAuthPolicy,
   isUniAuthError,
-  toAccountSecuritySnapshot,
   type Session,
   type User,
   type UniAuthErrorCode as UniAuthErrorCodeType,
@@ -179,17 +178,7 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
         return reply.status(401).send({ error: AUTHENTICATION_REQUIRED_MESSAGE })
       }
 
-      const [identities, credentials, sessions] = await Promise.all([
-        authService.getUserIdentities(auth.user.id),
-        authService.getUserCredentials(auth.user.id),
-        authService.getUserSessions(auth.user.id),
-      ])
-      const snapshot = toAccountSecuritySnapshot({
-        user: auth.user,
-        identities,
-        credentials,
-        sessions,
-      })
+      const snapshot = await authService.getAccountSecuritySnapshot(auth.user.id)
 
       return reply.status(200).send(serializeAccountSecuritySnapshot(snapshot))
     },

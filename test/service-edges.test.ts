@@ -226,6 +226,13 @@ describe('DefaultAuthService edge cases', () => {
     })
     expect(
       await defaultService
+        .getAccountSecuritySnapshot(second.user.id)
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
+    expect(
+      await defaultService
         .getVerification(asVerificationId('missing-verification'))
         .catch((caught: unknown) => caught),
     ).toMatchObject({

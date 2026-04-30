@@ -125,6 +125,8 @@ Express ownership notes:
 - For account-security screens that list sign-in methods or devices, prefer the dedicated
   [Account security recipes](account-security.md) and the built-in safe projection helpers instead
   of reading adapter internals.
+- Prefer `authService.getAccountSecuritySnapshot(userId)` when one request needs the whole
+  account-security view.
 
 ## Fastify
 
