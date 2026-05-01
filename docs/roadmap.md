@@ -229,8 +229,9 @@ Tracking issues: #137.
 
 Tracking issues: #148.
 
-### v0.27 - Internal Decomposition and Docs Cleanup
+### v0.27 - Audit Read Side and Internal Cleanup
 
+- Public audit-event read-side API for trusted security timelines and support tooling.
 - Split Postgres persistence by repository slice so storage changes stay smaller and easier to
   review.
 - Split core and Postgres integration suites by behavior so regressions are easier to localize.
@@ -239,19 +240,18 @@ Tracking issues: #148.
 - Reduce overlap across backend, session, and account-security guides after the new aggregate
   read-side surface landed.
 
-Tracking issues: #149, #150, #151, #152.
+Tracking issues: #149, #150, #151, #152, #162.
 
 ## Next Release
 
-### v0.28 - Audit Read Side and Security Recipes
+### v0.28 - Security Recipes and Regression Hardening
 
-- Public audit-event read-side API for trusted security timelines and support tooling.
 - Account-security action recipes for revoke, unlink, and password-management flows.
 - Additional regression coverage around password, verification-secret, and session-token hash-only
   storage.
 - Support and admin inspection recipe built on the public read-side surface.
 
-Tracking issues: #162, #163, #164, #165.
+Tracking issues: #163, #164, #165.
 
 ## Versioning
 
