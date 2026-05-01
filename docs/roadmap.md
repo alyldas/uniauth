@@ -242,8 +242,6 @@ Tracking issues: #148.
 
 Tracking issues: #149, #150, #151, #152, #162.
 
-## Next Release
-
 ### v0.28 - Security Recipes and Regression Hardening
 
 - Account-security action recipes for revoke, unlink, and password-management flows.
@@ -252,6 +250,13 @@ Tracking issues: #149, #150, #151, #152, #162.
 - Support and admin inspection recipe built on the public read-side surface.
 
 Tracking issues: #163, #164, #165.
+
+## Next Release
+
+### v0.29 - Backlog To Be Defined
+
+- Next releasable feature batch to be defined after the completed v0.28 security docs and
+  regression hardening pass on `main`.
 
 ## Versioning
 
