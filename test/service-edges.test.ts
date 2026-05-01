@@ -437,6 +437,7 @@ describe('DefaultAuthService edge cases', () => {
           append: async () => {
             throw auditFailure
           },
+          list: async () => [],
         },
       },
       transaction: store,

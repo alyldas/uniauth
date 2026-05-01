@@ -243,10 +243,15 @@ Tracking issues: #149, #150, #151, #152.
 
 ## Next Release
 
-### v0.28 - Backlog To Be Defined
+### v0.28 - Audit Read Side and Security Recipes
 
-- Next backlog intentionally left open after the v0.27 maintenance batch landed on `main` without a
-  package release.
+- Public audit-event read-side API for trusted security timelines and support tooling.
+- Account-security action recipes for revoke, unlink, and password-management flows.
+- Additional regression coverage around password, verification-secret, and session-token hash-only
+  storage.
+- Support and admin inspection recipe built on the public read-side surface.
+
+Tracking issues: #162, #163, #164, #165.
 
 ## Versioning
 

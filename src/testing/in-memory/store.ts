@@ -259,6 +259,19 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
     append: async (event) => {
       this.auditEvents.push(event)
     },
+    list: async (input = {}) => {
+      const events = [...this.auditEvents]
+        .filter((event) => (input.userId ? event.userId === input.userId : true))
+        .filter((event) => (input.identityId ? event.identityId === input.identityId : true))
+        .filter((event) => (input.sessionId ? event.sessionId === input.sessionId : true))
+        .filter((event) => (input.type ? event.type === input.type : true))
+        .filter((event) =>
+          input.before ? event.occurredAt.getTime() < input.before.getTime() : true,
+        )
+        .sort(compareAuditEventsDescending)
+
+      return input.limit !== undefined ? events.slice(0, input.limit) : events
+    },
   }
 
   async run<T>(operation: () => Promise<T>): Promise<T> {
@@ -384,4 +397,14 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
 
     this.auditEvents.push(...snapshot.auditEvents)
   }
+}
+
+function compareAuditEventsDescending(left: AuditEvent, right: AuditEvent): number {
+  const occurredDifference = right.occurredAt.getTime() - left.occurredAt.getTime()
+
+  if (occurredDifference !== 0) {
+    return occurredDifference
+  }
+
+  return right.id.localeCompare(left.id)
 }

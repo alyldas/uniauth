@@ -242,13 +242,37 @@ describe('InMemoryAuthStore', () => {
       type: AuditEventType.PolicyDenied,
       occurredAt: now,
     })
+    await store.auditLogRepo.append({
+      id: asAuditEventId('audit-2'),
+      type: AuditEventType.SignIn,
+      occurredAt: addSeconds(now, 5),
+      userId: createdUser.id,
+      identityId: emailIdentity.id,
+      sessionId: session.id,
+    })
 
     expect(store.listUsers()).toHaveLength(2)
     expect(store.listIdentities()).toHaveLength(2)
     expect(store.listCredentials()).toHaveLength(2)
     expect(store.listVerifications()).toHaveLength(1)
     expect(store.listSessions()).toHaveLength(2)
-    expect(store.listAuditEvents()).toHaveLength(1)
+    expect(store.listAuditEvents()).toHaveLength(2)
+    expect(await store.auditLogRepo.list()).toEqual([
+      expect.objectContaining({ id: asAuditEventId('audit-2') }),
+      expect.objectContaining({ id: asAuditEventId('audit-1') }),
+    ])
+    expect(
+      await store.auditLogRepo.list({
+        userId: createdUser.id,
+        limit: 5,
+      }),
+    ).toEqual([expect.objectContaining({ id: asAuditEventId('audit-2') })])
+    expect(
+      await store.auditLogRepo.list({
+        identityId: emailIdentity.id,
+        sessionId: session.id,
+      }),
+    ).toEqual([expect.objectContaining({ id: asAuditEventId('audit-2') })])
   })
 
   it('rolls back outer state while allowing nested transaction reuse', async () => {

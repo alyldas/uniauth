@@ -24,3 +24,12 @@ export interface AuditEvent {
   readonly sessionId?: SessionId
   readonly metadata?: Record<string, unknown>
 }
+
+export interface AuditEventQuery {
+  readonly userId?: UserId
+  readonly identityId?: IdentityId
+  readonly sessionId?: SessionId
+  readonly type?: AuditEventType
+  readonly before?: Date
+  readonly limit?: number
+}

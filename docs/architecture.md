@@ -36,6 +36,7 @@ identities, and email/phone are optional identity attributes.
 - `getUser`
 - `getUserCredentials`
 - `getUserSessions`
+- `getAuditEvents`
 - `getAccountSecuritySnapshot`
 - `createVerification`
 - `getVerification`
@@ -50,6 +51,10 @@ It delegates authorization decisions to `AuthPolicy` and storage/provider/sender
 Core defines repository ports, credential ports, provider registry, sender ports, rate-limit port,
 password hashing port, audit log port, verification secret hashing extension point, and
 `UnitOfWork`.
+
+The audit log port is now read-capable as well as write-capable. Core still owns local security
+event creation, while trusted backend tooling can read the resulting `AuditEvent` timeline through
+the public service layer without reaching into adapter internals.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful

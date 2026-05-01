@@ -1,5 +1,6 @@
 import type {
   AuditEvent,
+  AuditEventQuery,
   AuthIdentity,
   AuthIdentityProvider,
   Credential,
@@ -65,6 +66,7 @@ export interface SessionRepo {
 
 export interface AuditLogRepo {
   append(event: AuditEvent): Promise<void>
+  list(input?: AuditEventQuery): Promise<readonly AuditEvent[]>
 }
 
 export interface AuthServiceRepositories {
