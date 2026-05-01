@@ -1,6 +1,6 @@
 {
   "name": "@alyldas/uniauth",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "description": "Headless identity orchestration core for TypeScript and Node.js.",
   "type": "module",
   "engines": {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.0](https://github.com/alyldas/uniauth/compare/v0.27.0...v0.28.0) (2026-05-01)
+
+
+### Features
+
+* add trusted account inspection aggregate ([b33634d](https://github.com/alyldas/uniauth/commit/b33634d87f543266abaa4d3ad888b81c3b720729))
+
 ## [0.27.0](https://github.com/alyldas/uniauth/compare/v0.26.0...v0.27.0) (2026-05-01)
 
 
