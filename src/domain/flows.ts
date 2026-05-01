@@ -100,6 +100,11 @@ export interface RevokeUserSessionsResult {
   readonly revokedSessionIds: readonly SessionId[]
 }
 
+export interface GetAccountInspectionSnapshotInput {
+  readonly userId: UserId
+  readonly auditLimit?: number
+}
+
 export interface CreateVerificationInput {
   readonly purpose: VerificationPurpose
   readonly target: string

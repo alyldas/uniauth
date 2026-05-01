@@ -232,6 +232,63 @@ describe('DefaultAuthService read side and sessions', () => {
     ])
   })
 
+  it('reads a trusted account inspection snapshot through the public service surface', async () => {
+    const { service } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        provider: 'email',
+        providerUserId: 'inspection-reader',
+        email: 'inspection-reader@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+
+    await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'inspection-reader@example.com',
+      secret: '123456',
+      now: addSeconds(now, 5),
+    })
+    await service.revokeSession(signedIn.session.id)
+
+    expect(
+      await service.getAccountInspectionSnapshot({
+        userId: signedIn.user.id,
+        auditLimit: 3,
+      }),
+    ).toEqual({
+      account: await service.getAccountSecuritySnapshot(signedIn.user.id),
+      auditEvents: [
+        {
+          id: expect.any(String),
+          type: AuditEventType.SessionRevoked,
+          occurredAt: expect.any(Date),
+          userId: signedIn.user.id,
+          sessionId: signedIn.session.id,
+        },
+        {
+          id: expect.any(String),
+          type: AuditEventType.SignIn,
+          occurredAt: expect.any(Date),
+          userId: signedIn.user.id,
+          identityId: signedIn.identity.id,
+          sessionId: signedIn.session.id,
+        },
+        {
+          id: expect.any(String),
+          type: AuditEventType.SessionCreated,
+          occurredAt: expect.any(Date),
+          userId: signedIn.user.id,
+          sessionId: signedIn.session.id,
+        },
+      ],
+    })
+    expect(
+      (await service.getAccountInspectionSnapshot({ userId: signedIn.user.id })).auditEvents,
+    ).toHaveLength(3)
+  })
+
   it('bulk-revokes active user sessions while optionally keeping one session active', async () => {
     const { service, store } = createInMemoryAuthKit()
     const signedIn = await service.signIn({ assertion: assertion(), now })
