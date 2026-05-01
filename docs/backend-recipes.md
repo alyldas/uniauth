@@ -14,8 +14,8 @@ Use this document for:
 
 Use [Session transport recipes](session-transport.md) for token extraction, cookie vs bearer
 transport, and request auth middleware/preHandler shape. Use
-[Account security recipes](account-security.md) for device lists, sign-in method screens, and safe
-read-side projections.
+[Account security recipes](account-security.md) for device lists, sign-in method screens, revoke
+flows, password-management handoff, and safe read-side projections.
 
 ## Shared Bootstrap
 
@@ -111,8 +111,8 @@ Express ownership notes:
   recovery start, and OTP start.
 - Keep route-neutral errors neutral at the HTTP layer too; do not translate invalid credentials into
   account existence hints.
-- For account-security screens, use [Account security recipes](account-security.md) and the
-  built-in safe projection helpers instead of reading adapter internals.
+- For account-security screens and mutations, use [Account security recipes](account-security.md)
+  and the built-in safe projection helpers instead of reading adapter internals.
 
 ## Fastify
 
@@ -160,7 +160,7 @@ Fastify ownership notes:
 - If delivery goes through queues, keep that inside your `EmailSender` or `SmsSender` adapters
   rather than introducing a Fastify-specific auth dispatcher.
 - For a fuller copyable token/session recipe, see [Session transport recipes](session-transport.md).
-- For sign-in-method and device-management screens, use
+- For sign-in-method, device-management, revoke, and password-change routes, use
   [Account security recipes](account-security.md).
 
 ## Nest
