@@ -551,6 +551,7 @@ contact `alyldas@ya.ru`.
 - [OTP delivery boundary](docs/otp-delivery.md)
 - [Normalization boundary](docs/normalization.md)
 - [Session transport recipes](docs/session-transport.md)
+- [Support and admin inspection recipe](docs/support-inspection.md)
 - [Messenger providers](docs/messenger-providers.md)
 - [OAuth / OIDC providers](docs/oauth-oidc.md)
 - [Provider token persistence](docs/provider-token-persistence.md)

@@ -16,6 +16,8 @@ Use [Session transport recipes](session-transport.md) for token extraction, cook
 transport, and request auth middleware/preHandler shape. Use
 [Account security recipes](account-security.md) for device lists, sign-in method screens, revoke
 flows, password-management handoff, and safe read-side projections.
+Use [Support and admin inspection recipe](support-inspection.md) for trusted operator tooling that
+stays server-only.
 
 ## Shared Bootstrap
 
