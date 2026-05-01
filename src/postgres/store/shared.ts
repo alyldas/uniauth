@@ -1,4 +1,5 @@
 import {
+  asAuditEventId,
   asCredentialId,
   asIdentityId,
   asSessionId,
@@ -6,6 +7,8 @@ import {
   asVerificationId,
   ProviderTrustLevel,
   type AuthIdentity,
+  type AuditEvent,
+  type AuditEventType,
   type AuthIdentityProvider,
   type Credential,
   type CredentialType,
@@ -31,6 +34,16 @@ export interface UserRow {
   readonly created_at: Date | string
   readonly updated_at: Date | string
   readonly disabled_at: Date | string | null
+  readonly metadata: Record<string, unknown> | string | null
+}
+
+export interface AuditEventRow {
+  readonly id: string
+  readonly type: AuditEventType
+  readonly occurred_at: Date | string
+  readonly user_id: string | null
+  readonly identity_id: string | null
+  readonly session_id: string | null
   readonly metadata: Record<string, unknown> | string | null
 }
 
@@ -121,6 +134,18 @@ export function mapUserRow(row: UserRow): User {
     ...optionalProp('email', readString(row.email)),
     ...optionalProp('phone', readString(row.phone)),
     ...optionalProp('disabledAt', readOptionalDate(row.disabled_at)),
+    ...optionalProp('metadata', readJsonObject(row.metadata)),
+  }
+}
+
+export function mapAuditEventRow(row: AuditEventRow): AuditEvent {
+  return {
+    id: asAuditEventId(row.id),
+    type: row.type,
+    occurredAt: readDate(row.occurred_at),
+    ...optionalProp('userId', row.user_id ? asUserId(row.user_id) : undefined),
+    ...optionalProp('identityId', row.identity_id ? asIdentityId(row.identity_id) : undefined),
+    ...optionalProp('sessionId', row.session_id ? asSessionId(row.session_id) : undefined),
     ...optionalProp('metadata', readJsonObject(row.metadata)),
   }
 }

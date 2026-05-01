@@ -5,6 +5,7 @@ Use the public read-side API when you need account-security pages such as:
 - sign-in method management;
 - current-device and other-device session lists;
 - sign-out-current-device or sign-out-other-devices flows;
+- trusted security timeline or audit-event inspection;
 - support-only verification inspection by id.
 
 UniAuth still does not own HTTP routes, UI, cookies, or client payload shaping. The application
@@ -72,6 +73,37 @@ Do not serialize:
 - `Credential.passwordHash`
 - `Session.tokenHash`
 - `Verification.secretHash`
+
+## Security Timeline
+
+For trusted backend security timelines or support inspection:
+
+```ts
+const events = await authService.getAuditEvents({
+  userId,
+  limit: 20,
+})
+```
+
+The service returns local `AuditEvent` records newest-first. Keep outward serialization
+application-owned and expose only the fields your support or admin surface actually needs.
+
+Typical server-safe outward shape:
+
+```ts
+return events.map((event) => ({
+  id: event.id,
+  type: event.type,
+  occurredAt: event.occurredAt.toISOString(),
+  userId: event.userId ?? null,
+  identityId: event.identityId ?? null,
+  sessionId: event.sessionId ?? null,
+  metadata: event.metadata ?? null,
+}))
+```
+
+Do not add secrets or credential material to audit metadata in application code. Keep the same
+trusted-backend assumption here as for verification inspection.
 
 ## Device Management
 

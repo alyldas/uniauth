@@ -84,7 +84,11 @@ const schemaStatements = [
     metadata jsonb
   )`,
   `create index if not exists uniauth_audit_events_user_idx on uniauth_audit_events (user_id)`,
+  `create index if not exists uniauth_audit_events_identity_idx on uniauth_audit_events (identity_id)`,
+  `create index if not exists uniauth_audit_events_session_idx on uniauth_audit_events (session_id)`,
   `create index if not exists uniauth_audit_events_occurred_idx on uniauth_audit_events (occurred_at)`,
+  `create index if not exists uniauth_audit_events_type_occurred_idx
+    on uniauth_audit_events (type, occurred_at desc)`,
 ] as const
 
 export const POSTGRES_AUTH_SCHEMA_SQL = `${schemaStatements.join(';\n\n')};\n`

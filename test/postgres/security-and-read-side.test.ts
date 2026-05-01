@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AuditEventType,
   PASSWORD_PROVIDER_ID,
   SessionStatus,
   UniAuthErrorCode,
@@ -273,6 +274,68 @@ describe('Postgres reference persistence security and read side', () => {
         },
       ],
     })
+  })
+
+  it('reads audit events through the public service surface on Postgres', async () => {
+    const { service, store } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-audit-reader',
+        email: 'pg-audit-reader@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'pg-audit-reader@example.com',
+      secret: '654321',
+      now: addSeconds(now, 5),
+    })
+    await service.revokeSession(signedIn.session.id)
+
+    expect((await service.getAuditEvents()).map((event) => event.type)).toEqual([
+      AuditEventType.SessionRevoked,
+      AuditEventType.VerificationCreated,
+      AuditEventType.SignIn,
+      AuditEventType.SessionCreated,
+    ])
+    expect(
+      (
+        await service.getAuditEvents({
+          userId: signedIn.user.id,
+          limit: 3,
+        })
+      ).map((event) => event.type),
+    ).toEqual([AuditEventType.SessionRevoked, AuditEventType.SignIn, AuditEventType.SessionCreated])
+    expect(
+      (
+        await service.getAuditEvents({
+          sessionId: signedIn.session.id,
+          limit: 2,
+        })
+      ).map((event) => event.type),
+    ).toEqual([AuditEventType.SessionRevoked, AuditEventType.SignIn])
+    expect(
+      (
+        await service.getAuditEvents({
+          identityId: signedIn.identity.id,
+          type: AuditEventType.SignIn,
+          before: addSeconds(now, 1),
+          limit: 5,
+        })
+      ).map((event) => event.type),
+    ).toEqual([AuditEventType.SignIn])
+    expect(
+      (
+        await store.auditLogRepo.list({
+          identityId: signedIn.identity.id,
+          type: AuditEventType.SignIn,
+        })
+      ).map((event) => event.type),
+    ).toEqual([AuditEventType.SignIn])
   })
 
   it('bulk-revokes active user sessions on Postgres while keeping the excluded session', async () => {

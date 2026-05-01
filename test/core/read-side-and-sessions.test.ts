@@ -169,6 +169,69 @@ describe('DefaultAuthService read side and sessions', () => {
     })
   })
 
+  it('reads audit events through the public service surface with newest-first filtering', async () => {
+    const { service } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        provider: 'email',
+        providerUserId: 'audit-reader',
+        email: 'audit-reader@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const verification = await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'audit-reader@example.com',
+      secret: '123456',
+      now: addSeconds(now, 5),
+    })
+    await service.revokeSession(signedIn.session.id)
+
+    const allEvents = await service.getAuditEvents()
+    const userEvents = await service.getAuditEvents({ userId: signedIn.user.id, limit: 3 })
+    const sessionEvents = await service.getAuditEvents({ sessionId: signedIn.session.id, limit: 2 })
+    const olderUserEvents = await service.getAuditEvents({
+      userId: signedIn.user.id,
+      before: addSeconds(now, 1),
+      limit: 5,
+    })
+
+    expect(allEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionRevoked,
+      AuditEventType.VerificationCreated,
+      AuditEventType.SignIn,
+      AuditEventType.SessionCreated,
+    ])
+    expect(userEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionRevoked,
+      AuditEventType.SignIn,
+      AuditEventType.SessionCreated,
+    ])
+    expect(sessionEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionRevoked,
+      AuditEventType.SignIn,
+    ])
+    expect(olderUserEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SignIn,
+      AuditEventType.SessionCreated,
+    ])
+    expect(
+      await service.getAuditEvents({
+        type: AuditEventType.VerificationCreated,
+        limit: 5,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        type: AuditEventType.VerificationCreated,
+        metadata: {
+          purpose: VerificationPurpose.SignIn,
+          verificationId: verification.verification.id,
+        },
+      }),
+    ])
+  })
+
   it('bulk-revokes active user sessions while optionally keeping one session active', async () => {
     const { service, store } = createInMemoryAuthKit()
     const signedIn = await service.signIn({ assertion: assertion(), now })
@@ -256,6 +319,24 @@ describe('DefaultAuthService read side and sessions', () => {
         now,
       }),
     ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(service.getAuditEvents({ limit: 0 })).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.getAuditEvents({
+        before: new Date(Number.NaN),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.getAuditEvents({
+        // @ts-expect-error runtime validation for untyped callers
+        type: '   ',
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
     await expect(
       service.createSession({
         userId: signedIn.user.id,

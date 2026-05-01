@@ -1,4 +1,5 @@
 import { getAccountSecuritySnapshot } from './account-security.js'
+import { getAuditEvents } from './audit-events.js'
 import { getUserIdentities, link, mergeAccounts, unlink } from './accounts.js'
 import { getUserCredentials } from './credentials.js'
 import { finishEmailMagicLinkSignIn, startEmailMagicLinkSignIn } from './magic-link.js'
@@ -26,6 +27,8 @@ import type { AuthPolicy } from './policy.js'
 import type {
   AuthIdentity,
   AccountSecuritySnapshot,
+  AuditEvent,
+  AuditEventQuery,
   AuthResult,
   AuthService,
   ChangePasswordInput,
@@ -181,6 +184,10 @@ export class DefaultAuthService implements AuthService {
 
   async getUserSessions(userId: UserId): Promise<readonly Session[]> {
     return getUserSessions(this.runtime, userId)
+  }
+
+  async getAuditEvents(input?: AuditEventQuery): Promise<readonly AuditEvent[]> {
+    return getAuditEvents(this.runtime, input)
   }
 
   async getAccountSecuritySnapshot(userId: UserId): Promise<AccountSecuritySnapshot> {

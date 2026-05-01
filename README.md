@@ -35,6 +35,7 @@ license, subscription, private contract, or other written permission.
 - Exposes a narrow `getUser(userId)` helper for loading the active local user snapshot by id.
 - Exposes read-side helpers for credential and verification lookups through the public service
   layer.
+- Exposes a public audit-event read-side API for trusted security timelines and support tooling.
 - Exposes safe projection helpers for account-security and verification-status read-side flows.
 - Exposes an aggregated `getAccountSecuritySnapshot(userId)` read-side API for account-security
   screens.
@@ -284,6 +285,15 @@ helpers instead of serializing raw entities directly:
 const snapshot = await service.getAccountSecuritySnapshot(userId)
 
 const verificationStatus = toVerificationStatusView(verification)
+```
+
+Trusted backend tooling can also inspect local audit history through the public service layer:
+
+```ts
+const events = await service.getAuditEvents({
+  userId,
+  limit: 20,
+})
 ```
 
 Messenger Mini App providers are SDK-free `AuthProvider` adapters for signed Telegram and MAX
