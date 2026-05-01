@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.0](https://github.com/alyldas/uniauth/compare/v0.28.0...v0.29.0) (2026-05-01)
+
+
+### Features
+
+* add session auth context resolution ([3bbcc10](https://github.com/alyldas/uniauth/commit/3bbcc108d9748038bc4f3a2dbd8cbad1433ca721))
+
 ## [0.28.0](https://github.com/alyldas/uniauth/compare/v0.27.0...v0.28.0) (2026-05-01)
 
 
