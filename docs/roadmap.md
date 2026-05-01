@@ -255,7 +255,7 @@ Tracking issues: #149, #150, #151, #152, #162.
 
 Tracking issues: #163, #164, #165, #175.
 
-### v0.29 - Internal Account and Test Decomposition
+### Post-v0.28 Maintenance Batch (Completed On Main Without Package Release)
 
 - Decompose the remaining account mutation flows into smaller internal modules with clearer
   ownership boundaries.
@@ -264,9 +264,7 @@ Tracking issues: #163, #164, #165, #175.
 
 Tracking issues: #176, #177.
 
-## Next Release
-
-### v0.30 - Session Auth Context Resolution
+### v0.29 - Session Auth Context Resolution
 
 - Public `resolveSessionContext({ sessionToken, touch?, now? })` API for backend middleware and
   request-auth assembly.
@@ -278,6 +276,12 @@ Tracking issues: #176, #177.
   in-memory and Postgres-backed service setups.
 
 Tracking issues: #184, #185, #186.
+
+## Next Release
+
+### v0.30 - Backlog To Be Defined
+
+- Next releasable feature batch to be defined after the `v0.29.0` session auth-context release.
 
 ## Versioning
 
