@@ -30,8 +30,8 @@ license, subscription, private contract, or other written permission.
 - Maps Auth.js and Better Auth OAuth callback data into `ProviderIdentityAssertion` through the
   optional `@alyldas/uniauth/bridges` entry point.
 - Creates local session records after successful sign-in.
-- Exposes local session read-side helpers for token resolution, activity touch, and user session
-  listing.
+- Exposes local session read-side helpers for token resolution, trusted session-context resolution,
+  activity touch, and user session listing.
 - Exposes a narrow `getUser(userId)` helper for loading the active local user snapshot by id.
 - Exposes read-side helpers for credential and verification lookups through the public service
   layer.

@@ -89,6 +89,17 @@ export interface TouchSessionInput {
   readonly now?: Date
 }
 
+export interface ResolveSessionContextInput {
+  readonly sessionToken: string
+  readonly touch?: boolean
+  readonly now?: Date
+}
+
+export interface ResolvedSessionContext {
+  readonly session: Session
+  readonly user: User
+}
+
 export interface RevokeUserSessionsInput {
   readonly userId: UserId
   readonly exceptSessionId?: SessionId

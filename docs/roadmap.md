@@ -266,10 +266,18 @@ Tracking issues: #176, #177.
 
 ## Next Release
 
-### v0.30 - Backlog To Be Defined
+### v0.30 - Session Auth Context Resolution
 
-- Next releasable feature batch to be defined after the completed v0.29 internal decomposition pass
-  on `main`.
+- Public `resolveSessionContext({ sessionToken, touch?, now? })` API for backend middleware and
+  request-auth assembly.
+- Neutral collapse of stale local auth state so disabled or missing users behind a still-present
+  session record do not leak a different failure shape.
+- Framework examples and session-transport recipes moved from manual `resolveSession` +
+  `getUser` orchestration to the aggregate helper.
+- Focused regression coverage for stale-session and disabled-user auth-context flows across
+  in-memory and Postgres-backed service setups.
+
+Tracking issues: #184, #185, #186.
 
 ## Versioning
 

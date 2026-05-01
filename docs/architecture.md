@@ -32,6 +32,7 @@ identities, and email/phone are optional identity attributes.
 - `revokeSession`
 - `revokeUserSessions`
 - `resolveSession`
+- `resolveSessionContext`
 - `touchSession`
 - `getUser`
 - `getUserCredentials`
@@ -57,6 +58,10 @@ password hashing port, audit log port, verification secret hashing extension poi
 The audit log port is now read-capable as well as write-capable. Core still owns local security
 event creation, while trusted backend tooling can read the resulting `AuditEvent` timeline through
 the public service layer without reaching into adapter internals.
+
+Session resolution remains transport-agnostic. Core can now collapse `sessionToken -> session + user`
+into one trusted read-side helper, while cookie parsing, bearer extraction, and request decoration
+stay application-owned.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful

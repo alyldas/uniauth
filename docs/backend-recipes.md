@@ -100,8 +100,9 @@ app.post('/auth/password/sign-in', async (req, res, next) => {
 })
 ```
 
-For Express session middleware shape, bearer-vs-cookie extraction, and `touchSession(...)`
-placement, use [Session transport recipes](session-transport.md). The runnable
+For Express session middleware shape, bearer-vs-cookie extraction, and the
+`resolveSessionContext({ sessionToken, touch })` helper, use
+[Session transport recipes](session-transport.md). The runnable
 [Express auth module example](../examples/express-auth/index.ts) already shows that middleware in
 context.
 
