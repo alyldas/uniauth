@@ -242,26 +242,29 @@ Tracking issues: #148.
 
 Tracking issues: #149, #150, #151, #152, #162.
 
-### v0.28 - Security Recipes and Regression Hardening
-
-- Account-security action recipes for revoke, unlink, and password-management flows.
-- Additional regression coverage around password, verification-secret, and session-token hash-only
-  storage.
-- Support and admin inspection recipe built on the public read-side surface.
-
-Tracking issues: #163, #164, #165.
-
-## Next Release
-
-### v0.29 - Trusted Inspection Aggregate Read Side
+### v0.28 - Trusted Inspection Aggregate and Security Hardening
 
 - Public `getAccountInspectionSnapshot({ userId, auditLimit? })` API for trusted backend support
   and admin inspection flows.
 - Safe audit-event view projection for operator-facing inspection surfaces without raw metadata by
   default.
 - Support/admin inspection docs moved from ad hoc multi-call composition to the aggregate helper.
+- Account-security action recipes for revoke, unlink, and password-management flows.
+- Additional regression coverage around password, verification-secret, and session-token hash-only
+  storage.
 
-Tracking issues: #175, #176, #177.
+Tracking issues: #163, #164, #165, #175.
+
+## Next Release
+
+### v0.29 - Internal Account and Test Decomposition
+
+- Decompose the remaining account mutation flows into smaller internal modules with clearer
+  ownership boundaries.
+- Split the remaining broad service-edge and provider-policy suites into smaller behavior-aligned
+  test files.
+
+Tracking issues: #176, #177.
 
 ## Versioning
 
