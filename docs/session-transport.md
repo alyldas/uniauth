@@ -58,10 +58,9 @@ resolve the token through UniAuth instead of treating `Session.id` as the client
 ```ts
 const sessionToken = unsealSessionToken(request.cookies.session)
 
-const session = await authService.resolveSession({
+const { session, user } = await authService.resolveSessionContext({
   sessionToken,
 })
-const user = await authService.getUser(session.userId)
 
 return {
   user,
@@ -69,7 +68,11 @@ return {
 }
 ```
 
-Applications that track recent activity can then explicitly update `lastSeenAt` through the public
+`resolveSessionContext(...)` stays neutral for stale local auth state too: if the token resolves to
+an active session record but the linked local user is already disabled or missing, the helper still
+fails through the same `SessionNotFound` path expected by middleware.
+
+Applications that prefer explicit activity writes can still update `lastSeenAt` through the public
 service API:
 
 ```ts
@@ -119,9 +122,10 @@ export function createExpressSessionMiddleware(authService: AuthService) {
     }
 
     try {
-      const resolved = await authService.resolveSession({ sessionToken })
-      const session = await authService.touchSession({ sessionId: resolved.id })
-      const user = await authService.getUser(session.userId)
+      const { session, user } = await authService.resolveSessionContext({
+        sessionToken,
+        touch: true,
+      })
 
       request.auth = {
         session,
@@ -175,7 +179,7 @@ function readCookieToken(header: string | undefined): string | undefined {
 
 Attach the middleware only where browser/API auth context is needed, or pair it with a small
 `requireSession` guard for protected routes. If activity writes are too expensive for every request,
-skip `touchSession(...)` here and call it only on the authenticated routes that matter.
+set `touch: false` here and call `touchSession(...)` only on the authenticated routes that matter.
 
 ### Fastify preHandler Recipe
 
@@ -212,12 +216,13 @@ export function createFastifySessionPreHandler(authService: AuthService) {
     }
 
     try {
-      const resolved = await authService.resolveSession({ sessionToken })
-      const user = await authService.getUser(resolved.userId)
+      const { session, user } = await authService.resolveSessionContext({
+        sessionToken,
+      })
       request.auth = {
-        session: resolved,
+        session,
         user,
-        userId: resolved.userId,
+        userId: session.userId,
       }
     } catch (error) {
       if (
@@ -244,9 +249,9 @@ function readBearerToken(header: string | undefined): string | undefined {
 }
 ```
 
-Fastify users often keep `touchSession(...)` in a second protected-route hook or in the route
-handler itself, so lightweight public requests can resolve auth context without forcing an activity
-write every time.
+Fastify users often keep `touch: false` in the preHandler and call `touchSession(...)` in a second
+protected-route hook or in the route handler itself, so lightweight public requests can resolve auth
+context without forcing an activity write every time.
 
 If one authenticated request also needs device lists or sign-in methods, resolve the transport here
 and then hand off to `authService.getAccountSecuritySnapshot(userId)` as described in

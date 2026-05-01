@@ -14,6 +14,41 @@ import { InMemoryAuthStore, createInMemoryAuthKit } from '../../src/testing'
 import { assertion, now } from '../helpers.js'
 
 describe('DefaultAuthService sign-in and session edge cases', () => {
+  it('rethrows unexpected user lookup failures from session-context resolution', async () => {
+    const store = new InMemoryAuthStore()
+    const setupService = new DefaultAuthService({ repos: store })
+    const result = await setupService.signIn({
+      assertion: assertion({
+        provider: 'email',
+        providerUserId: 'session-context-user-lookup-failure',
+      }),
+      now,
+    })
+    const lookupFailure = new Error('user lookup failed')
+    const service = new DefaultAuthService({
+      repos: {
+        userRepo: {
+          ...store.userRepo,
+          findById: async () => {
+            throw lookupFailure
+          },
+        },
+        identityRepo: store.identityRepo,
+        credentialRepo: store.credentialRepo,
+        verificationRepo: store.verificationRepo,
+        sessionRepo: store.sessionRepo,
+        auditLogRepo: store.auditLogRepo,
+      },
+    })
+
+    await expect(
+      service.resolveSessionContext({
+        sessionToken: result.sessionToken,
+        now,
+      }),
+    ).rejects.toBe(lookupFailure)
+  })
+
   it('covers uncommon sign-in, session, link, unlink, and read-side branches', async () => {
     const defaultStore = new InMemoryAuthStore()
     const defaultService = new DefaultAuthService({ repos: defaultStore })

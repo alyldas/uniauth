@@ -75,6 +75,39 @@ describe('DefaultAuthService read side and sessions', () => {
     )
   })
 
+  it('resolves a trusted session context and can optionally touch activity', async () => {
+    const { service, store } = createInMemoryAuthKit()
+    const result = await service.signIn({ assertion: assertion(), now })
+    const untouched = await service.resolveSessionContext({
+      sessionToken: result.sessionToken,
+      now,
+    })
+    const touchedAt = addSeconds(now, 60)
+    const touched = await service.resolveSessionContext({
+      sessionToken: result.sessionToken,
+      touch: true,
+      now: touchedAt,
+    })
+
+    expect(untouched).toEqual({
+      session: result.session,
+      user: result.user,
+    })
+    expect(touched).toEqual({
+      session: {
+        ...result.session,
+        lastSeenAt: touchedAt,
+      },
+      user: result.user,
+    })
+    expect(store.listSessions()).toEqual([
+      {
+        ...result.session,
+        lastSeenAt: touchedAt,
+      },
+    ])
+  })
+
   it('touches active sessions without rewinding last seen activity', async () => {
     const { service } = createInMemoryAuthKit()
     const result = await service.signIn({ assertion: assertion(), now })
@@ -91,6 +124,25 @@ describe('DefaultAuthService read side and sessions', () => {
         now: addSeconds(now, 30),
       }),
     ).toBe(touched)
+  })
+
+  it('treats disabled users behind an active session as a neutral session miss', async () => {
+    const { service, store } = createInMemoryAuthKit()
+    const result = await service.signIn({ assertion: assertion(), now })
+
+    await store.userRepo.update(result.user.id, { disabledAt: addSeconds(now, 10) })
+
+    await expect(
+      service.resolveSessionContext({
+        sessionToken: result.sessionToken,
+        touch: true,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+      message: 'Session was not found.',
+    })
+    expect(store.listSessions()).toEqual([result.session])
   })
 
   it('reads local credentials and verifications through the public service surface', async () => {

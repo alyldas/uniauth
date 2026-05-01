@@ -174,6 +174,41 @@ describe('Postgres reference persistence security and read side', () => {
     })
   })
 
+  it('resolves a trusted session context on Postgres and can optionally touch activity', async () => {
+    const { service } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-session-context',
+        email: 'pg-session-context@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const untouched = await service.resolveSessionContext({
+      sessionToken: signedIn.sessionToken,
+      now,
+    })
+    const touchedAt = addSeconds(now, 60)
+    const touched = await service.resolveSessionContext({
+      sessionToken: signedIn.sessionToken,
+      touch: true,
+      now: touchedAt,
+    })
+
+    expect(untouched).toEqual({
+      session: signedIn.session,
+      user: signedIn.user,
+    })
+    expect(touched).toEqual({
+      session: {
+        ...signedIn.session,
+        lastSeenAt: touchedAt,
+      },
+      user: signedIn.user,
+    })
+  })
+
   it('lists local sessions for an active user on Postgres', async () => {
     const { service } = await createPostgresTestKit()
     const first = await service.signIn({
@@ -199,6 +234,35 @@ describe('Postgres reference persistence security and read side', () => {
       id: first.user.id,
       email: 'pg-list-sessions@example.com',
     })
+  })
+
+  it('treats disabled users behind an active Postgres session as a neutral session miss', async () => {
+    const { service, store } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-disabled-session-context',
+        email: 'pg-disabled-session-context@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    await store.userRepo.update(signedIn.user.id, {
+      disabledAt: addSeconds(now, 10),
+    })
+
+    await expect(
+      service.resolveSessionContext({
+        sessionToken: signedIn.sessionToken,
+        touch: true,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+      message: 'Session was not found.',
+    })
+    expect(await store.sessionRepo.findById(signedIn.session.id)).toEqual(signedIn.session)
   })
 
   it('reads credentials and verifications through the public service surface on Postgres', async () => {

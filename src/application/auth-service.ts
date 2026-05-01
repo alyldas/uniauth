@@ -13,6 +13,7 @@ import {
   startEmailPasswordRecovery,
 } from './passwords.js'
 import { type AuthServiceRuntime, createAuthServiceRuntime } from './runtime.js'
+import { resolveSessionContext } from './session-context.js'
 import {
   createSession,
   getUserSessions,
@@ -53,7 +54,9 @@ import type {
   MergeResult,
   RevokeUserSessionsInput,
   RevokeUserSessionsResult,
+  ResolveSessionContextInput,
   ResolveSessionInput,
+  ResolvedSessionContext,
   Session,
   SessionId,
   SetPasswordInput,
@@ -167,6 +170,10 @@ export class DefaultAuthService implements AuthService {
 
   async resolveSession(input: ResolveSessionInput): Promise<Session> {
     return resolveSession(this.runtime, input)
+  }
+
+  async resolveSessionContext(input: ResolveSessionContextInput): Promise<ResolvedSessionContext> {
+    return resolveSessionContext(this.runtime, input)
   }
 
   async touchSession(input: TouchSessionInput): Promise<Session> {

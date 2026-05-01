@@ -314,11 +314,10 @@ function createExpressSessionMiddleware(
     }
 
     try {
-      const resolved = await authService.resolveSession({ sessionToken })
-      const session = options.touch
-        ? await authService.touchSession({ sessionId: resolved.id })
-        : resolved
-      const user = await authService.getUser(session.userId)
+      const { session, user } = await authService.resolveSessionContext({
+        sessionToken,
+        ...(options.touch !== undefined ? { touch: options.touch } : {}),
+      })
 
       request.auth = {
         session,
