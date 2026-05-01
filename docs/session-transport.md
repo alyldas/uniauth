@@ -326,8 +326,8 @@ For sign-out-all-devices or device-management screens, applications can first ca
 or bearer stores for those clients; the application must remove the transport artifact on each
 device as it becomes aware of the revoked local session.
 
-For the account-security screen shape and safe outward projection, continue in
-[Account security recipes](account-security.md).
+For the account-security write-side recipes, safe outward projection, and sign-in-method management
+flows, continue in [Account security recipes](account-security.md).
 
 ## Security Notes
 
