@@ -255,8 +255,6 @@ Tracking issues: #149, #150, #151, #152, #162.
 
 Tracking issues: #163, #164, #165, #175.
 
-## Next Release
-
 ### v0.29 - Internal Account and Test Decomposition
 
 - Decompose the remaining account mutation flows into smaller internal modules with clearer
@@ -265,6 +263,13 @@ Tracking issues: #163, #164, #165, #175.
   test files.
 
 Tracking issues: #176, #177.
+
+## Next Release
+
+### v0.30 - Backlog To Be Defined
+
+- Next releasable feature batch to be defined after the completed v0.29 internal decomposition pass
+  on `main`.
 
 ## Versioning
 
