@@ -105,6 +105,9 @@ return events.map((event) => ({
 Do not add secrets or credential material to audit metadata in application code. Keep the same
 trusted-backend assumption here as for verification inspection.
 
+For a larger trusted support or admin inspection surface that combines snapshot, audit, and
+verification reads, continue in [Support and admin inspection recipe](support-inspection.md).
+
 ## Session Action Recipes
 
 For device-list or active-session screens:
@@ -316,3 +319,4 @@ Do not send `secretHash` to browsers, mobile clients, or untrusted callers.
 - [OTP backend wiring example](../examples/otp-backend/index.ts)
 - [Session transport recipes](session-transport.md)
 - [Backend integration recipes](backend-recipes.md)
+- [Support and admin inspection recipe](support-inspection.md)

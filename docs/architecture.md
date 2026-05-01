@@ -198,3 +198,5 @@ are small reference contracts. If the ecosystem grows into multiple maintained a
 can move to a monorepo with packages for storage, providers, and framework-specific HTTP wiring.
 
 For framework-level HTTP composition examples, see [Backend integration recipes](backend-recipes.md).
+For trusted backend inspection composition on top of the read-side surface, see
+[Support and admin inspection recipe](support-inspection.md).
