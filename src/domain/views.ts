@@ -1,3 +1,4 @@
+import type { AuditEvent } from './audit.js'
 import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
 import type { ProviderTrustLevel } from './kinds.js'
 
@@ -47,6 +48,20 @@ export interface AccountSecuritySnapshot {
   readonly identities: readonly AccountSecurityIdentityView[]
   readonly credentials: readonly AccountSecurityCredentialView[]
   readonly sessions: readonly AccountSecuritySessionView[]
+}
+
+export interface AuditEventView {
+  readonly id: AuditEvent['id']
+  readonly type: AuditEvent['type']
+  readonly occurredAt: Date
+  readonly userId?: AuditEvent['userId']
+  readonly identityId?: AuditEvent['identityId']
+  readonly sessionId?: AuditEvent['sessionId']
+}
+
+export interface AccountInspectionSnapshot {
+  readonly account: AccountSecuritySnapshot
+  readonly auditEvents: readonly AuditEventView[]
 }
 
 export interface VerificationStatusView {
@@ -119,6 +134,27 @@ export function toAccountSecuritySnapshot(input: {
     identities: input.identities.map((identity) => toAccountSecurityIdentityView(identity)),
     credentials: input.credentials.map((credential) => toAccountSecurityCredentialView(credential)),
     sessions: input.sessions.map((session) => toAccountSecuritySessionView(session)),
+  }
+}
+
+export function toAuditEventView(event: AuditEvent): AuditEventView {
+  return {
+    id: event.id,
+    type: event.type,
+    occurredAt: event.occurredAt,
+    ...(event.userId ? { userId: event.userId } : {}),
+    ...(event.identityId ? { identityId: event.identityId } : {}),
+    ...(event.sessionId ? { sessionId: event.sessionId } : {}),
+  }
+}
+
+export function toAccountInspectionSnapshot(input: {
+  readonly account: AccountSecuritySnapshot
+  readonly auditEvents: readonly AuditEvent[]
+}): AccountInspectionSnapshot {
+  return {
+    account: input.account,
+    auditEvents: input.auditEvents.map((event) => toAuditEventView(event)),
   }
 }
 

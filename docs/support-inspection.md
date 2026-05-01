@@ -23,10 +23,13 @@ Do not call these flows directly from browsers or mobile clients.
 
 ## Base Account Inspection
 
-The preferred starting point is the aggregated safe snapshot:
+The preferred starting point is the trusted aggregate inspection helper:
 
 ```ts
-const snapshot = await authService.getAccountSecuritySnapshot(userId)
+const inspection = await authService.getAccountInspectionSnapshot({
+  userId,
+  auditLimit: 50,
+})
 ```
 
 That one call already gives a trusted server-side view of:
@@ -35,42 +38,53 @@ That one call already gives a trusted server-side view of:
 - linked identities and provider trust hints;
 - local credentials without password hashes;
 - local sessions without bearer token hashes.
+- a bounded local audit timeline without raw audit metadata.
 
 Typical outward shape for a trusted support endpoint:
 
 ```ts
 return {
-  user: {
-    id: snapshot.user.id,
-    email: snapshot.user.email ?? null,
-    phone: snapshot.user.phone ?? null,
-    displayName: snapshot.user.displayName ?? null,
-    disabledAt: snapshot.user.disabledAt?.toISOString() ?? null,
+  account: {
+    user: {
+      id: inspection.account.user.id,
+      email: inspection.account.user.email ?? null,
+      phone: inspection.account.user.phone ?? null,
+      displayName: inspection.account.user.displayName ?? null,
+      disabledAt: inspection.account.user.disabledAt?.toISOString() ?? null,
+    },
+    identities: inspection.account.identities.map((identity) => ({
+      id: identity.id,
+      provider: identity.provider,
+      status: identity.status,
+      email: identity.email ?? null,
+      emailVerified: identity.emailVerified ?? null,
+      phone: identity.phone ?? null,
+      phoneVerified: identity.phoneVerified ?? null,
+      trustLevel: identity.trustLevel ?? null,
+    })),
+    credentials: inspection.account.credentials.map((credential) => ({
+      id: credential.id,
+      type: credential.type,
+      subject: credential.subject,
+      createdAt: credential.createdAt.toISOString(),
+      updatedAt: credential.updatedAt.toISOString(),
+    })),
+    sessions: inspection.account.sessions.map((session) => ({
+      id: session.id,
+      status: session.status,
+      createdAt: session.createdAt.toISOString(),
+      expiresAt: session.expiresAt.toISOString(),
+      lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
+      revokedAt: session.revokedAt?.toISOString() ?? null,
+    })),
   },
-  identities: snapshot.identities.map((identity) => ({
-    id: identity.id,
-    provider: identity.provider,
-    status: identity.status,
-    email: identity.email ?? null,
-    emailVerified: identity.emailVerified ?? null,
-    phone: identity.phone ?? null,
-    phoneVerified: identity.phoneVerified ?? null,
-    trustLevel: identity.trustLevel ?? null,
-  })),
-  credentials: snapshot.credentials.map((credential) => ({
-    id: credential.id,
-    type: credential.type,
-    subject: credential.subject,
-    createdAt: credential.createdAt.toISOString(),
-    updatedAt: credential.updatedAt.toISOString(),
-  })),
-  sessions: snapshot.sessions.map((session) => ({
-    id: session.id,
-    status: session.status,
-    createdAt: session.createdAt.toISOString(),
-    expiresAt: session.expiresAt.toISOString(),
-    lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
-    revokedAt: session.revokedAt?.toISOString() ?? null,
+  auditEvents: inspection.auditEvents.map((event) => ({
+    id: event.id,
+    type: event.type,
+    occurredAt: event.occurredAt.toISOString(),
+    userId: event.userId ?? null,
+    identityId: event.identityId ?? null,
+    sessionId: event.sessionId ?? null,
   })),
 }
 ```
@@ -86,12 +100,14 @@ const sessions = await authService.getUserSessions(userId)
 const credentials = await authService.getUserCredentials(userId)
 ```
 
-Use the aggregate snapshot as the default. Reach for these narrower reads only when the surrounding
-tooling truly needs independent pagination, separate caching, or a reduced payload.
+Use the aggregate inspection helper as the default. Reach for these narrower reads only when the
+surrounding tooling truly needs independent pagination, separate caching, raw audit metadata, or a
+reduced payload.
 
 ## Audit Timeline Inspection
 
-For a trusted security timeline:
+If the operator surface needs a custom audit filter or explicitly needs raw audit metadata, drop
+down to the narrower audit API:
 
 ```ts
 const auditEvents = await authService.getAuditEvents({
@@ -115,7 +131,8 @@ return auditEvents.map((event) => ({
 ```
 
 Do not copy secrets, password material, or raw bearer tokens into audit metadata at the application
-layer. Keep the audit timeline trusted-backend only, just like the account snapshot.
+layer. Keep the raw audit timeline trusted-backend only, and prefer the aggregate inspection helper
+when you do not need metadata.
 
 ## Verification Inspection
 
@@ -151,25 +168,24 @@ async function inspectAccountSecurity(input: {
   readonly userId: string
   readonly verificationId?: string
 }) {
-  const [snapshot, auditEvents] = await Promise.all([
-    authService.getAccountSecuritySnapshot(input.userId),
-    authService.getAuditEvents({ userId: input.userId, limit: 50 }),
-  ])
+  const inspection = await authService.getAccountInspectionSnapshot({
+    userId: input.userId,
+    auditLimit: 50,
+  })
 
   const verificationStatus = input.verificationId
     ? toVerificationStatusView(await authService.getVerification(input.verificationId))
     : undefined
 
   return {
-    snapshot,
-    auditEvents,
+    inspection,
     verificationStatus,
   }
 }
 ```
 
 Keep outward serialization and operator authorization outside this helper. UniAuth only owns the
-local account-security state and verification lifecycle.
+local account-security state, audit timeline composition, and verification lifecycle.
 
 ## Action Handoff
 

@@ -39,6 +39,8 @@ license, subscription, private contract, or other written permission.
 - Exposes safe projection helpers for account-security and verification-status read-side flows.
 - Exposes an aggregated `getAccountSecuritySnapshot(userId)` read-side API for account-security
   screens.
+- Exposes a trusted `getAccountInspectionSnapshot({ userId, auditLimit? })` aggregate read-side
+  API for backend support and admin inspection flows.
 - Supports bulk local session revocation for sign-out-all-devices style account-security flows.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
 - Runs transaction-aware account merge over identities, credentials, sessions, and audit decisions
@@ -287,14 +289,17 @@ const snapshot = await service.getAccountSecuritySnapshot(userId)
 const verificationStatus = toVerificationStatusView(verification)
 ```
 
-Trusted backend tooling can also inspect local audit history through the public service layer:
+Trusted backend tooling can start from one trusted aggregate inspection helper:
 
 ```ts
-const events = await service.getAuditEvents({
+const inspection = await service.getAccountInspectionSnapshot({
   userId,
-  limit: 20,
+  auditLimit: 20,
 })
 ```
+
+If the surrounding tooling truly needs raw audit entities, custom filters, or metadata-aware
+serialization, `getAuditEvents(...)` remains available as the narrower read-side primitive.
 
 Messenger Mini App providers are SDK-free `AuthProvider` adapters for signed Telegram and MAX
 launch data. See [Messenger providers](docs/messenger-providers.md).

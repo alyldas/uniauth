@@ -1,3 +1,4 @@
+import { getAccountInspectionSnapshot } from './account-inspection.js'
 import { getAccountSecuritySnapshot } from './account-security.js'
 import { getAuditEvents } from './audit-events.js'
 import { getUserIdentities, link, mergeAccounts, unlink } from './accounts.js'
@@ -26,6 +27,7 @@ import { consumeVerification, createVerification, getVerification } from './veri
 import type { AuthPolicy } from './policy.js'
 import type {
   AuthIdentity,
+  AccountInspectionSnapshot,
   AccountSecuritySnapshot,
   AuditEvent,
   AuditEventQuery,
@@ -43,6 +45,7 @@ import type {
   FinishEmailPasswordRecoveryInput,
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
+  GetAccountInspectionSnapshotInput,
   IdGenerator,
   LinkInput,
   LinkResult,
@@ -192,6 +195,12 @@ export class DefaultAuthService implements AuthService {
 
   async getAccountSecuritySnapshot(userId: UserId): Promise<AccountSecuritySnapshot> {
     return getAccountSecuritySnapshot(this.runtime, userId)
+  }
+
+  async getAccountInspectionSnapshot(
+    input: GetAccountInspectionSnapshotInput,
+  ): Promise<AccountInspectionSnapshot> {
+    return getAccountInspectionSnapshot(this.runtime, input)
   }
 
   async createSession(input: CreateSessionInput): Promise<CreateSessionResult> {

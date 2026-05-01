@@ -38,8 +38,10 @@ identities, and email/phone are optional identity attributes.
 - `getUserSessions`
 - `getAuditEvents`
 - `getAccountSecuritySnapshot`
+- `getAccountInspectionSnapshot`
 - `createVerification`
 - `getVerification`
+- `toAuditEventView`
 - `toAccountSecuritySnapshot`
 - `toVerificationStatusView`
 - `consumeVerification`

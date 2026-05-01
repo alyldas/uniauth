@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AuditEventType,
   AuthIdentityStatus,
   SessionStatus,
   VerificationStatus,
+  asAuditEventId,
   asCredentialId,
   asIdentityId,
   asSessionId,
   asVerificationId,
+  toAccountInspectionSnapshot,
   toAccountSecurityCredentialView,
   toAccountSecurityIdentityView,
   toAccountSecuritySessionView,
   toAccountSecuritySnapshot,
   toAccountSecurityUserView,
+  toAuditEventView,
   toVerificationStatusView,
   type Credential,
   type Session,
@@ -207,5 +211,73 @@ describe('safe projection helpers', () => {
     expect(view).not.toHaveProperty('target')
     expect(view).not.toHaveProperty('secretHash')
     expect(view).not.toHaveProperty('metadata')
+  })
+
+  it('maps trusted inspection views without leaking audit metadata', () => {
+    const userView = toAccountSecurityUserView(user('user-9'))
+    const identityOnlyAuditView = toAuditEventView({
+      id: asAuditEventId('audit-7'),
+      type: AuditEventType.IdentityLinked,
+      occurredAt: now,
+      identityId: asIdentityId('identity-7'),
+      metadata: { internal: true },
+    })
+    const inspectionSnapshot = toAccountInspectionSnapshot({
+      account: {
+        user: userView,
+        identities: [],
+        credentials: [],
+        sessions: [],
+      },
+      auditEvents: [
+        {
+          id: asAuditEventId('audit-9'),
+          type: AuditEventType.PolicyDenied,
+          occurredAt: now,
+          userId: user('user-9').id,
+          metadata: { internal: true },
+        },
+      ],
+    })
+
+    expect(
+      toAuditEventView({
+        id: asAuditEventId('audit-8'),
+        type: AuditEventType.SessionCreated,
+        occurredAt: now,
+        userId: user('user-8').id,
+        sessionId: asSessionId('session-8'),
+        metadata: { internal: true },
+      }),
+    ).toEqual({
+      id: asAuditEventId('audit-8'),
+      type: AuditEventType.SessionCreated,
+      occurredAt: now,
+      userId: user('user-8').id,
+      sessionId: asSessionId('session-8'),
+    })
+    expect(identityOnlyAuditView).toEqual({
+      id: asAuditEventId('audit-7'),
+      type: AuditEventType.IdentityLinked,
+      occurredAt: now,
+      identityId: asIdentityId('identity-7'),
+    })
+    expect(inspectionSnapshot).toEqual({
+      account: {
+        user: userView,
+        identities: [],
+        credentials: [],
+        sessions: [],
+      },
+      auditEvents: [
+        {
+          id: asAuditEventId('audit-9'),
+          type: AuditEventType.PolicyDenied,
+          occurredAt: now,
+          userId: user('user-9').id,
+        },
+      ],
+    })
+    expect(inspectionSnapshot.auditEvents[0]).not.toHaveProperty('metadata')
   })
 })

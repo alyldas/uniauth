@@ -338,6 +338,60 @@ describe('Postgres reference persistence security and read side', () => {
     ).toEqual([AuditEventType.SignIn])
   })
 
+  it('reads a trusted account inspection snapshot through the public service surface on Postgres', async () => {
+    const { service } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-inspection-reader',
+        email: 'pg-inspection-reader@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'pg-inspection-reader@example.com',
+      secret: '654321',
+      now: addSeconds(now, 5),
+    })
+    await service.revokeSession(signedIn.session.id)
+
+    expect(
+      await service.getAccountInspectionSnapshot({
+        userId: signedIn.user.id,
+        auditLimit: 3,
+      }),
+    ).toEqual({
+      account: await service.getAccountSecuritySnapshot(signedIn.user.id),
+      auditEvents: [
+        {
+          id: expect.any(String),
+          type: AuditEventType.SessionRevoked,
+          occurredAt: expect.any(Date),
+          userId: signedIn.user.id,
+          sessionId: signedIn.session.id,
+        },
+        {
+          id: expect.any(String),
+          type: AuditEventType.SignIn,
+          occurredAt: expect.any(Date),
+          userId: signedIn.user.id,
+          identityId: signedIn.identity.id,
+          sessionId: signedIn.session.id,
+        },
+        {
+          id: expect.any(String),
+          type: AuditEventType.SessionCreated,
+          occurredAt: expect.any(Date),
+          userId: signedIn.user.id,
+          sessionId: signedIn.session.id,
+        },
+      ],
+    })
+  })
+
   it('bulk-revokes active user sessions on Postgres while keeping the excluded session', async () => {
     const { service, store } = await createPostgresTestKit()
     const first = await service.signIn({

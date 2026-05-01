@@ -253,10 +253,15 @@ Tracking issues: #163, #164, #165.
 
 ## Next Release
 
-### v0.29 - Backlog To Be Defined
+### v0.29 - Trusted Inspection Aggregate Read Side
 
-- Next releasable feature batch to be defined after the completed v0.28 security docs and
-  regression hardening pass on `main`.
+- Public `getAccountInspectionSnapshot({ userId, auditLimit? })` API for trusted backend support
+  and admin inspection flows.
+- Safe audit-event view projection for operator-facing inspection surfaces without raw metadata by
+  default.
+- Support/admin inspection docs moved from ad hoc multi-call composition to the aggregate helper.
+
+Tracking issues: #175, #176, #177.
 
 ## Versioning
 
