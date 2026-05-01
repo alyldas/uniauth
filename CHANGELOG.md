@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/alyldas/uniauth/compare/v0.26.0...v0.27.0) (2026-05-01)
+
+
+### Features
+
+* add audit-event read-side API ([440a03c](https://github.com/alyldas/uniauth/commit/440a03c694ef5764a2ca63354ef33d83a5ee40a8))
+
 ## [0.26.0](https://github.com/alyldas/uniauth/compare/v0.25.1...v0.26.0) (2026-04-30)
 
 
