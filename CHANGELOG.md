@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.30.0](https://github.com/alyldas/uniauth/compare/v0.29.0...v0.30.0) (2026-05-02)
+
+
+### Features
+
+* add audit timeline cursor queries ([16a5fad](https://github.com/alyldas/uniauth/commit/16a5fade887954c0795d159d3f82d6c58b2d7384))
+* add inspection audit windows ([e3c6e2f](https://github.com/alyldas/uniauth/commit/e3c6e2f6194228549c45881d8083af735b7c5616))
+
 ## [0.29.0](https://github.com/alyldas/uniauth/compare/v0.28.0...v0.29.0) (2026-05-01)
 
 
