@@ -45,8 +45,23 @@ export function createAuditLogRepo(context: PostgresStoreContext): AuditLogRepo 
       }
 
       if (input.before) {
-        values.push(input.before)
-        filters.push(`occurred_at < $${values.length}`)
+        values.push(input.before.occurredAt)
+        const beforeOccurredIndex = values.length
+        values.push(input.before.id)
+        const beforeIdIndex = values.length
+        filters.push(
+          `(occurred_at < $${beforeOccurredIndex} or (occurred_at = $${beforeOccurredIndex} and id < $${beforeIdIndex}))`,
+        )
+      }
+
+      if (input.after) {
+        values.push(input.after.occurredAt)
+        const afterOccurredIndex = values.length
+        values.push(input.after.id)
+        const afterIdIndex = values.length
+        filters.push(
+          `(occurred_at > $${afterOccurredIndex} or (occurred_at = $${afterOccurredIndex} and id > $${afterIdIndex}))`,
+        )
       }
 
       const whereClause = filters.length > 0 ? `where ${filters.join(' and ')}` : ''

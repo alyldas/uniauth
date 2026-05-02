@@ -9,7 +9,9 @@ import {
   UniAuthErrorCode,
   VerificationPurpose,
   addSeconds,
+  asAuditEventId,
   getUniAuthAttributionNotice,
+  toAuditEventCursor,
 } from '../../src'
 import { createInMemoryAuthKit } from '../../src/testing'
 import { assertion, now } from './support.js'
@@ -245,7 +247,17 @@ describe('DefaultAuthService read side and sessions', () => {
     const sessionEvents = await service.getAuditEvents({ sessionId: signedIn.session.id, limit: 2 })
     const olderUserEvents = await service.getAuditEvents({
       userId: signedIn.user.id,
-      before: addSeconds(now, 1),
+      before: toAuditEventCursor(allEvents[0]!),
+      limit: 5,
+    })
+    const sameTimestampOlderEvents = await service.getAuditEvents({
+      userId: signedIn.user.id,
+      before: toAuditEventCursor(userEvents[1]!),
+      limit: 5,
+    })
+    const sameTimestampNewerEvents = await service.getAuditEvents({
+      userId: signedIn.user.id,
+      after: toAuditEventCursor(userEvents[2]!),
       limit: 5,
     })
 
@@ -267,6 +279,13 @@ describe('DefaultAuthService read side and sessions', () => {
     expect(olderUserEvents.map((event) => event.type)).toEqual([
       AuditEventType.SignIn,
       AuditEventType.SessionCreated,
+    ])
+    expect(sameTimestampOlderEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionCreated,
+    ])
+    expect(sameTimestampNewerEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionRevoked,
+      AuditEventType.SignIn,
     ])
     expect(
       await service.getAuditEvents({
@@ -433,7 +452,47 @@ describe('DefaultAuthService read side and sessions', () => {
     })
     await expect(
       service.getAuditEvents({
-        before: new Date(Number.NaN),
+        before: {
+          occurredAt: new Date(Number.NaN),
+          id: asAuditEventId('audit-cursor'),
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.getAuditEvents({
+        // @ts-expect-error runtime validation for legacy callers
+        before: new Date(),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.getAuditEvents({
+        // @ts-expect-error runtime validation for untyped callers
+        before: 123,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.getAuditEvents({
+        before: {
+          occurredAt: now,
+          id: asAuditEventId('   '),
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.getAuditEvents({
+        before: {
+          occurredAt: now,
+          // @ts-expect-error runtime validation for untyped callers
+          id: 123,
+        },
       }),
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.InvalidInput,

@@ -7,6 +7,7 @@ import {
   VerificationPurpose,
   addSeconds,
   createDefaultAuthPolicy,
+  toAuditEventCursor,
 } from '../../src'
 import { createPostgresTestKit, now } from './support.js'
 
@@ -360,20 +361,23 @@ describe('Postgres reference persistence security and read side', () => {
     })
     await service.revokeSession(signedIn.session.id)
 
-    expect((await service.getAuditEvents()).map((event) => event.type)).toEqual([
+    const allEvents = await service.getAuditEvents()
+    const userEvents = await service.getAuditEvents({
+      userId: signedIn.user.id,
+      limit: 3,
+    })
+
+    expect(allEvents.map((event) => event.type)).toEqual([
       AuditEventType.SessionRevoked,
       AuditEventType.VerificationCreated,
       AuditEventType.SignIn,
       AuditEventType.SessionCreated,
     ])
-    expect(
-      (
-        await service.getAuditEvents({
-          userId: signedIn.user.id,
-          limit: 3,
-        })
-      ).map((event) => event.type),
-    ).toEqual([AuditEventType.SessionRevoked, AuditEventType.SignIn, AuditEventType.SessionCreated])
+    expect(userEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionRevoked,
+      AuditEventType.SignIn,
+      AuditEventType.SessionCreated,
+    ])
     expect(
       (
         await service.getAuditEvents({
@@ -387,11 +391,29 @@ describe('Postgres reference persistence security and read side', () => {
         await service.getAuditEvents({
           identityId: signedIn.identity.id,
           type: AuditEventType.SignIn,
-          before: addSeconds(now, 1),
+          before: toAuditEventCursor(allEvents[0]!),
           limit: 5,
         })
       ).map((event) => event.type),
     ).toEqual([AuditEventType.SignIn])
+    expect(
+      (
+        await service.getAuditEvents({
+          userId: signedIn.user.id,
+          before: toAuditEventCursor(userEvents[1]!),
+          limit: 5,
+        })
+      ).map((event) => event.type),
+    ).toEqual([AuditEventType.SessionCreated])
+    expect(
+      (
+        await service.getAuditEvents({
+          userId: signedIn.user.id,
+          after: toAuditEventCursor(userEvents[2]!),
+          limit: 5,
+        })
+      ).map((event) => event.type),
+    ).toEqual([AuditEventType.SessionRevoked, AuditEventType.SignIn])
     expect(
       (
         await store.auditLogRepo.list({

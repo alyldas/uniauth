@@ -25,11 +25,24 @@ export interface AuditEvent {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface AuditEventCursor {
+  readonly occurredAt: Date
+  readonly id: AuditEventId
+}
+
 export interface AuditEventQuery {
   readonly userId?: UserId
   readonly identityId?: IdentityId
   readonly sessionId?: SessionId
   readonly type?: AuditEventType
-  readonly before?: Date
+  readonly before?: AuditEventCursor
+  readonly after?: AuditEventCursor
   readonly limit?: number
+}
+
+export function toAuditEventCursor(event: AuditEvent): AuditEventCursor {
+  return {
+    occurredAt: event.occurredAt,
+    id: event.id,
+  }
 }
