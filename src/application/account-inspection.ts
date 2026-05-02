@@ -12,9 +12,13 @@ export async function getAccountInspectionSnapshot(
   input: GetAccountInspectionSnapshotInput,
 ): Promise<AccountInspectionSnapshot> {
   const account = await getAccountSecuritySnapshot(runtime, input.userId)
+  const auditWindow = input.audit
+  const auditLimit = auditWindow?.limit ?? input.auditLimit
   const auditEvents = await getAuditEvents(runtime, {
     userId: account.user.id,
-    ...(input.auditLimit !== undefined ? { limit: input.auditLimit } : {}),
+    ...(auditWindow?.before ? { before: auditWindow.before } : {}),
+    ...(auditWindow?.after ? { after: auditWindow.after } : {}),
+    ...(auditLimit !== undefined ? { limit: auditLimit } : {}),
   })
 
   return toAccountInspectionSnapshot({

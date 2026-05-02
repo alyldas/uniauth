@@ -39,7 +39,7 @@ license, subscription, private contract, or other written permission.
 - Exposes safe projection helpers for account-security and verification-status read-side flows.
 - Exposes an aggregated `getAccountSecuritySnapshot(userId)` read-side API for account-security
   screens.
-- Exposes a trusted `getAccountInspectionSnapshot({ userId, auditLimit? })` aggregate read-side
+- Exposes a trusted `getAccountInspectionSnapshot({ userId, audit? })` aggregate read-side
   API for backend support and admin inspection flows.
 - Supports bulk local session revocation for sign-out-all-devices style account-security flows.
 - Uses explicit policy for auto-linking, unlinking, re-auth, and account merge decisions.
@@ -294,7 +294,9 @@ Trusted backend tooling can start from one trusted aggregate inspection helper:
 ```ts
 const inspection = await service.getAccountInspectionSnapshot({
   userId,
-  auditLimit: 20,
+  audit: {
+    limit: 20,
+  },
 })
 ```
 
