@@ -476,6 +476,34 @@ describe('Postgres reference persistence security and read side', () => {
         },
       ],
     })
+
+    const firstWindow = await service.getAccountInspectionSnapshot({
+      userId: signedIn.user.id,
+      audit: { limit: 2 },
+    })
+    const continuationWindow = await service.getAccountInspectionSnapshot({
+      userId: signedIn.user.id,
+      audit: {
+        limit: 2,
+        before: toAuditEventCursor(firstWindow.auditEvents.at(-1)!),
+      },
+    })
+    const emptyWindow = await service.getAccountInspectionSnapshot({
+      userId: signedIn.user.id,
+      audit: {
+        limit: 2,
+        after: toAuditEventCursor(firstWindow.auditEvents[0]!),
+      },
+    })
+
+    expect(firstWindow.auditEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionRevoked,
+      AuditEventType.SignIn,
+    ])
+    expect(continuationWindow.auditEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionCreated,
+    ])
+    expect(emptyWindow.auditEvents).toEqual([])
   })
 
   it('bulk-revokes active user sessions on Postgres while keeping the excluded session', async () => {

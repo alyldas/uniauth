@@ -358,6 +358,34 @@ describe('DefaultAuthService read side and sessions', () => {
     expect(
       (await service.getAccountInspectionSnapshot({ userId: signedIn.user.id })).auditEvents,
     ).toHaveLength(3)
+
+    const firstWindow = await service.getAccountInspectionSnapshot({
+      userId: signedIn.user.id,
+      audit: { limit: 2 },
+    })
+    const continuationWindow = await service.getAccountInspectionSnapshot({
+      userId: signedIn.user.id,
+      audit: {
+        limit: 2,
+        before: toAuditEventCursor(firstWindow.auditEvents.at(-1)!),
+      },
+    })
+    const emptyWindow = await service.getAccountInspectionSnapshot({
+      userId: signedIn.user.id,
+      audit: {
+        limit: 2,
+        after: toAuditEventCursor(firstWindow.auditEvents[0]!),
+      },
+    })
+
+    expect(firstWindow.auditEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionRevoked,
+      AuditEventType.SignIn,
+    ])
+    expect(continuationWindow.auditEvents.map((event) => event.type)).toEqual([
+      AuditEventType.SessionCreated,
+    ])
+    expect(emptyWindow.auditEvents).toEqual([])
   })
 
   it('bulk-revokes active user sessions while optionally keeping one session active', async () => {

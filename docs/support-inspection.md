@@ -28,7 +28,9 @@ The preferred starting point is the trusted aggregate inspection helper:
 ```ts
 const inspection = await authService.getAccountInspectionSnapshot({
   userId,
-  auditLimit: 50,
+  audit: {
+    limit: 50,
+  },
 })
 ```
 
@@ -176,6 +178,19 @@ operator clients.
 
 ## Combined Inspection Service
 
+For a continuation-friendly next page, stay on the same aggregate helper and derive the cursor from
+the last already returned audit item:
+
+```ts
+const nextInspection = await authService.getAccountInspectionSnapshot({
+  userId,
+  audit: {
+    limit: 50,
+    before: toAuditEventCursor(inspection.auditEvents.at(-1)!),
+  },
+})
+```
+
 One practical server-side composition pattern is to build one trusted service function and let the
 framework layer own authorization and HTTP response shaping:
 
@@ -186,7 +201,9 @@ async function inspectAccountSecurity(input: {
 }) {
   const inspection = await authService.getAccountInspectionSnapshot({
     userId: input.userId,
-    auditLimit: 50,
+    audit: {
+      limit: 50,
+    },
   })
 
   const verificationStatus = input.verificationId

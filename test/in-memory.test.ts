@@ -289,7 +289,6 @@ describe('InMemoryAuthStore', () => {
       await store.auditLogRepo.list({
         before: toAuditEventCursor({
           id: asAuditEventId('audit-3'),
-          type: AuditEventType.SessionCreated,
           occurredAt: addSeconds(now, 5),
         }),
       }),
@@ -301,7 +300,6 @@ describe('InMemoryAuthStore', () => {
       await store.auditLogRepo.list({
         after: toAuditEventCursor({
           id: asAuditEventId('audit-2'),
-          type: AuditEventType.SignIn,
           occurredAt: addSeconds(now, 5),
         }),
       }),

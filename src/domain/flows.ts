@@ -5,6 +5,7 @@ import type {
   User,
   Verification,
 } from './entities.js'
+import type { AuditEventQuery } from './audit.js'
 import type { CredentialId, IdentityId, SessionId, UserId, VerificationId } from './ids.js'
 import type { OtpChannel, VerificationPurpose } from './kinds.js'
 import type { AuthIdentityProvider, FinishInput } from './providers.js'
@@ -111,9 +112,16 @@ export interface RevokeUserSessionsResult {
   readonly revokedSessionIds: readonly SessionId[]
 }
 
+export interface AccountInspectionAuditWindow {
+  readonly before?: AuditEventQuery['before']
+  readonly after?: AuditEventQuery['after']
+  readonly limit?: AuditEventQuery['limit']
+}
+
 export interface GetAccountInspectionSnapshotInput {
   readonly userId: UserId
   readonly auditLimit?: number
+  readonly audit?: AccountInspectionAuditWindow
 }
 
 export interface CreateVerificationInput {
