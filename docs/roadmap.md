@@ -279,9 +279,15 @@ Tracking issues: #184, #185, #186.
 
 ## Next Release
 
-### v0.30 - Backlog To Be Defined
+### v0.30 - Audit Timeline Pagination
 
-- Next releasable feature batch to be defined after the `v0.29.0` session auth-context release.
+- Extend `getAuditEvents(...)` with stable cursor semantics for trusted backend timelines.
+- Extend `getAccountInspectionSnapshot(...)` with continuation-friendly audit windows so support and
+  admin tooling can stay on the aggregate helper for follow-up pages.
+- Add parity coverage and operator-facing recipes for cursor boundaries, ordering, and paginated
+  inspection flows across in-memory and Postgres-backed service setups.
+
+Tracking issues: #190, #191, #192.
 
 ## Versioning
 
