@@ -265,9 +265,8 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
         .filter((event) => (input.identityId ? event.identityId === input.identityId : true))
         .filter((event) => (input.sessionId ? event.sessionId === input.sessionId : true))
         .filter((event) => (input.type ? event.type === input.type : true))
-        .filter((event) =>
-          input.before ? event.occurredAt.getTime() < input.before.getTime() : true,
-        )
+        .filter((event) => (input.before ? isOlderThanAuditCursor(event, input.before) : true))
+        .filter((event) => (input.after ? isNewerThanAuditCursor(event, input.after) : true))
         .sort(compareAuditEventsDescending)
 
       return input.limit !== undefined ? events.slice(0, input.limit) : events
@@ -407,4 +406,30 @@ function compareAuditEventsDescending(left: AuditEvent, right: AuditEvent): numb
   }
 
   return right.id.localeCompare(left.id)
+}
+
+function isOlderThanAuditCursor(
+  event: AuditEvent,
+  cursor: { readonly occurredAt: Date; readonly id: AuditEvent['id'] },
+): boolean {
+  const occurredDifference = event.occurredAt.getTime() - cursor.occurredAt.getTime()
+
+  if (occurredDifference !== 0) {
+    return occurredDifference < 0
+  }
+
+  return event.id.localeCompare(cursor.id) < 0
+}
+
+function isNewerThanAuditCursor(
+  event: AuditEvent,
+  cursor: { readonly occurredAt: Date; readonly id: AuditEvent['id'] },
+): boolean {
+  const occurredDifference = event.occurredAt.getTime() - cursor.occurredAt.getTime()
+
+  if (occurredDifference !== 0) {
+    return occurredDifference > 0
+  }
+
+  return event.id.localeCompare(cursor.id) > 0
 }

@@ -116,6 +116,22 @@ const auditEvents = await authService.getAuditEvents({
 })
 ```
 
+For continuation-friendly trusted pagination, derive the cursor from the last item you already
+returned and keep it server-owned:
+
+```ts
+const firstPage = await authService.getAuditEvents({
+  userId,
+  limit: 50,
+})
+
+const nextPage = await authService.getAuditEvents({
+  userId,
+  before: toAuditEventCursor(firstPage.at(-1)!),
+  limit: 50,
+})
+```
+
 Serialize only the operator-facing fields you actually need:
 
 ```ts

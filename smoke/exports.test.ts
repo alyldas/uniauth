@@ -64,6 +64,7 @@ describe('package exports', () => {
     expect(core.toAccountInspectionSnapshot).toBeTypeOf('function')
     expect(core.toAccountSecuritySnapshot).toBeTypeOf('function')
     expect(core.toAuditEventView).toBeTypeOf('function')
+    expect(core.toAuditEventCursor).toBeTypeOf('function')
     expect(core.toAccountSecurityCredentialView).toBeTypeOf('function')
     expect(core.toVerificationStatusView).toBeTypeOf('function')
     expect(core.createMaxWebAppProvider).toBeTypeOf('function')

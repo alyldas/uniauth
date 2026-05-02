@@ -88,6 +88,22 @@ const events = await authService.getAuditEvents({
 The service returns local `AuditEvent` records newest-first. Keep outward serialization
 application-owned and expose only the fields your support or admin surface actually needs.
 
+For continuation-based trusted pagination, keep the cursor application-owned and derive it from the
+last event you already returned:
+
+```ts
+const firstPage = await authService.getAuditEvents({
+  userId,
+  limit: 20,
+})
+
+const nextPage = await authService.getAuditEvents({
+  userId,
+  before: toAuditEventCursor(firstPage.at(-1)!),
+  limit: 20,
+})
+```
+
 Typical server-safe outward shape:
 
 ```ts
