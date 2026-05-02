@@ -191,18 +191,21 @@ const nextInspection = await authService.getAccountInspectionSnapshot({
 })
 ```
 
-One practical server-side composition pattern is to build one trusted service function and let the
+One practical server-side composition pattern is to keep pagination state explicit and let the
 framework layer own authorization and HTTP response shaping:
 
 ```ts
 async function inspectAccountSecurity(input: {
   readonly userId: string
   readonly verificationId?: string
+  readonly before?: ReturnType<typeof toAuditEventCursor>
+  readonly limit?: number
 }) {
   const inspection = await authService.getAccountInspectionSnapshot({
     userId: input.userId,
     audit: {
-      limit: 50,
+      limit: input.limit ?? 50,
+      ...(input.before ? { before: input.before } : {}),
     },
   })
 
@@ -212,6 +215,10 @@ async function inspectAccountSecurity(input: {
 
   return {
     inspection,
+    nextAuditCursor:
+      inspection.auditEvents.length > 0
+        ? toAuditEventCursor(inspection.auditEvents.at(-1)!)
+        : undefined,
     verificationStatus,
   }
 }

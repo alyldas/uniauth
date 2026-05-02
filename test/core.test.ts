@@ -1,3 +1,4 @@
 import './core/read-side-and-sessions.test.js'
+import './core/audit-pagination.test.js'
 import './core/otp-and-verifications.test.js'
 import './core/policies-and-merge.test.js'
