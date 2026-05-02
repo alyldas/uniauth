@@ -277,8 +277,6 @@ Tracking issues: #176, #177.
 
 Tracking issues: #184, #185, #186.
 
-## Next Release
-
 ### v0.30 - Audit Timeline Pagination
 
 - Extend `getAuditEvents(...)` with stable cursor semantics for trusted backend timelines.
@@ -288,6 +286,14 @@ Tracking issues: #184, #185, #186.
   inspection flows across in-memory and Postgres-backed service setups.
 
 Tracking issues: #190, #191, #192.
+
+## Next Release
+
+### v0.31 - Backlog To Be Defined
+
+- Define the next releasable API or integration slice after the audit pagination batch.
+
+Tracking issues: none yet.
 
 ## Versioning
 
