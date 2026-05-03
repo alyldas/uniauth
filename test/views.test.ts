@@ -16,6 +16,7 @@ import {
   toAccountSecuritySnapshot,
   toAccountSecurityUserView,
   toAuditEventView,
+  toVerificationResendWindow,
   toVerificationStatusView,
   type Credential,
   type Session,
@@ -207,6 +208,43 @@ describe('safe projection helpers', () => {
       purpose: verification.purpose,
       status: VerificationStatus.Pending,
       expiresAt: verification.expiresAt,
+    })
+    expect(view).not.toHaveProperty('target')
+    expect(view).not.toHaveProperty('secretHash')
+    expect(view).not.toHaveProperty('metadata')
+  })
+
+  it('maps verification resend windows without leaking target or secret hash', () => {
+    const verification: Verification = {
+      id: asVerificationId('verification-55'),
+      purpose: 'sign-in',
+      target: 'alice@example.com',
+      provider: 'email-otp',
+      channel: 'email',
+      secretHash: 'secret-hash',
+      status: VerificationStatus.Pending,
+      createdAt: now,
+      expiresAt: new Date('2026-01-01T00:10:00.000Z'),
+      metadata: { internal: true },
+    }
+
+    const view = toVerificationResendWindow(verification, {
+      now: new Date('2026-01-01T00:00:30.000Z'),
+      cooldownSeconds: 60,
+    })
+
+    expect(view).toEqual({
+      id: verification.id,
+      purpose: verification.purpose,
+      status: VerificationStatus.Pending,
+      provider: 'email-otp',
+      channel: 'email',
+      expiresAt: verification.expiresAt,
+      resendAllowed: false,
+      expired: false,
+      resendAvailableAt: new Date('2026-01-01T00:01:00.000Z'),
+      cooldownSeconds: 60,
+      cooldownRemainingSeconds: 30,
     })
     expect(view).not.toHaveProperty('target')
     expect(view).not.toHaveProperty('secretHash')

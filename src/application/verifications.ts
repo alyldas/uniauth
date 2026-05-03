@@ -3,13 +3,16 @@ import { optionalProp } from './optional.js'
 import { audit } from './support.js'
 import {
   AuditEventType,
+  toVerificationResendWindow,
   VerificationStatus,
   type AuthIdentityProvider,
   type ConsumeVerificationInput,
   type CreateVerificationInput,
   type CreateVerificationResult,
+  type GetVerificationResendWindowInput,
   type OtpChannel,
   type Verification,
+  type VerificationResendWindow,
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
 import { generateSecret } from '../utils/secrets.js'
@@ -42,6 +45,22 @@ export async function getVerification(
   }
 
   return verification
+}
+
+export async function getVerificationResendWindow(
+  runtime: AuthServiceRuntime,
+  input: GetVerificationResendWindowInput,
+): Promise<VerificationResendWindow> {
+  const verification = await getVerification(runtime, input.verificationId)
+  const now = input.now ?? runtime.clock.now()
+  const cooldownSeconds = resolveVerificationResendCooldownSeconds(runtime, input.cooldownSeconds)
+
+  assertValidDate(now, 'Verification resend window time is invalid.')
+
+  return toVerificationResendWindow(verification, {
+    now,
+    cooldownSeconds,
+  })
 }
 
 export async function consumeVerification(
@@ -146,4 +165,17 @@ function resolveVerificationExpiresAt(
   }
 
   return addSeconds(input.now, ttlSeconds)
+}
+
+function resolveVerificationResendCooldownSeconds(
+  runtime: AuthServiceRuntime,
+  cooldownSeconds: number | undefined,
+): number {
+  const resolved = cooldownSeconds ?? runtime.verificationResendCooldownSeconds
+
+  if (!Number.isInteger(resolved) || resolved < 0) {
+    throw invalidInput('Verification resend cooldown must be a non-negative integer.')
+  }
+
+  return resolved
 }

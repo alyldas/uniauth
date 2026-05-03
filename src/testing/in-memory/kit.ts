@@ -37,6 +37,7 @@ export interface CreateInMemoryAuthKitOptions {
   readonly passwordHasher?: PasswordHasher
   readonly sessionTtlSeconds?: number
   readonly verificationTtlSeconds?: number
+  readonly verificationResendCooldownSeconds?: number
 }
 
 interface InMemoryAuthKitResult {
@@ -80,6 +81,7 @@ export function createInMemoryAuthKit(
     ...optionalProp('emailOtpSubject', options.emailOtpSubject),
     ...optionalProp('sessionTtlSeconds', options.sessionTtlSeconds),
     ...optionalProp('verificationTtlSeconds', options.verificationTtlSeconds),
+    ...optionalProp('verificationResendCooldownSeconds', options.verificationResendCooldownSeconds),
   }
 
   return {

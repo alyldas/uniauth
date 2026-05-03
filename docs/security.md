@@ -31,6 +31,8 @@ risks, see [Threat model](threat-model.md).
   remain outside core.
 - Rate-limit denials do not create users or sessions, do not consume pending verifications, and do not
   reveal whether a target account exists.
+- Trusted resend cooldown reads stay server-owned and do not require exposing raw verification
+  entities or repository reach-through to clients.
 - Public errors avoid exposing which user owns an identity.
 
 ## Policy Matrix
@@ -93,6 +95,15 @@ risks, see [Threat model](threat-model.md).
 - Merge policy can inspect active identities on both sides before moving provider-linked accounts.
 - Provider adapters can expose normalized trust context without leaking provider SDK objects into
   the core policy contract.
+
+## Threats Covered in v0.32
+
+- Trusted resend countdown and cooldown reads can stay on one safe public API instead of ad hoc
+  repository lookups or raw verification serialization.
+- Rate-limit helper output can be handled through a typed public helper instead of parsing
+  arbitrary error details by hand.
+- OTP, magic-link, and password-recovery abuse-control docs now use one canonical server-owned
+  recipe for resend and 429 shaping.
 
 ## Threats Covered in v0.11
 

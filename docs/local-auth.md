@@ -104,6 +104,9 @@ passwords, disabled users, and inconsistent credential state.
 Applications should avoid exposing repository lookups, sender decisions, or rate-limit bucket names
 directly in HTTP responses.
 
+For trusted resend cooldown reads and canonical 429 shaping, use
+[OTP and magic-link abuse-control recipes](abuse-control.md).
+
 ## Rate Limits
 
 Wire `RateLimiter` to security-sensitive attempts:
@@ -120,6 +123,13 @@ Wire `RateLimiter` to security-sensitive attempts:
 The core port is intentionally storage/backend agnostic. Redis, database counters, edge rate limits,
 headers, retry-after formatting, and abuse analytics remain application or adapter concerns.
 
+Public helper surface:
+
+- `rateLimitKey(...)` for canonical key composition when tests or surrounding middleware need the
+  same low-level format as core;
+- `getRateLimitedErrorDetails(error)` for typed inspection of stable `rate_limited` errors;
+- `getVerificationResendWindow(...)` for trusted resend countdown and verification cooldown reads.
+
 ## Production Boundaries
 
 Current local auth hardening does not try to solve every production edge. The OTP delivery boundary
@@ -132,5 +142,7 @@ For storage and security invariants, see [Architecture](architecture.md) and
 
 For framework-specific route, cookie, and response composition, see
 [Backend integration recipes](backend-recipes.md).
+For resend cooldown and abuse-control endpoint recipes, see [OTP and magic-link abuse-control
+recipes](abuse-control.md).
 For cookie, bearer, and mobile client session transport choices, see
 [Session transport recipes](session-transport.md).

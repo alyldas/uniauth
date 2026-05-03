@@ -2,7 +2,7 @@ import type { AuthServiceRuntime } from './runtime.js'
 import { getOtpDelivery, normalizeOtpTarget, type SupportedOtpChannel } from './otp-delivery.js'
 import { optionalProp } from './optional.js'
 import { normalizeAssertion, signInWithAssertion } from './sign-in.js'
-import { enforceRateLimit, rateLimitKey } from './support.js'
+import { enforceRateLimit } from './support.js'
 import { consumeVerificationRecord, createVerificationRecord } from './verifications.js'
 import type {
   AuthResult,
@@ -21,7 +21,7 @@ import {
   VerificationPurpose,
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
-import { RateLimitAction, type OtpSecretGeneratorInput } from '../ports.js'
+import { RateLimitAction, rateLimitKey, type OtpSecretGeneratorInput } from '../ports.js'
 import { generateOtpSecret } from '../utils/secrets.js'
 
 const DEFAULT_OTP_SECRET_LENGTH = 6

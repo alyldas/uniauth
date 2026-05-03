@@ -1,7 +1,7 @@
 import { optionalProp } from './optional.js'
 import type { AuthServiceRuntime } from './runtime.js'
 import { normalizeAssertion, signInWithAssertion } from './sign-in.js'
-import { enforceRateLimit, rateLimitKey } from './support.js'
+import { enforceRateLimit } from './support.js'
 import { consumeVerificationRecord, createVerificationRecord } from './verifications.js'
 import {
   EMAIL_MAGIC_LINK_PROVIDER_ID,
@@ -14,7 +14,7 @@ import {
   type Verification,
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
-import { RateLimitAction } from '../ports.js'
+import { RateLimitAction, rateLimitKey } from '../ports.js'
 import { generateSecret } from '../utils/secrets.js'
 
 const DEFAULT_EMAIL_MAGIC_LINK_SUBJECT = 'Your sign-in link'

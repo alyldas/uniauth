@@ -138,6 +138,12 @@ export interface CreateVerificationResult {
   readonly secret: string
 }
 
+export interface GetVerificationResendWindowInput {
+  readonly verificationId: VerificationId
+  readonly cooldownSeconds?: number
+  readonly now?: Date
+}
+
 export interface ConsumeVerificationInput {
   readonly verificationId: VerificationId
   readonly secret: string

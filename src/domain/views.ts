@@ -1,6 +1,6 @@
 import type { AuditEvent, AuditEventCursor } from './audit.js'
 import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
-import type { ProviderTrustLevel } from './kinds.js'
+import { VerificationStatus, type ProviderTrustLevel } from './kinds.js'
 
 export interface AccountSecurityUserView {
   readonly id: User['id']
@@ -71,6 +71,16 @@ export interface VerificationStatusView {
   readonly status: Verification['status']
   readonly expiresAt: Date
   readonly consumedAt?: Date
+}
+
+export interface VerificationResendWindow extends VerificationStatusView {
+  readonly provider?: Verification['provider']
+  readonly channel?: Verification['channel']
+  readonly resendAllowed: boolean
+  readonly expired: boolean
+  readonly resendAvailableAt: Date
+  readonly cooldownSeconds: number
+  readonly cooldownRemainingSeconds: number
 }
 
 export function toAccountSecurityUserView(user: User): AccountSecurityUserView {
@@ -168,5 +178,35 @@ export function toVerificationStatusView(verification: Verification): Verificati
     status: verification.status,
     expiresAt: verification.expiresAt,
     ...(verification.consumedAt ? { consumedAt: verification.consumedAt } : {}),
+  }
+}
+
+export function toVerificationResendWindow(
+  verification: Verification,
+  input: {
+    readonly now: Date
+    readonly cooldownSeconds: number
+  },
+): VerificationResendWindow {
+  const resendAvailableAt = new Date(
+    verification.createdAt.getTime() + input.cooldownSeconds * 1000,
+  )
+  const cooldownRemainingSeconds = Math.max(
+    0,
+    Math.ceil((resendAvailableAt.getTime() - input.now.getTime()) / 1000),
+  )
+  const expired = verification.expiresAt.getTime() <= input.now.getTime()
+  const resendAllowed =
+    verification.status === VerificationStatus.Pending && !expired && cooldownRemainingSeconds === 0
+
+  return {
+    ...toVerificationStatusView(verification),
+    ...(verification.provider ? { provider: verification.provider } : {}),
+    ...(verification.channel ? { channel: verification.channel } : {}),
+    resendAllowed,
+    expired,
+    resendAvailableAt,
+    cooldownSeconds: input.cooldownSeconds,
+    cooldownRemainingSeconds,
   }
 }
