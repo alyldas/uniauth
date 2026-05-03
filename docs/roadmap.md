@@ -311,12 +311,23 @@ Tracking issues: #199, #200, #201.
 
 Tracking issues: #207, #208, #209, #210.
 
+### v0.33 - Resend Execution Flows
+
+- Add public resend execution APIs for OTP challenges, email magic-link sign-in, and email
+  password recovery.
+- Replace the active pending verification on successful resend while keeping public behavior
+  neutral and preserving existing secret-storage invariants.
+- Add focused resend replacement, cooldown, and delivery-failure coverage across in-memory and
+  Postgres-backed service setups.
+- Add backend abuse-control and resend execution recipes for OTP, magic link, and recovery flows.
+
+Tracking issues: #214, #215, #216, #217.
+
 ## Next Release
 
-### v0.33 - Backlog To Be Defined
+### v0.34 - Backlog To Be Defined
 
-- Define the next releasable API or integration slice after the resend-window and abuse-control
-  helper batch.
+- Define the next releasable API or integration slice after the resend execution flow batch.
 
 Tracking issues: none yet.
 
