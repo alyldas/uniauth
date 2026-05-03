@@ -1,6 +1,6 @@
 import type { AuthServiceRuntime } from './runtime.js'
 import { getAccountSecuritySnapshot } from './account-security.js'
-import { getAuditEvents } from './audit-events.js'
+import { getAuditEventPage } from './audit-events.js'
 import {
   toAccountInspectionSnapshot,
   type AccountInspectionSnapshot,
@@ -14,7 +14,7 @@ export async function getAccountInspectionSnapshot(
   const account = await getAccountSecuritySnapshot(runtime, input.userId)
   const auditWindow = input.audit
   const auditLimit = auditWindow?.limit ?? input.auditLimit
-  const auditEvents = await getAuditEvents(runtime, {
+  const auditPage = await getAuditEventPage(runtime, {
     userId: account.user.id,
     ...(auditWindow?.before ? { before: auditWindow.before } : {}),
     ...(auditWindow?.after ? { after: auditWindow.after } : {}),
@@ -23,6 +23,7 @@ export async function getAccountInspectionSnapshot(
 
   return toAccountInspectionSnapshot({
     account,
-    auditEvents,
+    auditEvents: auditPage.events,
+    ...(auditPage.nextCursor ? { nextAuditCursor: auditPage.nextCursor } : {}),
   })
 }

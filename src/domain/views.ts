@@ -1,4 +1,4 @@
-import type { AuditEvent } from './audit.js'
+import type { AuditEvent, AuditEventCursor } from './audit.js'
 import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
 import type { ProviderTrustLevel } from './kinds.js'
 
@@ -62,6 +62,7 @@ export interface AuditEventView {
 export interface AccountInspectionSnapshot {
   readonly account: AccountSecuritySnapshot
   readonly auditEvents: readonly AuditEventView[]
+  readonly nextAuditCursor?: AuditEventCursor
 }
 
 export interface VerificationStatusView {
@@ -151,10 +152,12 @@ export function toAuditEventView(event: AuditEvent): AuditEventView {
 export function toAccountInspectionSnapshot(input: {
   readonly account: AccountSecuritySnapshot
   readonly auditEvents: readonly AuditEvent[]
+  readonly nextAuditCursor?: AuditEventCursor
 }): AccountInspectionSnapshot {
   return {
     account: input.account,
     auditEvents: input.auditEvents.map((event) => toAuditEventView(event)),
+    ...(input.nextAuditCursor ? { nextAuditCursor: input.nextAuditCursor } : {}),
   }
 }
 
