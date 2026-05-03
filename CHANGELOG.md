@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.0](https://github.com/alyldas/uniauth/compare/v0.30.0...v0.31.0) (2026-05-03)
+
+
+### Features
+
+* add audit event page API ([85248bc](https://github.com/alyldas/uniauth/commit/85248bcf7bd0e9852a7a20f8a4a314b3746fc3d5))
+* add inspection audit page metadata ([ed133fa](https://github.com/alyldas/uniauth/commit/ed133fac49759e28d105ea5534b6aec0aaf8a348))
+
 ## [0.30.0](https://github.com/alyldas/uniauth/compare/v0.29.0...v0.30.0) (2026-05-02)
 
 
