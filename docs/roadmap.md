@@ -287,11 +287,22 @@ Tracking issues: #184, #185, #186.
 
 Tracking issues: #190, #191, #192.
 
+### v0.31 - Audit Page Metadata and Trusted Support Pagination
+
+- Add page-oriented `getAuditEventPage(...)` to the public read-side service surface so trusted
+  backend tooling can consume `events + nextCursor` directly.
+- Extend `getAccountInspectionSnapshot(...)` with aggregate-owned `nextAuditCursor` metadata so
+  operator tooling can stay on the inspection helper for continuation-friendly windows.
+- Add raw-vs-aggregate parity coverage for audit page metadata and update support inspection
+  recipes so aggregate pagination remains the canonical trusted path.
+
+Tracking issues: #199, #200, #201.
+
 ## Next Release
 
-### v0.31 - Backlog To Be Defined
+### v0.32 - Backlog To Be Defined
 
-- Define the next releasable API or integration slice after the audit pagination batch.
+- Define the next releasable API or integration slice after the audit page metadata batch.
 
 Tracking issues: none yet.
 
