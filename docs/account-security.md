@@ -79,10 +79,12 @@ Do not serialize:
 For trusted backend security timelines or support inspection:
 
 ```ts
-const events = await authService.getAuditEvents({
+const page = await authService.getAuditEventPage({
   userId,
   limit: 20,
 })
+
+const events = page.events
 ```
 
 The service returns local `AuditEvent` records newest-first. Keep outward serialization
@@ -92,14 +94,14 @@ For continuation-based trusted pagination, keep the cursor application-owned and
 last event you already returned:
 
 ```ts
-const firstPage = await authService.getAuditEvents({
+const firstPage = await authService.getAuditEventPage({
   userId,
   limit: 20,
 })
 
-const nextPage = await authService.getAuditEvents({
+const nextPage = await authService.getAuditEventPage({
   userId,
-  before: toAuditEventCursor(firstPage.at(-1)!),
+  before: firstPage.nextCursor,
   limit: 20,
 })
 ```

@@ -56,6 +56,7 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.getUserCredentials).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getAccountInspectionSnapshot).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getAccountSecuritySnapshot).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.getAuditEventPage).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.resolveSessionContext).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getVerification).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeUserSessions).toBeTypeOf('function')

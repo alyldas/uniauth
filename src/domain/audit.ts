@@ -40,6 +40,11 @@ export interface AuditEventQuery {
   readonly limit?: number
 }
 
+export interface AuditEventPage {
+  readonly events: readonly AuditEvent[]
+  readonly nextCursor?: AuditEventCursor
+}
+
 export function toAuditEventCursor(event: Pick<AuditEvent, 'occurredAt' | 'id'>): AuditEventCursor {
   return {
     occurredAt: event.occurredAt,

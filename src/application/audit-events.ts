@@ -1,9 +1,19 @@
 import type { AuthServiceRuntime } from './runtime.js'
-import type { AuditEvent, AuditEventCursor, AuditEventQuery } from '../domain/types.js'
+import {
+  toAuditEventCursor,
+  type AuditEvent,
+  type AuditEventCursor,
+  type AuditEventPage,
+  type AuditEventQuery,
+} from '../domain/types.js'
 import { invalidInput } from '../errors.js'
 import { assertValidDate } from '../utils/time.js'
 
 const DefaultAuditEventLimit = 50
+
+interface NormalizedAuditEventQuery extends AuditEventQuery {
+  readonly limit: number
+}
 
 export async function getAuditEvents(
   runtime: AuthServiceRuntime,
@@ -13,7 +23,28 @@ export async function getAuditEvents(
   return runtime.repos.auditLogRepo.list(query)
 }
 
-function normalizeAuditEventQuery(input: AuditEventQuery): AuditEventQuery {
+export async function getAuditEventPage(
+  runtime: AuthServiceRuntime,
+  input: AuditEventQuery = {},
+): Promise<AuditEventPage> {
+  const query = normalizeAuditEventQuery(input)
+  const matchingEvents = await runtime.repos.auditLogRepo.list({
+    ...query,
+    limit: query.limit + 1,
+  })
+  const events = matchingEvents.slice(0, query.limit)
+  const nextCursor =
+    matchingEvents.length > query.limit && events.length > 0
+      ? toAuditEventCursor(events.at(-1)!)
+      : undefined
+
+  return {
+    events,
+    ...(nextCursor ? { nextCursor } : {}),
+  }
+}
+
+function normalizeAuditEventQuery(input: AuditEventQuery): NormalizedAuditEventQuery {
   const before = input.before ? normalizeAuditEventCursor(input.before) : undefined
   const after = input.after ? normalizeAuditEventCursor(input.after) : undefined
 

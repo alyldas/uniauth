@@ -112,24 +112,26 @@ If the operator surface needs a custom audit filter or explicitly needs raw audi
 down to the narrower audit API:
 
 ```ts
-const auditEvents = await authService.getAuditEvents({
+const auditPage = await authService.getAuditEventPage({
   userId,
   limit: 50,
 })
+
+const auditEvents = auditPage.events
 ```
 
 For continuation-friendly trusted pagination, derive the cursor from the last item you already
 returned and keep it server-owned:
 
 ```ts
-const firstPage = await authService.getAuditEvents({
+const firstPage = await authService.getAuditEventPage({
   userId,
   limit: 50,
 })
 
-const nextPage = await authService.getAuditEvents({
+const nextPage = await authService.getAuditEventPage({
   userId,
-  before: toAuditEventCursor(firstPage.at(-1)!),
+  before: firstPage.nextCursor,
   limit: 50,
 })
 ```

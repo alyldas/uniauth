@@ -1,6 +1,6 @@
 import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
 import type { AccountInspectionSnapshot, AccountSecuritySnapshot } from './views.js'
-import type { AuditEvent, AuditEventQuery } from './audit.js'
+import type { AuditEvent, AuditEventPage, AuditEventQuery } from './audit.js'
 import type {
   AuthResult,
   ConsumeVerificationInput,
@@ -88,6 +88,7 @@ export interface AuthService {
   getUserCredentials(userId: UserId): Promise<readonly Credential[]>
   getUserSessions(userId: UserId): Promise<readonly Session[]>
   getAuditEvents(input?: AuditEventQuery): Promise<readonly AuditEvent[]>
+  getAuditEventPage(input?: AuditEventQuery): Promise<AuditEventPage>
   getAccountSecuritySnapshot(userId: UserId): Promise<AccountSecuritySnapshot>
   getAccountInspectionSnapshot(
     input: GetAccountInspectionSnapshotInput,
