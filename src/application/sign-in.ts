@@ -1,12 +1,6 @@
 import { optionalProp } from './optional.js'
 import type { AuthServiceRuntime } from './runtime.js'
-import {
-  audit,
-  enforceRateLimit,
-  getActiveUser,
-  isActiveIdentity,
-  rateLimitKey,
-} from './support.js'
+import { audit, enforceRateLimit, getActiveUser, isActiveIdentity } from './support.js'
 import { findAutoLinkTarget } from './sign-in/auto-link.js'
 import { resolveAssertion } from './sign-in/assertion.js'
 import {
@@ -23,7 +17,7 @@ import {
   type ProviderIdentityAssertion,
   type SignInInput,
 } from '../domain/types.js'
-import { RateLimitAction } from '../ports.js'
+import { RateLimitAction, rateLimitKey } from '../ports.js'
 
 export { findAutoLinkTarget } from './sign-in/auto-link.js'
 export { normalizeAssertion, resolveAssertion } from './sign-in/assertion.js'

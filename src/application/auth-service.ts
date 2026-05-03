@@ -24,7 +24,12 @@ import {
 } from './sessions.js'
 import { signIn } from './sign-in.js'
 import { getUser } from './users.js'
-import { consumeVerification, createVerification, getVerification } from './verifications.js'
+import {
+  consumeVerification,
+  createVerification,
+  getVerification,
+  getVerificationResendWindow,
+} from './verifications.js'
 import type { AuthPolicy } from './policy.js'
 import type {
   AuthIdentity,
@@ -48,6 +53,7 @@ import type {
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
+  GetVerificationResendWindowInput,
   IdGenerator,
   LinkInput,
   LinkResult,
@@ -74,6 +80,7 @@ import type {
   User,
   UserId,
   Verification,
+  VerificationResendWindow,
   VerificationId,
 } from '../domain/types.js'
 import type {
@@ -92,6 +99,7 @@ export interface DefaultAuthServiceOptions extends AuthServiceInfrastructure {
   readonly clock?: Clock
   readonly sessionTtlSeconds?: number
   readonly verificationTtlSeconds?: number
+  readonly verificationResendCooldownSeconds?: number
 }
 
 export class DefaultAuthService implements AuthService {
@@ -225,6 +233,12 @@ export class DefaultAuthService implements AuthService {
 
   async getVerification(verificationId: VerificationId): Promise<Verification> {
     return getVerification(this.runtime, verificationId)
+  }
+
+  async getVerificationResendWindow(
+    input: GetVerificationResendWindowInput,
+  ): Promise<VerificationResendWindow> {
+    return getVerificationResendWindow(this.runtime, input)
   }
 
   async consumeVerification(input: ConsumeVerificationInput): Promise<Verification> {

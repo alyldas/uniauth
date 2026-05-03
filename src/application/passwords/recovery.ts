@@ -1,6 +1,6 @@
 import { optionalProp } from '../optional.js'
 import type { AuthServiceRuntime } from '../runtime.js'
-import { enforceRateLimit, rateLimitKey } from '../support.js'
+import { enforceRateLimit } from '../support.js'
 import { consumeVerificationRecord, createVerificationRecord } from '../verifications.js'
 import {
   OtpChannel,
@@ -12,7 +12,7 @@ import {
   type StartEmailPasswordRecoveryResult,
 } from '../../domain/types.js'
 import { invalidInput } from '../../errors.js'
-import { RateLimitAction } from '../../ports.js'
+import { RateLimitAction, rateLimitKey } from '../../ports.js'
 import { generateSecret } from '../../utils/secrets.js'
 import {
   DEFAULT_PASSWORD_RECOVERY_SUBJECT,

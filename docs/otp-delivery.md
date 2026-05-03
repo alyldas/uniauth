@@ -51,6 +51,10 @@ through the public `authService.getVerification(verificationId)` read-side helpe
 `toVerificationStatusView(...)` before serializing outward-facing responses, and never expose
 `secretHash` outside trusted server-side tooling.
 
+If the backend also needs resend countdown or cooldown reads, prefer
+`authService.getVerificationResendWindow(...)` from a trusted server route instead of deriving
+timers in the browser. See [OTP and magic-link abuse-control recipes](abuse-control.md).
+
 ## What Core Owns
 
 UniAuth owns only the generic auth semantics:

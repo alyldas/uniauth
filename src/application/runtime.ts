@@ -16,6 +16,7 @@ import { systemClock } from '../utils/time.js'
 
 const DEFAULT_SESSION_TTL_SECONDS = 60 * 60 * 24 * 30
 const DEFAULT_VERIFICATION_TTL_SECONDS = 60 * 10
+const DEFAULT_VERIFICATION_RESEND_COOLDOWN_SECONDS = 0
 
 const immediateUnitOfWork: UnitOfWork = {
   run: (operation) => operation(),
@@ -32,6 +33,7 @@ export interface AuthServiceRuntime extends AuthServiceInfrastructure {
   readonly clock: Clock
   readonly sessionTtlSeconds: number
   readonly verificationTtlSeconds: number
+  readonly verificationResendCooldownSeconds: number
 }
 
 export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): AuthServiceRuntime {
@@ -40,6 +42,8 @@ export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): Au
     ...optionalProp('emailSender', options.emailSender),
     ...optionalProp('smsSender', options.smsSender),
     ...optionalProp('rateLimiter', options.rateLimiter),
+    verificationResendCooldownSeconds:
+      options.verificationResendCooldownSeconds ?? DEFAULT_VERIFICATION_RESEND_COOLDOWN_SECONDS,
     ...optionalProp('otpSecretLength', options.otpSecretLength),
     ...optionalProp('otpSecretGenerator', options.otpSecretGenerator),
     ...optionalProp('emailOtpSubject', options.emailOtpSubject),

@@ -1,3 +1,5 @@
+import { isRateLimitedErrorDetails, type RateLimitedErrorDetails } from './ports.js'
+
 export const UniAuthErrorCode = {
   InvalidInput: 'invalid_input',
   ProviderNotFound: 'provider_not_found',
@@ -48,4 +50,14 @@ export function invalidCredentials(): UniAuthError {
 
 export function rateLimited(details?: Record<string, unknown>): UniAuthError {
   return new UniAuthError(UniAuthErrorCode.RateLimited, 'Too many auth attempts.', details)
+}
+
+export function getRateLimitedErrorDetails(error: unknown): RateLimitedErrorDetails | undefined {
+  if (!(error instanceof UniAuthError) || error.code !== UniAuthErrorCode.RateLimited) {
+    return undefined
+  }
+
+  const { details } = error
+
+  return isRateLimitedErrorDetails(details) ? details : undefined
 }

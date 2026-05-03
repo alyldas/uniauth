@@ -1,5 +1,9 @@
 import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
-import type { AccountInspectionSnapshot, AccountSecuritySnapshot } from './views.js'
+import type {
+  AccountInspectionSnapshot,
+  AccountSecuritySnapshot,
+  VerificationResendWindow,
+} from './views.js'
 import type { AuditEvent, AuditEventPage, AuditEventQuery } from './audit.js'
 import type {
   AuthResult,
@@ -11,6 +15,7 @@ import type {
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
+  GetVerificationResendWindowInput,
   LinkInput,
   LinkResult,
   MergeAccountsInput,
@@ -96,5 +101,8 @@ export interface AuthService {
   createSession(input: CreateSessionInput): Promise<CreateSessionResult>
   createVerification(input: CreateVerificationInput): Promise<CreateVerificationResult>
   getVerification(verificationId: VerificationId): Promise<Verification>
+  getVerificationResendWindow(
+    input: GetVerificationResendWindowInput,
+  ): Promise<VerificationResendWindow>
   consumeVerification(input: ConsumeVerificationInput): Promise<Verification>
 }

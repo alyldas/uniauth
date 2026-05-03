@@ -95,11 +95,6 @@ export async function enforceRateLimit(
     ...optionalProp('resetAt', decision.resetAt?.toISOString()),
   })
 }
-
-export function rateLimitKey(...parts: readonly string[]): string {
-  return parts.join('\u0000')
-}
-
 export async function audit(
   runtime: AuthServiceRuntime,
   type: AuditEventType,

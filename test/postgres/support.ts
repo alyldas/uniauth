@@ -12,11 +12,17 @@ import {
   createPostgresAuthStore,
   type PostgresPool,
 } from '../../src/postgres'
-import { InMemoryPasswordHasher, StaticAuthProvider } from '../../src/testing'
+import {
+  InMemoryEmailSender,
+  InMemoryPasswordHasher,
+  InMemorySmsSender,
+  StaticAuthProvider,
+} from '../../src/testing'
 import { now } from '../helpers.js'
 
 interface PostgresTestKitOptions {
   readonly policy?: AuthPolicy
+  readonly verificationResendCooldownSeconds?: number
 }
 
 export interface PostgresTestKit {
@@ -61,13 +67,20 @@ export async function createPostgresTestKit(
       return id === provider.id ? provider : undefined
     },
   }
+  const emailSender = new InMemoryEmailSender()
+  const smsSender = new InMemorySmsSender()
 
   const service = createAuthService({
     repos: store,
     transaction: store,
     providerRegistry,
+    emailSender,
+    smsSender,
     idGenerator: createSequentialIdGenerator('pg'),
     passwordHasher: new InMemoryPasswordHasher(),
+    ...(options.verificationResendCooldownSeconds !== undefined
+      ? { verificationResendCooldownSeconds: options.verificationResendCooldownSeconds }
+      : {}),
     policy:
       options.policy ??
       createDefaultAuthPolicy({

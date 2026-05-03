@@ -12,6 +12,7 @@ export interface AuthServiceInfrastructure {
   readonly normalizer?: AuthNormalizer
   readonly secretHasher?: SecretHasher
   readonly rateLimiter?: RateLimiter
+  readonly verificationResendCooldownSeconds?: number
   readonly otpSecretLength?: number
   readonly otpSecretGenerator?: OtpSecretGenerator
   readonly emailOtpSubject?: string

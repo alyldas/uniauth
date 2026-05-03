@@ -26,6 +26,12 @@ export interface RateLimitDecision {
   readonly resetAt?: Date
 }
 
+export interface RateLimitedErrorDetails {
+  readonly action: RateLimitAction
+  readonly retryAfterSeconds?: number
+  readonly resetAt?: string
+}
+
 export interface RateLimiter {
   consume(input: RateLimitAttempt): Promise<RateLimitDecision>
 }
@@ -38,3 +44,32 @@ export interface OtpSecretGeneratorInput {
 }
 
 export type OtpSecretGenerator = (input: OtpSecretGeneratorInput) => string | Promise<string>
+
+export function rateLimitKey(...parts: readonly string[]): string {
+  return parts.join('\u0000')
+}
+
+export function isRateLimitedErrorDetails(input: unknown): input is RateLimitedErrorDetails {
+  if (!(input && typeof input === 'object')) {
+    return false
+  }
+
+  const { action, retryAfterSeconds, resetAt } = input as Partial<RateLimitedErrorDetails>
+
+  if (typeof action !== 'string' || !action.trim()) {
+    return false
+  }
+
+  if (
+    retryAfterSeconds !== undefined &&
+    (!Number.isFinite(retryAfterSeconds) || retryAfterSeconds < 0)
+  ) {
+    return false
+  }
+
+  if (resetAt !== undefined && typeof resetAt !== 'string') {
+    return false
+  }
+
+  return true
+}

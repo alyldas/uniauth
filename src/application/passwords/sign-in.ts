@@ -1,7 +1,7 @@
 import { optionalProp } from '../optional.js'
 import type { AuthServiceRuntime } from '../runtime.js'
 import { createSessionRecord } from '../sessions.js'
-import { audit, enforceRateLimit, rateLimitKey } from '../support.js'
+import { audit, enforceRateLimit } from '../support.js'
 import {
   AuditEventType,
   OtpChannel,
@@ -10,7 +10,7 @@ import {
   type SignInWithPasswordInput,
 } from '../../domain/types.js'
 import { invalidCredentials } from '../../errors.js'
-import { RateLimitAction } from '../../ports.js'
+import { RateLimitAction, rateLimitKey } from '../../ports.js'
 import {
   PasswordAuditMode,
   assertPassword,

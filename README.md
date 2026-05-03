@@ -35,6 +35,8 @@ license, subscription, private contract, or other written permission.
 - Exposes a narrow `getUser(userId)` helper for loading the active local user snapshot by id.
 - Exposes read-side helpers for credential and verification lookups through the public service
   layer.
+- Exposes trusted resend/cooldown reads for verification-backed OTP, magic-link, and recovery
+  flows.
 - Exposes public audit-event slice and page read-side APIs for trusted security timelines and
   support tooling.
 - Exposes safe projection helpers for account-security and verification-status read-side flows.
@@ -48,6 +50,7 @@ license, subscription, private contract, or other written permission.
   when the configured `UnitOfWork` supports atomic rollback.
 - Exposes ports for repositories, providers, sender infrastructure, rate limits, password hashing,
   audit logs, and transactions.
+- Exposes public rate-limit helpers for key composition and typed rate-limit error inspection.
 - Ships an in-memory testing implementation through `@alyldas/uniauth/testing`.
 - Ships a reference Postgres persistence adapter through `@alyldas/uniauth/postgres`.
 
@@ -168,8 +171,11 @@ import {
   createDefaultAuthPolicy,
   createHmacSecretHasher,
   createScryptSecretHasher,
+  getRateLimitedErrorDetails,
   isUniAuthError,
+  rateLimitKey,
   toAccountSecuritySnapshot,
+  toVerificationResendWindow,
   toVerificationStatusView,
   type AuthNormalizer,
   type AuthProvider,
@@ -304,6 +310,15 @@ const inspection = await service.getAccountInspectionSnapshot({
 If the surrounding tooling truly needs raw audit entities, custom filters, or metadata-aware
 serialization, `getAuditEvents(...)` and `getAuditEventPage(...)` remain available as the narrower
 read-side primitives.
+
+Trusted resend and cooldown polling can use one read-side helper per verification:
+
+```ts
+const resendWindow = await service.getVerificationResendWindow({
+  verificationId,
+  cooldownSeconds: 60,
+})
+```
 
 Messenger Mini App providers are SDK-free `AuthProvider` adapters for signed Telegram and MAX
 launch data. See [Messenger providers](docs/messenger-providers.md).
@@ -558,6 +573,7 @@ contact `alyldas@ya.ru`.
 - [Threat model](docs/threat-model.md)
 - [Local auth flows](docs/local-auth.md)
 - [OTP delivery boundary](docs/otp-delivery.md)
+- [OTP and magic-link abuse-control recipes](docs/abuse-control.md)
 - [Normalization boundary](docs/normalization.md)
 - [Session transport recipes](docs/session-transport.md)
 - [Support and admin inspection recipe](docs/support-inspection.md)

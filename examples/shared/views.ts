@@ -1,4 +1,8 @@
-import type { AccountSecuritySnapshot, VerificationStatusView } from '@alyldas/uniauth'
+import type {
+  AccountSecuritySnapshot,
+  VerificationResendWindow,
+  VerificationStatusView,
+} from '@alyldas/uniauth'
 
 export function serializeAccountSecuritySnapshot(snapshot: AccountSecuritySnapshot) {
   return {
@@ -49,5 +53,22 @@ export function serializeVerificationStatusView(view: VerificationStatusView) {
     status: view.status,
     expiresAt: view.expiresAt.toISOString(),
     consumedAt: view.consumedAt?.toISOString() ?? null,
+  }
+}
+
+export function serializeVerificationResendWindow(view: VerificationResendWindow) {
+  return {
+    id: view.id,
+    purpose: view.purpose,
+    status: view.status,
+    provider: view.provider ?? null,
+    channel: view.channel ?? null,
+    expiresAt: view.expiresAt.toISOString(),
+    consumedAt: view.consumedAt?.toISOString() ?? null,
+    resendAllowed: view.resendAllowed,
+    expired: view.expired,
+    resendAvailableAt: view.resendAvailableAt.toISOString(),
+    cooldownSeconds: view.cooldownSeconds,
+    cooldownRemainingSeconds: view.cooldownRemainingSeconds,
   }
 }

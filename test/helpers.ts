@@ -5,6 +5,7 @@ import {
   createAuthNormalizer,
   invalidInput,
   normalizeEmail,
+  rateLimitKey,
   type AuthNormalizer,
   type AuthIdentity,
   type ProviderIdentityAssertion,
@@ -32,9 +33,7 @@ export function assertion(
   }
 }
 
-export function rateLimitKey(...parts: readonly string[]): string {
-  return parts.join('\u0000')
-}
+export { rateLimitKey }
 
 export function createStrictNormalizer(): AuthNormalizer {
   return createAuthNormalizer({

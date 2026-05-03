@@ -3,6 +3,7 @@ import {
   DefaultAuthService,
   OtpChannel,
   VerificationPurpose,
+  getRateLimitedErrorDetails,
   toVerificationStatusView,
   type EmailSender,
   type VerificationId,
@@ -12,7 +13,10 @@ import {
   assertSessionCookieSealingConfigured,
   sealSessionCookieValue,
 } from '../shared/session-cookie.js'
-import { serializeVerificationStatusView } from '../shared/views.js'
+import {
+  serializeVerificationResendWindow,
+  serializeVerificationStatusView,
+} from '../shared/views.js'
 
 interface JsonRequest<TBody> {
   readonly body: TBody
@@ -31,6 +35,12 @@ interface JsonResponse<TBody> {
   readonly status: number
   readonly body: TBody
   readonly cookies?: readonly SessionCookie[]
+}
+
+interface RateLimitedBody {
+  readonly error: 'rate_limited'
+  readonly retryAfterSeconds: number | null
+  readonly resetAt: string | null
 }
 
 interface StartOtpBody {
@@ -85,19 +95,38 @@ function buildSessionCookie(sessionToken: string): SessionCookie {
 
 async function postOtpStart(
   request: JsonRequest<StartOtpBody>,
-): Promise<JsonResponse<{ verificationId: string; delivery: OtpChannel }>> {
-  const challenge = await authService.startOtpChallenge({
-    purpose: VerificationPurpose.SignIn,
-    channel: OtpChannel.Email,
-    target: request.body.email,
-  })
+): Promise<
+  JsonResponse<{ verificationId: string; delivery: OtpChannel }> | JsonResponse<RateLimitedBody>
+> {
+  try {
+    const challenge = await authService.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: request.body.email,
+    })
 
-  return {
-    status: 202,
-    body: {
-      verificationId: challenge.verificationId,
-      delivery: challenge.delivery,
-    },
+    return {
+      status: 202,
+      body: {
+        verificationId: challenge.verificationId,
+        delivery: challenge.delivery,
+      },
+    }
+  } catch (error) {
+    const details = getRateLimitedErrorDetails(error)
+
+    if (!details) {
+      throw error
+    }
+
+    return {
+      status: 429,
+      body: {
+        error: 'rate_limited',
+        retryAfterSeconds: details.retryAfterSeconds ?? null,
+        resetAt: details.resetAt ?? null,
+      },
+    }
   }
 }
 
@@ -127,6 +156,19 @@ async function getVerificationStatus(
   return {
     status: 200,
     body: serializeVerificationStatusView(toVerificationStatusView(verification)),
+  }
+}
+
+async function getVerificationWindow(
+  verificationId: VerificationId,
+): Promise<JsonResponse<ReturnType<typeof serializeVerificationResendWindow>>> {
+  const verificationWindow = await authService.getVerificationResendWindow({
+    verificationId,
+  })
+
+  return {
+    status: 200,
+    body: serializeVerificationResendWindow(verificationWindow),
   }
 }
 
@@ -164,6 +206,16 @@ export async function runOtpBackendExample(): Promise<void> {
       email: 'alice@example.com',
     },
   })
+
+  if (startResponse.status !== 202) {
+    throw new Error(`Expected OTP start success, received ${startResponse.status}.`)
+  }
+
+  const startedChallenge = startResponse.body as {
+    readonly verificationId: string
+    readonly delivery: OtpChannel
+  }
+
   const deliveredEmail = emailSender.listMessages().at(-1)
 
   if (!deliveredEmail) {
@@ -171,21 +223,25 @@ export async function runOtpBackendExample(): Promise<void> {
   }
 
   const pendingVerification = await getVerificationStatus(
-    parseVerificationId(startResponse.body.verificationId),
+    parseVerificationId(startedChallenge.verificationId),
+  )
+  const pendingWindow = await getVerificationWindow(
+    parseVerificationId(startedChallenge.verificationId),
   )
   const finishResponse = await postOtpFinish({
     body: {
-      verificationId: startResponse.body.verificationId,
+      verificationId: startedChallenge.verificationId,
       code: extractOtpCode(deliveredEmail),
     },
   })
   const consumedVerification = await getVerificationStatus(
-    parseVerificationId(startResponse.body.verificationId),
+    parseVerificationId(startedChallenge.verificationId),
   )
 
   console.log({
     startStatus: startResponse.status,
     pendingVerification: pendingVerification.body,
+    pendingWindow: pendingWindow.body,
     deliveredTo: deliveredEmail.to,
     deliveredText: deliveredEmail.text,
     finishStatus: finishResponse.status,
