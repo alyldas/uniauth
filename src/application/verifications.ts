@@ -14,7 +14,8 @@ import {
   type Verification,
   type VerificationResendWindow,
 } from '../domain/types.js'
-import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
+import { UniAuthError, UniAuthErrorCode, invalidInput, rateLimited } from '../errors.js'
+import type { RateLimitAction } from '../ports.js'
 import { generateSecret } from '../utils/secrets.js'
 import { addSeconds, assertValidDate } from '../utils/time.js'
 
@@ -70,6 +71,49 @@ export async function consumeVerification(
   return runtime.transaction.run(async () => {
     return consumeVerificationRecord(runtime, input)
   })
+}
+
+export async function requireVerificationResendAllowed(
+  runtime: AuthServiceRuntime,
+  verification: Verification,
+  input: {
+    readonly action: RateLimitAction
+    readonly now: Date
+  },
+): Promise<VerificationResendWindow> {
+  assertValidDate(input.now, 'Verification resend time is invalid.')
+
+  const window = toVerificationResendWindow(verification, {
+    now: input.now,
+    cooldownSeconds: resolveVerificationResendCooldownSeconds(runtime, undefined),
+  })
+
+  if (verification.status === VerificationStatus.Consumed) {
+    throw new UniAuthError(
+      UniAuthErrorCode.VerificationConsumed,
+      'Verification has already been consumed.',
+    )
+  }
+
+  if (window.expired) {
+    throw new UniAuthError(UniAuthErrorCode.VerificationExpired, 'Verification has expired.')
+  }
+
+  if (window.resendAllowed) {
+    return window
+  }
+
+  const details = {
+    action: input.action,
+    retryAfterSeconds: window.cooldownRemainingSeconds,
+    resetAt: window.resendAvailableAt.toISOString(),
+  }
+
+  await audit(runtime, AuditEventType.RateLimited, input.now, {
+    metadata: details,
+  })
+
+  throw rateLimited(details)
 }
 
 export async function createVerificationRecord(
@@ -152,6 +196,18 @@ export async function consumeVerificationRecord(
   return consumed
 }
 
+export async function expireVerificationForResend(
+  runtime: AuthServiceRuntime,
+  verificationId: Verification['id'],
+  now: Date,
+): Promise<Verification> {
+  assertValidDate(now, 'Verification resend time is invalid.')
+
+  return runtime.repos.verificationRepo.update(verificationId, {
+    expiresAt: now,
+  })
+}
+
 function resolveVerificationExpiresAt(
   runtime: AuthServiceRuntime,
   input: CreateVerificationRecordInput,
@@ -178,4 +234,18 @@ function resolveVerificationResendCooldownSeconds(
   }
 
   return resolved
+}
+
+export function mergeVerificationMetadata(
+  current: Record<string, unknown> | undefined,
+  next: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!current && !next) {
+    return undefined
+  }
+
+  return {
+    ...(current ?? {}),
+    ...(next ?? {}),
+  }
 }

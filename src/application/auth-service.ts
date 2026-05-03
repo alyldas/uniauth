@@ -3,11 +3,21 @@ import { getAccountSecuritySnapshot } from './account-security.js'
 import { getAuditEventPage, getAuditEvents } from './audit-events.js'
 import { getUserIdentities, link, mergeAccounts, unlink } from './accounts.js'
 import { getUserCredentials } from './credentials.js'
-import { finishEmailMagicLinkSignIn, startEmailMagicLinkSignIn } from './magic-link.js'
-import { finishOtpChallenge, finishOtpSignIn, startOtpChallenge } from './otp.js'
+import {
+  finishEmailMagicLinkSignIn,
+  resendEmailMagicLinkSignIn,
+  startEmailMagicLinkSignIn,
+} from './magic-link.js'
+import {
+  finishOtpChallenge,
+  finishOtpSignIn,
+  resendOtpChallenge,
+  startOtpChallenge,
+} from './otp.js'
 import {
   changePassword,
   finishEmailPasswordRecovery,
+  resendEmailPasswordRecovery,
   setPassword,
   signInWithPassword,
   startEmailPasswordRecovery,
@@ -61,6 +71,7 @@ import type {
   MergeResult,
   RevokeUserSessionsInput,
   RevokeUserSessionsResult,
+  ResendOtpChallengeInput,
   ResolveSessionContextInput,
   ResolveSessionInput,
   ResolvedSessionContext,
@@ -71,6 +82,8 @@ import type {
   SignInWithPasswordInput,
   StartEmailMagicLinkSignInInput,
   StartEmailMagicLinkSignInResult,
+  ResendEmailMagicLinkSignInInput,
+  ResendEmailPasswordRecoveryInput,
   StartEmailPasswordRecoveryInput,
   StartEmailPasswordRecoveryResult,
   StartOtpChallengeInput,
@@ -121,6 +134,10 @@ export class DefaultAuthService implements AuthService {
     return startOtpChallenge(this.runtime, input)
   }
 
+  async resendOtpChallenge(input: ResendOtpChallengeInput): Promise<StartOtpChallengeResult> {
+    return resendOtpChallenge(this.runtime, input)
+  }
+
   async finishOtpChallenge(input: FinishOtpChallengeInput): Promise<Verification> {
     return finishOtpChallenge(this.runtime, input)
   }
@@ -133,6 +150,12 @@ export class DefaultAuthService implements AuthService {
     input: StartEmailMagicLinkSignInInput,
   ): Promise<StartEmailMagicLinkSignInResult> {
     return startEmailMagicLinkSignIn(this.runtime, input)
+  }
+
+  async resendEmailMagicLinkSignIn(
+    input: ResendEmailMagicLinkSignInInput,
+  ): Promise<StartEmailMagicLinkSignInResult> {
+    return resendEmailMagicLinkSignIn(this.runtime, input)
   }
 
   async finishEmailMagicLinkSignIn(input: FinishEmailMagicLinkSignInInput): Promise<AuthResult> {
@@ -151,6 +174,12 @@ export class DefaultAuthService implements AuthService {
     input: StartEmailPasswordRecoveryInput,
   ): Promise<StartEmailPasswordRecoveryResult> {
     return startEmailPasswordRecovery(this.runtime, input)
+  }
+
+  async resendEmailPasswordRecovery(
+    input: ResendEmailPasswordRecoveryInput,
+  ): Promise<StartEmailPasswordRecoveryResult> {
+    return resendEmailPasswordRecovery(this.runtime, input)
   }
 
   async finishEmailPasswordRecovery(input: FinishEmailPasswordRecoveryInput): Promise<Credential> {

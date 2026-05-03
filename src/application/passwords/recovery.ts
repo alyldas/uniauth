@@ -1,13 +1,20 @@
 import { optionalProp } from '../optional.js'
 import type { AuthServiceRuntime } from '../runtime.js'
 import { enforceRateLimit } from '../support.js'
-import { consumeVerificationRecord, createVerificationRecord } from '../verifications.js'
+import {
+  consumeVerificationRecord,
+  createVerificationRecord,
+  expireVerificationForResend,
+  mergeVerificationMetadata,
+  requireVerificationResendAllowed,
+} from '../verifications.js'
 import {
   OtpChannel,
   PASSWORD_PROVIDER_ID,
   VerificationPurpose,
   type Credential,
   type FinishEmailPasswordRecoveryInput,
+  type ResendEmailPasswordRecoveryInput,
   type StartEmailPasswordRecoveryInput,
   type StartEmailPasswordRecoveryResult,
 } from '../../domain/types.js'
@@ -115,4 +122,65 @@ export async function finishEmailPasswordRecovery(
       ...optionalProp('metadata', input.metadata),
     })
   })
+}
+
+export async function resendEmailPasswordRecovery(
+  runtime: AuthServiceRuntime,
+  input: ResendEmailPasswordRecoveryInput,
+): Promise<StartEmailPasswordRecoveryResult> {
+  const now = input.now ?? runtime.clock.now()
+  const verification = await findPasswordRecoveryVerification(runtime, input.verificationId)
+
+  if (!runtime.emailSender) {
+    throw invalidInput('Email sender is required for password recovery.')
+  }
+
+  await requireVerificationResendAllowed(runtime, verification, {
+    action: RateLimitAction.PasswordRecoveryResend,
+    now,
+  })
+  await enforceRateLimit(runtime, {
+    action: RateLimitAction.PasswordRecoveryResend,
+    key: rateLimitKey(OtpChannel.Email, verification.target),
+    now,
+    metadata: { delivery: OtpChannel.Email, purpose: verification.purpose },
+  })
+
+  const created = await runtime.transaction.run(async () => {
+    return createVerificationRecord(runtime, {
+      purpose: verification.purpose,
+      target: verification.target,
+      provider: PASSWORD_PROVIDER_ID,
+      channel: OtpChannel.Email,
+      secret: input.secret ?? generateSecret(),
+      ...optionalProp('ttlSeconds', input.ttlSeconds),
+      now,
+      ...optionalProp('metadata', mergeVerificationMetadata(verification.metadata, input.metadata)),
+    })
+  })
+  const link = await input.createLink({
+    verificationId: created.verification.id,
+    secret: created.secret,
+    email: verification.target,
+    expiresAt: created.verification.expiresAt,
+  })
+
+  await runtime.emailSender.sendEmail({
+    to: verification.target,
+    subject: DEFAULT_PASSWORD_RECOVERY_SUBJECT,
+    text: `Reset your password using this link: ${link}`,
+    metadata: {
+      verificationId: created.verification.id,
+      purpose: created.verification.purpose,
+      delivery: OtpChannel.Email,
+      provider: PASSWORD_PROVIDER_ID,
+    },
+  })
+  await expireVerificationForResend(runtime, verification.id, now)
+
+  return {
+    verificationId: created.verification.id,
+    expiresAt: created.verification.expiresAt,
+    delivery: OtpChannel.Email,
+  }
 }

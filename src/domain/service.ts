@@ -22,6 +22,7 @@ import type {
   MergeResult,
   RevokeUserSessionsInput,
   RevokeUserSessionsResult,
+  ResendOtpChallengeInput,
   ResolveSessionContextInput,
   ResolveSessionInput,
   ResolvedSessionContext,
@@ -43,6 +44,8 @@ import type {
   ChangePasswordInput,
   FinishEmailMagicLinkSignInInput,
   FinishEmailPasswordRecoveryInput,
+  ResendEmailMagicLinkSignInInput,
+  ResendEmailPasswordRecoveryInput,
   SetPasswordInput,
   SignInWithPasswordInput,
   StartEmailMagicLinkSignInInput,
@@ -68,16 +71,23 @@ export interface AuthService {
   signIn(input: SignInInput): Promise<AuthResult>
   signInWithPassword(input: SignInWithPasswordInput): Promise<AuthResult>
   startOtpChallenge(input: StartOtpChallengeInput): Promise<StartOtpChallengeResult>
+  resendOtpChallenge(input: ResendOtpChallengeInput): Promise<StartOtpChallengeResult>
   finishOtpChallenge(input: FinishOtpChallengeInput): Promise<Verification>
   finishOtpSignIn(input: FinishOtpSignInInput): Promise<AuthResult>
   startEmailMagicLinkSignIn(
     input: StartEmailMagicLinkSignInInput,
+  ): Promise<StartEmailMagicLinkSignInResult>
+  resendEmailMagicLinkSignIn(
+    input: ResendEmailMagicLinkSignInInput,
   ): Promise<StartEmailMagicLinkSignInResult>
   finishEmailMagicLinkSignIn(input: FinishEmailMagicLinkSignInInput): Promise<AuthResult>
   setPassword(input: SetPasswordInput): Promise<Credential>
   changePassword(input: ChangePasswordInput): Promise<Credential>
   startEmailPasswordRecovery(
     input: StartEmailPasswordRecoveryInput,
+  ): Promise<StartEmailPasswordRecoveryResult>
+  resendEmailPasswordRecovery(
+    input: ResendEmailPasswordRecoveryInput,
   ): Promise<StartEmailPasswordRecoveryResult>
   finishEmailPasswordRecovery(input: FinishEmailPasswordRecoveryInput): Promise<Credential>
   link(input: LinkInput): Promise<LinkResult>

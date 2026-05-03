@@ -52,6 +52,10 @@ interface FinishOtpBody {
   readonly code: string
 }
 
+interface ResendOtpBody {
+  readonly verificationId: string
+}
+
 interface DeliveredEmail {
   readonly to: string
   readonly subject: string
@@ -80,6 +84,7 @@ const authService = new DefaultAuthService({
   transaction: store,
   emailSender,
   rateLimiter: new InMemoryRateLimiter(),
+  verificationResendCooldownSeconds: 0,
 })
 
 function buildSessionCookie(sessionToken: string): SessionCookie {
@@ -113,20 +118,29 @@ async function postOtpStart(
       },
     }
   } catch (error) {
-    const details = getRateLimitedErrorDetails(error)
+    return toRateLimitedResponse(error)
+  }
+}
 
-    if (!details) {
-      throw error
-    }
+async function postOtpResend(
+  request: JsonRequest<ResendOtpBody>,
+): Promise<
+  JsonResponse<{ verificationId: string; delivery: OtpChannel }> | JsonResponse<RateLimitedBody>
+> {
+  try {
+    const challenge = await authService.resendOtpChallenge({
+      verificationId: parseVerificationId(request.body.verificationId),
+    })
 
     return {
-      status: 429,
+      status: 202,
       body: {
-        error: 'rate_limited',
-        retryAfterSeconds: details.retryAfterSeconds ?? null,
-        resetAt: details.resetAt ?? null,
+        verificationId: challenge.verificationId,
+        delivery: challenge.delivery,
       },
     }
+  } catch (error) {
+    return toRateLimitedResponse(error)
   }
 }
 
@@ -169,6 +183,23 @@ async function getVerificationWindow(
   return {
     status: 200,
     body: serializeVerificationResendWindow(verificationWindow),
+  }
+}
+
+function toRateLimitedResponse(error: unknown): JsonResponse<RateLimitedBody> {
+  const details = getRateLimitedErrorDetails(error)
+
+  if (!details) {
+    throw error
+  }
+
+  return {
+    status: 429,
+    body: {
+      error: 'rate_limited',
+      retryAfterSeconds: details.retryAfterSeconds ?? null,
+      resetAt: details.resetAt ?? null,
+    },
   }
 }
 
@@ -228,14 +259,37 @@ export async function runOtpBackendExample(): Promise<void> {
   const pendingWindow = await getVerificationWindow(
     parseVerificationId(startedChallenge.verificationId),
   )
-  const finishResponse = await postOtpFinish({
+  const resendResponse = await postOtpResend({
     body: {
       verificationId: startedChallenge.verificationId,
-      code: extractOtpCode(deliveredEmail),
+    },
+  })
+
+  if (resendResponse.status !== 202) {
+    throw new Error(`Expected OTP resend success, received ${resendResponse.status}.`)
+  }
+
+  const resentChallenge = resendResponse.body as {
+    readonly verificationId: string
+    readonly delivery: OtpChannel
+  }
+  const resentEmail = emailSender.listMessages().at(-1)
+
+  if (!resentEmail) {
+    throw new Error('Expected the application-owned sender to capture the resent email message.')
+  }
+
+  const resentWindow = await getVerificationWindow(
+    parseVerificationId(resentChallenge.verificationId),
+  )
+  const finishResponse = await postOtpFinish({
+    body: {
+      verificationId: resentChallenge.verificationId,
+      code: extractOtpCode(resentEmail),
     },
   })
   const consumedVerification = await getVerificationStatus(
-    parseVerificationId(startedChallenge.verificationId),
+    parseVerificationId(resentChallenge.verificationId),
   )
 
   console.log({
@@ -244,6 +298,10 @@ export async function runOtpBackendExample(): Promise<void> {
     pendingWindow: pendingWindow.body,
     deliveredTo: deliveredEmail.to,
     deliveredText: deliveredEmail.text,
+    resendStatus: resendResponse.status,
+    resentVerificationId: resentChallenge.verificationId,
+    resentWindow: resentWindow.body,
+    resentDeliveredText: resentEmail.text,
     finishStatus: finishResponse.status,
     consumedVerification: consumedVerification.body,
     sessionCookie: finishResponse.cookies?.[0],

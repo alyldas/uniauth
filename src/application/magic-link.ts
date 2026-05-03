@@ -2,13 +2,20 @@ import { optionalProp } from './optional.js'
 import type { AuthServiceRuntime } from './runtime.js'
 import { normalizeAssertion, signInWithAssertion } from './sign-in.js'
 import { enforceRateLimit } from './support.js'
-import { consumeVerificationRecord, createVerificationRecord } from './verifications.js'
+import {
+  consumeVerificationRecord,
+  createVerificationRecord,
+  expireVerificationForResend,
+  mergeVerificationMetadata,
+  requireVerificationResendAllowed,
+} from './verifications.js'
 import {
   EMAIL_MAGIC_LINK_PROVIDER_ID,
   OtpChannel,
   VerificationPurpose,
   type AuthResult,
   type FinishEmailMagicLinkSignInInput,
+  type ResendEmailMagicLinkSignInInput,
   type StartEmailMagicLinkSignInInput,
   type StartEmailMagicLinkSignInResult,
   type Verification,
@@ -122,6 +129,67 @@ export async function finishEmailMagicLinkSignIn(
       },
     )
   })
+}
+
+export async function resendEmailMagicLinkSignIn(
+  runtime: AuthServiceRuntime,
+  input: ResendEmailMagicLinkSignInInput,
+): Promise<StartEmailMagicLinkSignInResult> {
+  const now = input.now ?? runtime.clock.now()
+  const verification = await findEmailMagicLinkVerification(runtime, input.verificationId)
+
+  if (!runtime.emailSender) {
+    throw invalidInput('Email sender is required for email magic links.')
+  }
+
+  await requireVerificationResendAllowed(runtime, verification, {
+    action: RateLimitAction.MagicLinkResend,
+    now,
+  })
+  await enforceRateLimit(runtime, {
+    action: RateLimitAction.MagicLinkResend,
+    key: rateLimitKey(OtpChannel.Email, verification.target),
+    now,
+    metadata: { delivery: OtpChannel.Email, purpose: verification.purpose },
+  })
+
+  const created = await runtime.transaction.run(async () => {
+    return createVerificationRecord(runtime, {
+      purpose: verification.purpose,
+      target: verification.target,
+      provider: EMAIL_MAGIC_LINK_PROVIDER_ID,
+      channel: OtpChannel.Email,
+      secret: input.secret ?? generateSecret(),
+      ...optionalProp('ttlSeconds', input.ttlSeconds),
+      now,
+      ...optionalProp('metadata', mergeVerificationMetadata(verification.metadata, input.metadata)),
+    })
+  })
+  const link = await input.createLink({
+    verificationId: created.verification.id,
+    secret: created.secret,
+    email: verification.target,
+    expiresAt: created.verification.expiresAt,
+  })
+
+  await runtime.emailSender.sendEmail({
+    to: verification.target,
+    subject: DEFAULT_EMAIL_MAGIC_LINK_SUBJECT,
+    text: `Sign in using this link: ${link}`,
+    metadata: {
+      verificationId: created.verification.id,
+      purpose: created.verification.purpose,
+      delivery: OtpChannel.Email,
+      provider: EMAIL_MAGIC_LINK_PROVIDER_ID,
+    },
+  })
+  await expireVerificationForResend(runtime, verification.id, now)
+
+  return {
+    verificationId: created.verification.id,
+    expiresAt: created.verification.expiresAt,
+    delivery: OtpChannel.Email,
+  }
 }
 
 async function findEmailMagicLinkVerification(
