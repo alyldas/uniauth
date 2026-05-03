@@ -298,11 +298,25 @@ Tracking issues: #190, #191, #192.
 
 Tracking issues: #199, #200, #201.
 
+### v0.32 - Verification Resend Windows and Abuse-Control Helpers
+
+- Add public `getVerificationResendWindow(...)` so OTP and magic-link backends can read
+  cooldown, expiry, and resend-eligibility state without reaching into repositories.
+- Add public rate-limit helper surface for stable key composition and typed extraction of neutral
+  `rate_limited` metadata from `UniAuthError`.
+- Add focused resend-window and rate-limit parity coverage across in-memory and Postgres-backed
+  service setups.
+- Add abuse-control recipes for OTP, magic link, and password-recovery flows that preserve
+  neutral public behavior while exposing trusted server-side cooldown and retry state.
+
+Tracking issues: #207, #208, #209, #210.
+
 ## Next Release
 
-### v0.32 - Backlog To Be Defined
+### v0.33 - Backlog To Be Defined
 
-- Define the next releasable API or integration slice after the audit page metadata batch.
+- Define the next releasable API or integration slice after the resend-window and abuse-control
+  helper batch.
 
 Tracking issues: none yet.
 
