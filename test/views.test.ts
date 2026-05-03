@@ -238,6 +238,10 @@ describe('safe projection helpers', () => {
           metadata: { internal: true },
         },
       ],
+      nextAuditCursor: {
+        occurredAt: now,
+        id: asAuditEventId('audit-9'),
+      },
     })
 
     expect(
@@ -277,6 +281,10 @@ describe('safe projection helpers', () => {
           userId: user('user-9').id,
         },
       ],
+      nextAuditCursor: {
+        occurredAt: now,
+        id: asAuditEventId('audit-9'),
+      },
     })
     expect(inspectionSnapshot.auditEvents[0]).not.toHaveProperty('metadata')
   })

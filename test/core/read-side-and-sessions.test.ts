@@ -382,10 +382,13 @@ describe('DefaultAuthService read side and sessions', () => {
       AuditEventType.SessionRevoked,
       AuditEventType.SignIn,
     ])
+    expect(firstWindow.nextAuditCursor).toEqual(toAuditEventCursor(firstWindow.auditEvents.at(-1)!))
     expect(continuationWindow.auditEvents.map((event) => event.type)).toEqual([
       AuditEventType.SessionCreated,
     ])
+    expect(continuationWindow.nextAuditCursor).toBeUndefined()
     expect(emptyWindow.auditEvents).toEqual([])
+    expect(emptyWindow.nextAuditCursor).toBeUndefined()
   })
 
   it('bulk-revokes active user sessions while optionally keeping one session active', async () => {

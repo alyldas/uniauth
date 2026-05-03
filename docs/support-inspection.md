@@ -88,6 +88,7 @@ return {
     identityId: event.identityId ?? null,
     sessionId: event.sessionId ?? null,
   })),
+  nextAuditCursor: inspection.nextAuditCursor ?? null,
 }
 ```
 
@@ -180,15 +181,15 @@ operator clients.
 
 ## Combined Inspection Service
 
-For a continuation-friendly next page, stay on the same aggregate helper and derive the cursor from
-the last already returned audit item:
+For a continuation-friendly next page, stay on the same aggregate helper and reuse the metadata it
+already returns:
 
 ```ts
 const nextInspection = await authService.getAccountInspectionSnapshot({
   userId,
   audit: {
     limit: 50,
-    before: toAuditEventCursor(inspection.auditEvents.at(-1)!),
+    before: inspection.nextAuditCursor,
   },
 })
 ```
@@ -200,7 +201,9 @@ framework layer own authorization and HTTP response shaping:
 async function inspectAccountSecurity(input: {
   readonly userId: string
   readonly verificationId?: string
-  readonly before?: ReturnType<typeof toAuditEventCursor>
+  readonly before?: NonNullable<
+    Awaited<ReturnType<typeof authService.getAccountInspectionSnapshot>>['nextAuditCursor']
+  >
   readonly limit?: number
 }) {
   const inspection = await authService.getAccountInspectionSnapshot({
@@ -217,10 +220,7 @@ async function inspectAccountSecurity(input: {
 
   return {
     inspection,
-    nextAuditCursor:
-      inspection.auditEvents.length > 0
-        ? toAuditEventCursor(inspection.auditEvents.at(-1)!)
-        : undefined,
+    nextAuditCursor: inspection.nextAuditCursor,
     verificationStatus,
   }
 }
