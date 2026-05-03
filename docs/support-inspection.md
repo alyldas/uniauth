@@ -103,9 +103,9 @@ const sessions = await authService.getUserSessions(userId)
 const credentials = await authService.getUserCredentials(userId)
 ```
 
-Use the aggregate inspection helper as the default. Reach for these narrower reads only when the
-surrounding tooling truly needs independent pagination, separate caching, raw audit metadata, or a
-reduced payload.
+Use the aggregate inspection helper as the default and treat it as the canonical support pagination
+surface. Reach for these narrower reads only when the surrounding tooling truly needs independent
+pagination, separate caching, raw audit metadata, or a reduced payload.
 
 ## Audit Timeline Inspection
 
@@ -179,10 +179,10 @@ return {
 Do not expose `secretHash`, raw OTP values, magic-link secrets, or internal routing assumptions to
 operator clients.
 
-## Combined Inspection Service
+## Canonical Paginated Inspection Service
 
 For a continuation-friendly next page, stay on the same aggregate helper and reuse the metadata it
-already returns:
+already returns. This should be the default recipe for operator tooling:
 
 ```ts
 const nextInspection = await authService.getAccountInspectionSnapshot({
@@ -195,7 +195,8 @@ const nextInspection = await authService.getAccountInspectionSnapshot({
 ```
 
 One practical server-side composition pattern is to keep pagination state explicit and let the
-framework layer own authorization and HTTP response shaping:
+framework layer own authorization and HTTP response shaping, while UniAuth owns the inspection
+window semantics:
 
 ```ts
 async function inspectAccountSecurity(input: {
@@ -228,6 +229,9 @@ async function inspectAccountSecurity(input: {
 
 Keep outward serialization and operator authorization outside this helper. UniAuth only owns the
 local account-security state, audit timeline composition, and verification lifecycle.
+
+Drop down to `getAuditEventPage(...)` only when the operator surface explicitly needs raw audit
+metadata or a custom filter that should not be bundled into the aggregate inspection response.
 
 ## Action Handoff
 
