@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.0](https://github.com/alyldas/uniauth/compare/v0.31.0...v0.32.0) (2026-05-03)
+
+
+### Features
+
+* add resend windows and abuse-control helpers ([8414019](https://github.com/alyldas/uniauth/commit/84140194e682e3cf13bc3a94368428cee63b1119))
+
 ## [0.31.0](https://github.com/alyldas/uniauth/compare/v0.30.0...v0.31.0) (2026-05-03)
 
 
