@@ -166,6 +166,14 @@ export interface StartOtpChallengeResult {
   readonly delivery: OtpChannel
 }
 
+export interface ResendOtpChallengeInput {
+  readonly verificationId: VerificationId
+  readonly secret?: string
+  readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface FinishOtpChallengeInput {
   readonly verificationId: VerificationId
   readonly secret: string

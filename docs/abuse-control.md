@@ -85,6 +85,41 @@ Recommended semantics:
 - consumed and expired verifications remain visible as such and do not masquerade as resendable;
 - the server, not the client, chooses the cooldown policy.
 
+## Resend Execution
+
+Trusted backends can convert a resend request into a fresh verification plus a fresh delivery
+attempt:
+
+```ts
+const resent = await authService.resendOtpChallenge({
+  verificationId,
+})
+```
+
+The same pattern exists for email-link flows:
+
+```ts
+const resentMagic = await authService.resendEmailMagicLinkSignIn({
+  verificationId,
+  createLink: ({ verificationId, secret }) =>
+    `/auth/magic?verification=${verificationId}&token=${secret}`,
+})
+
+const resentRecovery = await authService.resendEmailPasswordRecovery({
+  verificationId,
+  createLink: ({ verificationId, secret }) =>
+    `/auth/recovery?verification=${verificationId}&token=${secret}`,
+})
+```
+
+Recommended semantics:
+
+- every successful resend returns a fresh `verificationId`;
+- every successful resend uses a fresh secret and fresh delivery payload;
+- the previously active verification becomes unusable for later finish attempts;
+- cooldown denial should stay neutral and use the same `rate_limited` shape as other abuse-control
+  flows.
+
 ## OTP Start Endpoint
 
 One practical trusted backend pattern:
@@ -113,6 +148,28 @@ async function postOtpStart(email: string) {
 
 That keeps the start response neutral while still giving the trusted backend enough information to
 poll resend state by `verificationId`.
+
+One resend endpoint can stay equally neutral:
+
+```ts
+async function postOtpResend(verificationId: string) {
+  try {
+    const challenge = await authService.resendOtpChallenge({
+      verificationId,
+    })
+
+    return {
+      status: 202,
+      body: {
+        verificationId: challenge.verificationId,
+        delivery: challenge.delivery,
+      },
+    }
+  } catch (error) {
+    return toRateLimitedResponse(error)
+  }
+}
+```
 
 ## Magic-Link Start Endpoint
 
@@ -144,6 +201,30 @@ If the application later wants to show resend state, it should use
 `getVerificationResendWindow(...)` from a trusted backend route rather than deriving timers in the
 browser.
 
+For resend execution:
+
+```ts
+async function postMagicLinkResend(verificationId: string) {
+  try {
+    const challenge = await authService.resendEmailMagicLinkSignIn({
+      verificationId,
+      createLink: ({ verificationId, secret }) =>
+        `/auth/magic?verification=${verificationId}&token=${secret}`,
+    })
+
+    return {
+      status: 202,
+      body: {
+        verificationId: challenge.verificationId,
+        delivery: challenge.delivery,
+      },
+    }
+  } catch (error) {
+    return toRateLimitedResponse(error)
+  }
+}
+```
+
 ## Recovery Flows
 
 Password-recovery start can reuse the exact same pattern:
@@ -172,6 +253,30 @@ async function postPasswordRecoveryStart(email: string) {
 
 The recovery token route remains application-owned. UniAuth only owns the verification lifecycle,
 hash-only secret persistence, and neutral rate-limit error shape.
+
+Resend execution follows the same server-owned pattern:
+
+```ts
+async function postPasswordRecoveryResend(verificationId: string) {
+  try {
+    const challenge = await authService.resendEmailPasswordRecovery({
+      verificationId,
+      createLink: ({ verificationId, secret }) =>
+        `/auth/recovery?verification=${verificationId}&token=${secret}`,
+    })
+
+    return {
+      status: 202,
+      body: {
+        verificationId: challenge.verificationId,
+        delivery: challenge.delivery,
+      },
+    }
+  } catch (error) {
+    return toRateLimitedResponse(error)
+  }
+}
+```
 
 ## Key Composition
 

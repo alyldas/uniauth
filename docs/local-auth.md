@@ -19,6 +19,10 @@ const result = await service.finishOtpSignIn({
   secret: 'code from user input',
   channel: OtpChannel.Email,
 })
+
+const resent = await service.resendOtpChallenge({
+  verificationId: challenge.verificationId,
+})
 ```
 
 `finishOtpChallenge` remains for non-sign-in verification purposes such as link, re-auth, recovery,
@@ -48,6 +52,12 @@ const magic = await service.startEmailMagicLinkSignIn({
 await service.finishEmailMagicLinkSignIn({
   verificationId: magic.verificationId,
   secret: 'token from request',
+})
+
+const resentMagic = await service.resendEmailMagicLinkSignIn({
+  verificationId: magic.verificationId,
+  createLink: ({ verificationId, secret }) =>
+    `/auth/magic?verification=${verificationId}&token=${secret}`,
 })
 ```
 
@@ -90,6 +100,12 @@ await service.finishEmailPasswordRecovery({
   secret: 'token from request',
   newPassword: 'new password from reset form',
 })
+
+const resentRecovery = await service.resendEmailPasswordRecovery({
+  verificationId: recovery.verificationId,
+  createLink: ({ verificationId, secret }) =>
+    `/auth/recovery?verification=${verificationId}&token=${secret}`,
+})
 ```
 
 Recovery does not create a session. Applications can decide whether a successful reset should be
@@ -116,9 +132,12 @@ Wire `RateLimiter` to security-sensitive attempts:
 - `RateLimitAction.OtpFinish`: channel and verification id.
 - `RateLimitAction.MagicLinkStart`: email channel and normalized email.
 - `RateLimitAction.MagicLinkFinish`: email channel and verification id.
+- `RateLimitAction.MagicLinkResend`: email channel and normalized email.
 - `RateLimitAction.PasswordSignIn`: email channel and normalized email.
 - `RateLimitAction.PasswordRecoveryStart`: email channel and normalized email.
 - `RateLimitAction.PasswordRecoveryFinish`: email channel and verification id.
+- `RateLimitAction.PasswordRecoveryResend`: email channel and normalized email.
+- `RateLimitAction.OtpResend`: channel and normalized target.
 
 The core port is intentionally storage/backend agnostic. Redis, database counters, edge rate limits,
 headers, retry-after formatting, and abuse analytics remain application or adapter concerns.

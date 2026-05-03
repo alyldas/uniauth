@@ -3,13 +3,20 @@ import { getOtpDelivery, normalizeOtpTarget, type SupportedOtpChannel } from './
 import { optionalProp } from './optional.js'
 import { normalizeAssertion, signInWithAssertion } from './sign-in.js'
 import { enforceRateLimit } from './support.js'
-import { consumeVerificationRecord, createVerificationRecord } from './verifications.js'
+import {
+  consumeVerificationRecord,
+  createVerificationRecord,
+  expireVerificationForResend,
+  mergeVerificationMetadata,
+  requireVerificationResendAllowed,
+} from './verifications.js'
 import type {
   AuthResult,
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   OtpChannel as OtpChannelType,
   ProviderIdentityAssertion,
+  ResendOtpChallengeInput,
   StartOtpChallengeInput,
   StartOtpChallengeResult,
   Verification,
@@ -99,6 +106,62 @@ export async function finishOtpChallenge(
       now,
     })
   })
+}
+
+export async function resendOtpChallenge(
+  runtime: AuthServiceRuntime,
+  input: ResendOtpChallengeInput,
+): Promise<StartOtpChallengeResult> {
+  const now = input.now ?? runtime.clock.now()
+  const challenge = await findOtpChallengeRecord(runtime, {
+    verificationId: input.verificationId,
+    context: 'OTP resend',
+  })
+  const target = challenge.verification.target
+
+  await requireVerificationResendAllowed(runtime, challenge.verification, {
+    action: RateLimitAction.OtpResend,
+    now,
+  })
+  await enforceRateLimit(runtime, {
+    action: RateLimitAction.OtpResend,
+    key: rateLimitKey(challenge.channel, target),
+    now,
+    metadata: { channel: challenge.channel, purpose: challenge.verification.purpose },
+  })
+
+  const delivery = getOtpDelivery(runtime, challenge.channel)
+  const secret = await resolveOtpSecret(runtime, {
+    purpose: challenge.verification.purpose,
+    channel: challenge.channel,
+    target,
+    now,
+    ...optionalProp('secret', input.secret),
+  })
+  const created = await runtime.transaction.run(async () => {
+    return createVerificationRecord(runtime, {
+      purpose: challenge.verification.purpose,
+      target,
+      provider: delivery.provider,
+      channel: challenge.channel,
+      secret,
+      ...optionalProp('ttlSeconds', input.ttlSeconds),
+      now,
+      ...optionalProp(
+        'metadata',
+        mergeVerificationMetadata(challenge.verification.metadata, input.metadata),
+      ),
+    })
+  })
+
+  await delivery.send(created)
+  await expireVerificationForResend(runtime, challenge.verification.id, now)
+
+  return {
+    verificationId: created.verification.id,
+    expiresAt: created.verification.expiresAt,
+    delivery: challenge.channel,
+  }
 }
 
 export async function finishOtpSignIn(

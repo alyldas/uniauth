@@ -29,6 +29,8 @@ export interface PostgresTestKit {
   readonly pool: PostgresPool & { end(): Promise<void> }
   readonly store: ReturnType<typeof createPostgresAuthStore>
   readonly service: ReturnType<typeof createAuthService>
+  readonly emailSender: InMemoryEmailSender
+  readonly smsSender: InMemorySmsSender
 }
 
 const openPools = new Set<{ end(): Promise<void> }>()
@@ -94,6 +96,8 @@ export async function createPostgresTestKit(
     pool,
     store,
     service,
+    emailSender,
+    smsSender,
   }
 }
 

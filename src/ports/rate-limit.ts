@@ -4,11 +4,14 @@ export const RateLimitAction = {
   ProviderSignIn: 'provider:sign-in',
   OtpStart: 'otp:start',
   OtpFinish: 'otp:finish',
+  OtpResend: 'otp:resend',
   MagicLinkStart: 'magic-link:start',
   MagicLinkFinish: 'magic-link:finish',
+  MagicLinkResend: 'magic-link:resend',
   PasswordSignIn: 'password:sign-in',
   PasswordRecoveryStart: 'password-recovery:start',
   PasswordRecoveryFinish: 'password-recovery:finish',
+  PasswordRecoveryResend: 'password-recovery:resend',
 } as const
 
 export type RateLimitAction = (typeof RateLimitAction)[keyof typeof RateLimitAction]

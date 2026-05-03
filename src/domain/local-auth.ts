@@ -31,6 +31,15 @@ export interface FinishEmailMagicLinkSignInInput {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface ResendEmailMagicLinkSignInInput {
+  readonly verificationId: VerificationId
+  readonly createLink: (input: EmailMagicLink) => string | Promise<string>
+  readonly secret?: string
+  readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface SignInWithPasswordInput {
   readonly email: string
   readonly password: string
@@ -83,6 +92,15 @@ export interface FinishEmailPasswordRecoveryInput {
   readonly verificationId: VerificationId
   readonly secret: string
   readonly newPassword: string
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface ResendEmailPasswordRecoveryInput {
+  readonly verificationId: VerificationId
+  readonly createLink: (input: EmailPasswordRecoveryLink) => string | Promise<string>
+  readonly secret?: string
+  readonly ttlSeconds?: number
   readonly now?: Date
   readonly metadata?: Record<string, unknown>
 }

@@ -21,6 +21,7 @@ license, subscription, private contract, or other written permission.
 - Treats email and phone as optional identity attributes, not mandatory user fields.
 - Orchestrates `signIn`, `link`, `unlink`, `mergeAccounts`, verification, and session revocation.
 - Starts and finishes generic OTP challenges over email or phone through sender ports.
+- Resends OTP challenges, magic links, and password-recovery links through explicit execution APIs.
 - Starts and finishes email magic-link sign-in on the shared verification lifecycle.
 - Hashes password credentials through a password hasher port, stores them through a credential repo,
   and signs in with a local password identity.
@@ -36,6 +37,8 @@ license, subscription, private contract, or other written permission.
 - Exposes read-side helpers for credential and verification lookups through the public service
   layer.
 - Exposes trusted resend/cooldown reads for verification-backed OTP, magic-link, and recovery
+  flows.
+- Exposes trusted resend execution APIs for verification-backed OTP, magic-link, and recovery
   flows.
 - Exposes public audit-event slice and page read-side APIs for trusted security timelines and
   support tooling.
