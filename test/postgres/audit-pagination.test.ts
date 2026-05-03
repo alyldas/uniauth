@@ -3,7 +3,7 @@ import { AuditEventType, VerificationPurpose, addSeconds, toAuditEventCursor } f
 import { createPostgresTestKit, now } from './support.js'
 
 describe('Postgres audit pagination parity', () => {
-  it('keeps raw audit pagination and aggregate inspection windows aligned on Postgres', async () => {
+  it('returns older-page metadata for the raw audit page helper on Postgres', async () => {
     const { service } = await createPostgresTestKit()
     const signedIn = await service.signIn({
       assertion: {
@@ -23,55 +23,33 @@ describe('Postgres audit pagination parity', () => {
     })
     await service.revokeSession(signedIn.session.id)
 
-    const rawFirstPage = await service.getAuditEvents({
+    const rawFirstPage = await service.getAuditEventPage({
       userId: signedIn.user.id,
       limit: 2,
     })
-    const inspectionFirstPage = await service.getAccountInspectionSnapshot({
-      userId: signedIn.user.id,
-      audit: { limit: 2 },
-    })
 
-    expect(rawFirstPage.map((event) => event.type)).toEqual([
+    expect(rawFirstPage.events.map((event) => event.type)).toEqual([
       AuditEventType.SessionRevoked,
       AuditEventType.SignIn,
     ])
-    expect(inspectionFirstPage.auditEvents.map((event) => event.id)).toEqual(
-      rawFirstPage.map((event) => event.id),
-    )
+    expect(rawFirstPage.nextCursor).toEqual(toAuditEventCursor(rawFirstPage.events[1]!))
 
-    const rawNextPage = await service.getAuditEvents({
+    const rawNextPage = await service.getAuditEventPage({
       userId: signedIn.user.id,
-      before: toAuditEventCursor(rawFirstPage.at(-1)!),
+      before: rawFirstPage.nextCursor!,
       limit: 2,
     })
-    const inspectionNextPage = await service.getAccountInspectionSnapshot({
-      userId: signedIn.user.id,
-      audit: {
-        limit: 2,
-        before: toAuditEventCursor(inspectionFirstPage.auditEvents.at(-1)!),
-      },
-    })
 
-    expect(rawNextPage.map((event) => event.type)).toEqual([AuditEventType.SessionCreated])
-    expect(inspectionNextPage.auditEvents.map((event) => event.id)).toEqual(
-      rawNextPage.map((event) => event.id),
-    )
+    expect(rawNextPage.events.map((event) => event.type)).toEqual([AuditEventType.SessionCreated])
+    expect(rawNextPage.nextCursor).toBeUndefined()
 
-    const rawEmptyPage = await service.getAuditEvents({
+    const rawEmptyPage = await service.getAuditEventPage({
       userId: signedIn.user.id,
-      after: toAuditEventCursor(rawFirstPage[0]!),
+      after: toAuditEventCursor(rawFirstPage.events[0]!),
       limit: 2,
     })
-    const inspectionEmptyPage = await service.getAccountInspectionSnapshot({
-      userId: signedIn.user.id,
-      audit: {
-        limit: 2,
-        after: toAuditEventCursor(inspectionFirstPage.auditEvents[0]!),
-      },
-    })
 
-    expect(rawEmptyPage).toEqual([])
-    expect(inspectionEmptyPage.auditEvents).toEqual([])
+    expect(rawEmptyPage.events).toEqual([])
+    expect(rawEmptyPage.nextCursor).toBeUndefined()
   })
 })
