@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.33.0](https://github.com/alyldas/uniauth/compare/v0.32.0...v0.33.0) (2026-05-03)
+
+
+### Features
+
+* add resend execution flows ([8dd8146](https://github.com/alyldas/uniauth/commit/8dd8146b0a09f25eae402411709ce584479f226b))
+
 ## [0.32.0](https://github.com/alyldas/uniauth/compare/v0.31.0...v0.32.0) (2026-05-03)
 
 
