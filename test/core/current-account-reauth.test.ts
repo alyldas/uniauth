@@ -200,6 +200,117 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
     })
   })
 
+  it('keeps current-account recent-auth status and assert helpers aligned with token-based password actions', async () => {
+    const { service, store } = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({
+        requireReAuthFor: [AuthPolicyAction.SetPassword, AuthPolicyAction.ChangePassword],
+      }),
+    })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-recent-auth-status',
+        email: 'current-account-recent-auth-status@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+
+    await service.setCurrentAccountPasswordByToken({
+      sessionToken: signedIn.sessionToken,
+      password: 'first-password',
+      reAuthenticatedAt: addSeconds(now, 1),
+      now: addSeconds(now, 1),
+    })
+
+    const auditCountBeforeStatus = store.listAuditEvents().length
+    const requiredStatus = await service.getCurrentAccountReAuthStatus({
+      sessionToken: signedIn.sessionToken,
+      action: AuthPolicyAction.ChangePassword,
+      now: addSeconds(now, 10),
+    })
+
+    expect(requiredStatus).toEqual({
+      currentSessionId: signedIn.session.id,
+      userId: signedIn.user.id,
+      action: AuthPolicyAction.ChangePassword,
+      required: true,
+      checkedAt: addSeconds(now, 10),
+    })
+    expect(store.listAuditEvents()).toHaveLength(auditCountBeforeStatus)
+
+    await expect(
+      service.assertCurrentAccountReAuth({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.ReAuthRequired,
+    })
+
+    expect(store.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.PolicyDenied,
+          userId: signedIn.user.id,
+          metadata: {
+            reason: 're-auth-required',
+            action: AuthPolicyAction.ChangePassword,
+          },
+        }),
+      ]),
+    )
+
+    const confirmation = await service.confirmCurrentAccountPasswordByToken({
+      sessionToken: signedIn.sessionToken,
+      currentPassword: 'first-password',
+      now: addSeconds(now, 20),
+    })
+
+    await expect(
+      service.getCurrentAccountReAuthStatus({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
+        reAuthenticatedAt: confirmation.reAuthenticatedAt,
+        now: addSeconds(now, 20),
+      }),
+    ).resolves.toEqual({
+      currentSessionId: signedIn.session.id,
+      userId: signedIn.user.id,
+      action: AuthPolicyAction.ChangePassword,
+      required: false,
+      checkedAt: addSeconds(now, 20),
+      reAuthenticatedAt: addSeconds(now, 20),
+    })
+
+    const assertionResult = await service.assertCurrentAccountReAuth({
+      sessionToken: signedIn.sessionToken,
+      action: AuthPolicyAction.ChangePassword,
+      reAuthenticatedAt: confirmation.reAuthenticatedAt,
+      now: addSeconds(now, 20),
+    })
+
+    expect(assertionResult).toEqual({
+      currentSessionId: signedIn.session.id,
+      userId: signedIn.user.id,
+      action: AuthPolicyAction.ChangePassword,
+      checkedAt: addSeconds(now, 20),
+      reAuthenticatedAt: addSeconds(now, 20),
+    })
+
+    await expect(
+      service.changeCurrentAccountPasswordByToken({
+        sessionToken: signedIn.sessionToken,
+        currentPassword: 'first-password',
+        newPassword: 'second-password',
+        reAuthenticatedAt: addSeconds(now, 20),
+        now: addSeconds(now, 20),
+      }),
+    ).resolves.toMatchObject({
+      subject: 'current-account-recent-auth-status@example.com',
+    })
+  })
+
   it('keeps current-account password re-auth neutral for wrong or missing password credentials', async () => {
     const { service } = createInMemoryAuthKit()
     const withPassword = await service.signIn({
@@ -283,6 +394,26 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.SessionNotFound,
     })
+
+    await expect(
+      service.getCurrentAccountReAuthStatus({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+
+    await expect(
+      service.assertCurrentAccountReAuth({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
   })
 
   it('uses the runtime clock for current-account re-auth helpers when now is omitted', async () => {
@@ -328,6 +459,19 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
     ).resolves.toEqual({
       userId: signedIn.user.id,
       reAuthenticatedAt: runtimeNow,
+    })
+
+    await expect(
+      service.getCurrentAccountReAuthStatus({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
+      }),
+    ).resolves.toEqual({
+      currentSessionId: signedIn.session.id,
+      userId: signedIn.user.id,
+      action: AuthPolicyAction.ChangePassword,
+      required: false,
+      checkedAt: runtimeNow,
     })
   })
 })

@@ -130,6 +130,106 @@ describe('Postgres current-account re-auth helpers', () => {
     })
   })
 
+  it('keeps current-account recent-auth status and assert helpers aligned with token-based password actions on Postgres', async () => {
+    const { service, store } = await createPostgresTestKit({
+      policy: createDefaultAuthPolicy({
+        requireReAuthFor: [AuthPolicyAction.SetPassword, AuthPolicyAction.ChangePassword],
+      }),
+    })
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-recent-auth-status',
+        email: 'pg-current-account-recent-auth-status@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    await service.setCurrentAccountPasswordByToken({
+      sessionToken: signedIn.sessionToken,
+      password: 'first-password',
+      reAuthenticatedAt: addSeconds(now, 1),
+      now: addSeconds(now, 1),
+    })
+
+    const auditCountBeforeStatus = (await store.auditLogRepo.list()).length
+    const requiredStatus = await service.getCurrentAccountReAuthStatus({
+      sessionToken: signedIn.sessionToken,
+      action: AuthPolicyAction.ChangePassword,
+      now: addSeconds(now, 10),
+    })
+
+    expect(requiredStatus).toEqual({
+      currentSessionId: signedIn.session.id,
+      userId: signedIn.user.id,
+      action: AuthPolicyAction.ChangePassword,
+      required: true,
+      checkedAt: addSeconds(now, 10),
+    })
+    expect(await store.auditLogRepo.list()).toHaveLength(auditCountBeforeStatus)
+
+    await expect(
+      service.assertCurrentAccountReAuth({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.ReAuthRequired,
+    })
+
+    expect(await store.auditLogRepo.list()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.PolicyDenied,
+          userId: signedIn.user.id,
+          metadata: {
+            reason: 're-auth-required',
+            action: AuthPolicyAction.ChangePassword,
+          },
+        }),
+      ]),
+    )
+
+    const confirmation = await service.confirmCurrentAccountPasswordByToken({
+      sessionToken: signedIn.sessionToken,
+      currentPassword: 'first-password',
+      now: addSeconds(now, 20),
+    })
+
+    expect(
+      await service.getCurrentAccountReAuthStatus({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
+        reAuthenticatedAt: confirmation.reAuthenticatedAt,
+        now: addSeconds(now, 20),
+      }),
+    ).toEqual({
+      currentSessionId: signedIn.session.id,
+      userId: signedIn.user.id,
+      action: AuthPolicyAction.ChangePassword,
+      required: false,
+      checkedAt: addSeconds(now, 20),
+      reAuthenticatedAt: addSeconds(now, 20),
+    })
+
+    expect(
+      await service.assertCurrentAccountReAuth({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
+        reAuthenticatedAt: confirmation.reAuthenticatedAt,
+        now: addSeconds(now, 20),
+      }),
+    ).toEqual({
+      currentSessionId: signedIn.session.id,
+      userId: signedIn.user.id,
+      action: AuthPolicyAction.ChangePassword,
+      checkedAt: addSeconds(now, 20),
+      reAuthenticatedAt: addSeconds(now, 20),
+    })
+  })
+
   it('keeps stale disabled-user Postgres current-account re-auth helpers neutral', async () => {
     const { service, store } = await createPostgresTestKit()
     const signedIn = await service.signIn({
@@ -161,6 +261,26 @@ describe('Postgres current-account re-auth helpers', () => {
       service.confirmCurrentAccountPasswordByToken({
         sessionToken: signedIn.sessionToken,
         currentPassword: 'password',
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+
+    await expect(
+      service.getCurrentAccountReAuthStatus({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+
+    await expect(
+      service.assertCurrentAccountReAuth({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.ChangePassword,
         now: addSeconds(now, 20),
       }),
     ).rejects.toMatchObject({

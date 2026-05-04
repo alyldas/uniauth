@@ -19,6 +19,8 @@ import {
   unlinkCurrentIdentityByToken,
 } from './current-account-actions.js'
 import {
+  assertCurrentAccountReAuth,
+  getCurrentAccountReAuthStatus,
   confirmCurrentAccountPasswordByToken,
   startCurrentAccountOtpReAuth,
 } from './current-account-re-auth.js'
@@ -71,9 +73,12 @@ import type {
   AuditEvent,
   AuditEventPage,
   AuditEventQuery,
+  AssertCurrentAccountReAuthInput,
   AuthResult,
   AuthService,
   CurrentAccountInspectionSnapshot,
+  CurrentAccountReAuthAssertion,
+  CurrentAccountReAuthStatus,
   CurrentAccountSecuritySnapshot,
   CancelEmailMagicLinkSignInInput,
   CancelEmailPasswordRecoveryInput,
@@ -96,6 +101,7 @@ import type {
   GetAccountInspectionSnapshotInput,
   GetCurrentAccountAuditEventPageInput,
   GetCurrentAccountInspectionSnapshotInput,
+  GetCurrentAccountReAuthStatusInput,
   GetCurrentAccountSecuritySnapshotInput,
   GetVerificationResendWindowInput,
   LinkInput,
@@ -256,6 +262,18 @@ export class DefaultAuthService implements AuthService {
 
   async resolveSessionContext(input: ResolveSessionContextInput): Promise<ResolvedSessionContext> {
     return resolveSessionContext(this.runtime, input)
+  }
+
+  async getCurrentAccountReAuthStatus(
+    input: GetCurrentAccountReAuthStatusInput,
+  ): Promise<CurrentAccountReAuthStatus> {
+    return getCurrentAccountReAuthStatus(this.runtime, input)
+  }
+
+  async assertCurrentAccountReAuth(
+    input: AssertCurrentAccountReAuthInput,
+  ): Promise<CurrentAccountReAuthAssertion> {
+    return assertCurrentAccountReAuth(this.runtime, input)
   }
 
   async getCurrentAccountSecuritySnapshot(

@@ -393,6 +393,12 @@ const passwordConfirmation = await service.confirmCurrentAccountPasswordByToken(
   sessionToken,
   currentPassword,
 })
+
+const reAuthStatus = await service.getCurrentAccountReAuthStatus({
+  sessionToken,
+  action: AuthPolicyAction.ChangePassword,
+  reAuthenticatedAt,
+})
 ```
 
 Trusted resend and cooldown polling can use one read-side helper per verification:

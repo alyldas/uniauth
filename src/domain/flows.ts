@@ -8,6 +8,7 @@ import type {
 import type { AuditEventQuery } from './audit.js'
 import type { CredentialId, IdentityId, SessionId, UserId, VerificationId } from './ids.js'
 import type { OtpChannel, VerificationPurpose } from './kinds.js'
+import type { AuthPolicyAction } from './policy.js'
 import type { AuthIdentityProvider, FinishInput } from './providers.js'
 
 export interface SignInInput {
@@ -152,6 +153,37 @@ export interface StartCurrentAccountOtpReAuthInput {
   readonly ttlSeconds?: number
   readonly now?: Date
   readonly metadata?: Record<string, unknown>
+}
+
+export interface GetCurrentAccountReAuthStatusInput {
+  readonly sessionToken: string
+  readonly action: AuthPolicyAction
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+}
+
+export interface CurrentAccountReAuthStatus {
+  readonly currentSessionId: SessionId
+  readonly userId: UserId
+  readonly action: AuthPolicyAction
+  readonly required: boolean
+  readonly checkedAt: Date
+  readonly reAuthenticatedAt?: Date
+}
+
+export interface AssertCurrentAccountReAuthInput {
+  readonly sessionToken: string
+  readonly action: AuthPolicyAction
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+}
+
+export interface CurrentAccountReAuthAssertion {
+  readonly currentSessionId: SessionId
+  readonly userId: UserId
+  readonly action: AuthPolicyAction
+  readonly checkedAt: Date
+  readonly reAuthenticatedAt?: Date
 }
 
 export interface RevokeCurrentSessionByTokenInput {
