@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.40.0](https://github.com/alyldas/uniauth/compare/v0.39.0...v0.40.0) (2026-05-04)
+
+
+### Features
+
+* add current-account recent-auth guards ([b53df0e](https://github.com/alyldas/uniauth/commit/b53df0e7ef78fea3d71b0b2e60f03b2b38420add))
+
 ## [0.39.0](https://github.com/alyldas/uniauth/compare/v0.38.0...v0.39.0) (2026-05-04)
 
 
