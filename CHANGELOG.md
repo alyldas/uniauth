@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.0](https://github.com/alyldas/uniauth/compare/v0.37.0...v0.38.0) (2026-05-04)
+
+
+### Features
+
+* add current-account action helpers ([4f8e9bd](https://github.com/alyldas/uniauth/commit/4f8e9bd95164deeb2c34886d36da13f65cc5c927))
+
 ## [0.37.0](https://github.com/alyldas/uniauth/compare/v0.36.0...v0.37.0) (2026-05-04)
 
 
