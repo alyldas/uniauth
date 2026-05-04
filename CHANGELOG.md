@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.42.0](https://github.com/alyldas/uniauth/compare/v0.41.0...v0.42.0) (2026-05-04)
+
+
+### Features
+
+* add current-account OTP re-auth management helpers ([b9d6c37](https://github.com/alyldas/uniauth/commit/b9d6c3729cfefe6d76383288838dfad74bb1205e))
+
 ## [0.41.0](https://github.com/alyldas/uniauth/compare/v0.40.0...v0.41.0) (2026-05-04)
 
 
