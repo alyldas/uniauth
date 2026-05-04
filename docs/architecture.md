@@ -205,6 +205,58 @@ Future provider, persistence, and HTTP integrations should stay outside the core
 are small reference contracts. If the ecosystem grows into multiple maintained adapters, the project
 can move to a monorepo with packages for storage, providers, and framework-specific HTTP wiring.
 
+## Current Public Entry Points
+
+The current package already models the intended long-term split through explicit public entry points:
+
+- `@alyldas/uniauth`:
+  core domain types, service facade, policies, errors, read-side helpers, and local auth flows.
+- `@alyldas/uniauth/contracts`:
+  implementation-free contracts for repositories, runtime primitives, senders, rate limits, and
+  provider integration boundaries.
+- `@alyldas/uniauth/providers/oauth-oidc`:
+  reference OAuth/OIDC adapter family and token-record helper.
+- `@alyldas/uniauth/providers/messenger`:
+  reference Telegram Mini App and MAX WebApp adapter family.
+- `@alyldas/uniauth/bridges`:
+  optional Better Auth and Auth.js mapping helpers.
+- `@alyldas/uniauth/postgres`:
+  reference Postgres persistence and schema bootstrap helper.
+- `@alyldas/uniauth/testing`:
+  in-memory store, senders, providers, and test-only support utilities.
+
+This is a modular monolith boundary, not a monorepo yet. New capabilities should prefer an explicit
+subpath before introducing another root export or another package.
+
+## Extraction Criteria
+
+Move a subpath into a separate npm package only when most of these are true:
+
+1. The public API is already consumed through an explicit subpath rather than a root export.
+2. The module can depend only on stable root/core types and `@alyldas/uniauth/contracts`, not on
+   internal source paths.
+3. The module has runtime dependencies, operational assumptions, or release cadence that can change
+   independently from core.
+4. The module has its own focused tests, smoke coverage, and docs/examples without hidden coupling
+   to unrelated package internals.
+5. The extraction reduces real package ownership pressure, such as provider SDK churn, database
+   driver cadence, or framework-specific integration surface.
+6. The new boundary is understandable enough that a consumer can choose it intentionally.
+
+If those criteria are not met, keep the code in the current package and harden the subpath
+boundary instead of splitting prematurely.
+
+## Migration Expectations
+
+- Do not import from internal `src/**` paths in application code, tests outside this repository, or
+  downstream packages.
+- Prefer the public subpath that matches the module family you need; do not assume that a root
+  compatibility re-export is the permanent home of that API.
+- When a future extraction happens, the same release should update the docs, examples, changelog,
+  and migration notes so consumers can move from the old subpath cleanly.
+- Before `1.0.0`, package extraction can still happen in a minor release, but only after the
+  boundary has been explicit and documented first.
+
 For framework-level HTTP composition examples, see [Backend integration recipes](backend-recipes.md).
 For trusted backend inspection composition on top of the read-side surface, see
 [Support and admin inspection recipe](support-inspection.md).
