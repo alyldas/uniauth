@@ -40,6 +40,12 @@ export interface ResendEmailMagicLinkSignInInput {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface CancelEmailMagicLinkSignInInput {
+  readonly verificationId: VerificationId
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface SignInWithPasswordInput {
   readonly email: string
   readonly password: string
@@ -101,6 +107,12 @@ export interface ResendEmailPasswordRecoveryInput {
   readonly createLink: (input: EmailPasswordRecoveryLink) => string | Promise<string>
   readonly secret?: string
   readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface CancelEmailPasswordRecoveryInput {
+  readonly verificationId: VerificationId
   readonly now?: Date
   readonly metadata?: Record<string, unknown>
 }

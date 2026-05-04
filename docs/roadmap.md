@@ -325,11 +325,18 @@ Tracking issues: #214, #215, #216, #217.
 
 ## Next Release
 
-### v0.34 - Backlog To Be Defined
+### v0.34 - Verification Cancellation Flows
 
-- Define the next releasable API or integration slice after the resend execution flow batch.
+- Add a trusted public `cancelVerification(...)` API for explicitly invalidating active pending
+  verifications without direct repository access.
+- Add flow-aware cancellation helpers for OTP, email magic-link sign-in, and email
+  password-recovery verifications.
+- Add focused cancellation, resend-after-cancel, and audit parity coverage across in-memory and
+  Postgres-backed service setups.
+- Add trusted backend recipes for cancellation endpoints next to the existing resend and cooldown
+  flows.
 
-Tracking issues: none yet.
+Tracking issues: #221, #222, #223, #224.
 
 ## Versioning
 

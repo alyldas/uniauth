@@ -4,17 +4,20 @@ import { getAuditEventPage, getAuditEvents } from './audit-events.js'
 import { getUserIdentities, link, mergeAccounts, unlink } from './accounts.js'
 import { getUserCredentials } from './credentials.js'
 import {
+  cancelEmailMagicLinkSignIn,
   finishEmailMagicLinkSignIn,
   resendEmailMagicLinkSignIn,
   startEmailMagicLinkSignIn,
 } from './magic-link.js'
 import {
+  cancelOtpChallenge,
   finishOtpChallenge,
   finishOtpSignIn,
   resendOtpChallenge,
   startOtpChallenge,
 } from './otp.js'
 import {
+  cancelEmailPasswordRecovery,
   changePassword,
   finishEmailPasswordRecovery,
   resendEmailPasswordRecovery,
@@ -35,6 +38,7 @@ import {
 import { signIn } from './sign-in.js'
 import { getUser } from './users.js'
 import {
+  cancelVerification,
   consumeVerification,
   createVerification,
   getVerification,
@@ -50,6 +54,10 @@ import type {
   AuditEventQuery,
   AuthResult,
   AuthService,
+  CancelEmailMagicLinkSignInInput,
+  CancelEmailPasswordRecoveryInput,
+  CancelOtpChallengeInput,
+  CancelVerificationInput,
   ChangePasswordInput,
   Clock,
   Credential,
@@ -138,6 +146,10 @@ export class DefaultAuthService implements AuthService {
     return resendOtpChallenge(this.runtime, input)
   }
 
+  async cancelOtpChallenge(input: CancelOtpChallengeInput): Promise<Verification> {
+    return cancelOtpChallenge(this.runtime, input)
+  }
+
   async finishOtpChallenge(input: FinishOtpChallengeInput): Promise<Verification> {
     return finishOtpChallenge(this.runtime, input)
   }
@@ -156,6 +168,10 @@ export class DefaultAuthService implements AuthService {
     input: ResendEmailMagicLinkSignInInput,
   ): Promise<StartEmailMagicLinkSignInResult> {
     return resendEmailMagicLinkSignIn(this.runtime, input)
+  }
+
+  async cancelEmailMagicLinkSignIn(input: CancelEmailMagicLinkSignInInput): Promise<Verification> {
+    return cancelEmailMagicLinkSignIn(this.runtime, input)
   }
 
   async finishEmailMagicLinkSignIn(input: FinishEmailMagicLinkSignInInput): Promise<AuthResult> {
@@ -180,6 +196,12 @@ export class DefaultAuthService implements AuthService {
     input: ResendEmailPasswordRecoveryInput,
   ): Promise<StartEmailPasswordRecoveryResult> {
     return resendEmailPasswordRecovery(this.runtime, input)
+  }
+
+  async cancelEmailPasswordRecovery(
+    input: CancelEmailPasswordRecoveryInput,
+  ): Promise<Verification> {
+    return cancelEmailPasswordRecovery(this.runtime, input)
   }
 
   async finishEmailPasswordRecovery(input: FinishEmailPasswordRecoveryInput): Promise<Credential> {
@@ -258,6 +280,10 @@ export class DefaultAuthService implements AuthService {
 
   async createVerification(input: CreateVerificationInput): Promise<CreateVerificationResult> {
     return createVerification(this.runtime, input)
+  }
+
+  async cancelVerification(input: CancelVerificationInput): Promise<Verification> {
+    return cancelVerification(this.runtime, input)
   }
 
   async getVerification(verificationId: VerificationId): Promise<Verification> {

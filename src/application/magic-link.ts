@@ -3,6 +3,7 @@ import type { AuthServiceRuntime } from './runtime.js'
 import { normalizeAssertion, signInWithAssertion } from './sign-in.js'
 import { enforceRateLimit } from './support.js'
 import {
+  cancelVerificationRecord,
   consumeVerificationRecord,
   createVerificationRecord,
   expireVerificationForResend,
@@ -14,6 +15,7 @@ import {
   OtpChannel,
   VerificationPurpose,
   type AuthResult,
+  type CancelEmailMagicLinkSignInInput,
   type FinishEmailMagicLinkSignInInput,
   type ResendEmailMagicLinkSignInInput,
   type StartEmailMagicLinkSignInInput,
@@ -190,6 +192,18 @@ export async function resendEmailMagicLinkSignIn(
     expiresAt: created.verification.expiresAt,
     delivery: OtpChannel.Email,
   }
+}
+
+export async function cancelEmailMagicLinkSignIn(
+  runtime: AuthServiceRuntime,
+  input: CancelEmailMagicLinkSignInInput,
+): Promise<Verification> {
+  return runtime.transaction.run(async () => {
+    const now = input.now ?? runtime.clock.now()
+    const verification = await findEmailMagicLinkVerification(runtime, input.verificationId)
+
+    return cancelVerificationRecord(runtime, verification, now, input.metadata)
+  })
 }
 
 async function findEmailMagicLinkVerification(

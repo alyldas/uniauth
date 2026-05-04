@@ -38,6 +38,7 @@ license, subscription, private contract, or other written permission.
   layer.
 - Exposes trusted resend/cooldown reads for verification-backed OTP, magic-link, and recovery
   flows.
+- Exposes trusted cancellation APIs for verification-backed OTP, magic-link, and recovery flows.
 - Exposes trusted resend execution APIs for verification-backed OTP, magic-link, and recovery
   flows.
 - Exposes public audit-event slice and page read-side APIs for trusted security timelines and

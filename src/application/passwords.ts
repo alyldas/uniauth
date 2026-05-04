@@ -1,5 +1,6 @@
 export { setPassword, changePassword } from './passwords/credentials.js'
 export {
+  cancelEmailPasswordRecovery,
   finishEmailPasswordRecovery,
   resendEmailPasswordRecovery,
   startEmailPasswordRecovery,
