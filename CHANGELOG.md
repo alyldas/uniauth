@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.0](https://github.com/alyldas/uniauth/compare/v0.35.0...v0.36.0) (2026-05-04)
+
+
+### Features
+
+* add current-account security helpers ([1ead604](https://github.com/alyldas/uniauth/commit/1ead604291fd3569916c30ddb7383fc5d8762d3e))
+
 ## [0.35.0](https://github.com/alyldas/uniauth/compare/v0.34.0...v0.35.0) (2026-05-04)
 
 
