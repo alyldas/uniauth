@@ -408,12 +408,27 @@ Tracking issues: #258, #259, #260, #261.
 
 Tracking issues: #265, #266, #267, #268.
 
+### v0.40 - Current-Account Recent-Auth Guards
+
+- Added a trusted current-account recent-auth status helper so self-service routes can ask whether
+  a specific sensitive action currently requires recent auth without duplicating policy checks or
+  owned-session resolution in application code.
+- Added a trusted current-account recent-auth assertion helper so backend routes can enforce the
+  same `ReAuthRequired` policy boundary and audit trail before app-owned side effects continue.
+- Added parity and neutrality coverage for the recent-auth helper layer across in-memory and
+  Postgres-backed service setups, including stale-session, disabled-account, and token-based
+  password-action paths.
+- Added canonical docs for current-account recent-auth status reads and guard assertions while
+  keeping `reAuthenticatedAt` persistence app-owned.
+
+Tracking issues: #273, #274, #275, #276.
+
 ## Next Release
 
-### v0.40 - Backlog To Be Defined
+### v0.41 - Backlog To Be Defined
 
-- Define the next releasable feature set after current-account re-auth helpers.
-- Keep `v0.40` scoped to product-facing additions rather than another maintenance-only batch.
+- Define the next releasable feature set after current-account recent-auth guards.
+- Keep `v0.41` scoped to product-facing additions rather than another maintenance-only batch.
 
 Tracking issues: none yet.
 
