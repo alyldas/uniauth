@@ -93,6 +93,8 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.getCurrentAccountReAuthStatus).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.assertCurrentAccountReAuth).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.startCurrentAccountOtpReAuth).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.resendCurrentAccountOtpReAuth).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.cancelCurrentAccountOtpReAuth).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.linkCurrentIdentityByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeCurrentSessionByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeOwnedSessionByToken).toBeTypeOf('function')
@@ -208,12 +210,20 @@ describe('package exports', () => {
     expect(flowDeclarations).toContain('export interface AssertCurrentAccountReAuthInput')
     expect(flowDeclarations).toContain('export interface CurrentAccountReAuthAssertion')
     expect(flowDeclarations).toContain('export interface StartCurrentAccountOtpReAuthInput')
+    expect(flowDeclarations).toContain('export interface ResendCurrentAccountOtpReAuthInput')
+    expect(flowDeclarations).toContain('export interface CancelCurrentAccountOtpReAuthInput')
     expect(flowDeclarations).toContain('export interface LinkCurrentIdentityByTokenInput')
     expect(flowDeclarations).toContain('export interface UnlinkCurrentIdentityByTokenInput')
     expect(flowDeclarations).toContain('export interface RevokeOwnedSessionByTokenResult')
     expect(flowDeclarations).toContain('export interface RevokeOtherSessionsByTokenResult')
     expect(serviceDeclarations).toContain(
       'linkCurrentIdentityByToken(input: LinkCurrentIdentityByTokenInput): Promise<LinkResult>',
+    )
+    expect(serviceDeclarations).toContain(
+      'resendCurrentAccountOtpReAuth(input: ResendCurrentAccountOtpReAuthInput): Promise<StartOtpChallengeResult>',
+    )
+    expect(serviceDeclarations).toContain(
+      'cancelCurrentAccountOtpReAuth(input: CancelCurrentAccountOtpReAuthInput): Promise<Verification>',
     )
     expect(localAuthDeclarations).toContain(
       'export interface SetCurrentAccountPasswordByTokenInput',

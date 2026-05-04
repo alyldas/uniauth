@@ -223,7 +223,7 @@ export async function finishOtpSignIn(
   })
 }
 
-async function findOtpChallengeRecord(
+export async function findOtpChallengeRecord(
   runtime: AuthServiceRuntime,
   input: {
     readonly verificationId: Verification['id']

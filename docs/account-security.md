@@ -334,8 +334,24 @@ UniAuth still does not own:
 - browser redirect or challenge-step UI;
 - whether the route offers OTP, password confirmation, or both.
 
-For resend or cancellation after a current-account OTP re-auth challenge has started, keep using
-the shared verification lifecycle helpers on the returned `verificationId`.
+For resend or cancellation after a current-account OTP re-auth challenge has started, keep that
+management on the same trusted `sessionToken` boundary too. The route can stay inside
+current-account ownership checks instead of falling back to generic verification orchestration:
+
+```ts
+const resent = await authService.resendCurrentAccountOtpReAuth({
+  sessionToken: request.auth.sessionToken,
+  verificationId: body.verificationId,
+})
+
+await authService.cancelCurrentAccountOtpReAuth({
+  sessionToken: request.auth.sessionToken,
+  verificationId: body.verificationId,
+})
+```
+
+The application still owns UI cooldown timers, retry buttons, and how the new `verificationId`
+replaces the previous one in client state after a resend.
 
 ### Link A New Sign-In Method
 

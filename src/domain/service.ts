@@ -28,6 +28,8 @@ import type {
   CurrentAccountReAuthAssertion,
   CurrentAccountReAuthStatus,
   StartCurrentAccountOtpReAuthInput,
+  ResendCurrentAccountOtpReAuthInput,
+  CancelCurrentAccountOtpReAuthInput,
   GetVerificationResendWindowInput,
   LinkInput,
   LinkResult,
@@ -80,6 +82,10 @@ export interface AuthService {
   startCurrentAccountOtpReAuth(
     input: StartCurrentAccountOtpReAuthInput,
   ): Promise<StartOtpChallengeResult>
+  resendCurrentAccountOtpReAuth(
+    input: ResendCurrentAccountOtpReAuthInput,
+  ): Promise<StartOtpChallengeResult>
+  cancelCurrentAccountOtpReAuth(input: CancelCurrentAccountOtpReAuthInput): Promise<Verification>
   resendOtpChallenge(input: ResendOtpChallengeInput): Promise<StartOtpChallengeResult>
   finishOtpChallenge(input: FinishOtpChallengeInput): Promise<Verification>
   finishOtpSignIn(input: FinishOtpSignInInput): Promise<AuthResult>

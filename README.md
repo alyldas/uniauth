@@ -395,6 +395,11 @@ const challenge = await service.startCurrentAccountOtpReAuth({
   channel: OtpChannel.Email,
 })
 
+const resent = await service.resendCurrentAccountOtpReAuth({
+  sessionToken,
+  verificationId: challenge.verificationId,
+})
+
 const passwordConfirmation = await service.confirmCurrentAccountPasswordByToken({
   sessionToken,
   currentPassword,

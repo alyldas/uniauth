@@ -44,8 +44,13 @@ const challenge = await service.startCurrentAccountOtpReAuth({
   channel: OtpChannel.Email,
 })
 
-const verification = await service.finishOtpChallenge({
+const resent = await service.resendCurrentAccountOtpReAuth({
+  sessionToken,
   verificationId: challenge.verificationId,
+})
+
+const verification = await service.finishOtpChallenge({
+  verificationId: resent.verificationId,
   secret: 'code from user input',
   purpose: VerificationPurpose.ReAuth,
   channel: OtpChannel.Email,
@@ -54,6 +59,16 @@ const verification = await service.finishOtpChallenge({
 
 The application still owns how `verification.consumedAt` becomes a recent-auth marker in its own
 session, cookie, or server-side request context.
+
+If the user abandons that step instead of finishing it, the route can cancel the current-account
+challenge on the same trusted boundary:
+
+```ts
+await service.cancelCurrentAccountOtpReAuth({
+  sessionToken,
+  verificationId: challenge.verificationId,
+})
+```
 
 If the UI only needs to know whether a fresh recent-auth step is currently required for a sensitive
 self-service action, prefer the dedicated status helper over hand-rolled freshness math:
