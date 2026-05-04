@@ -37,6 +37,7 @@ identities, and email/phone are optional identity attributes.
 - `getCurrentAccountInspectionSnapshot`
 - `getCurrentAccountAuditEventPage`
 - `startCurrentAccountOtpReAuth`
+- `linkCurrentIdentityByToken`
 - `revokeCurrentSessionByToken`
 - `revokeOwnedSessionByToken`
 - `revokeOtherSessionsByToken`
@@ -80,14 +81,14 @@ account-security aggregate, or revoke the current/other local sessions through o
 layer while cookie clearing, header parsing, and outward payload shaping remain application-owned.
 That same trusted boundary now also covers current-account inspection snapshots and current-account
 audit page reads, so self-service security routes do not have to mix admin inspection helpers with
-manual session ownership resolution. Selected-device revoke, sign-in-method unlink, and local
-password setup or change can now stay on that same token-based boundary instead of bouncing back to
-raw `userId` mutation calls after middleware resolution. Recent-auth bootstrapping can now stay on
-the same trusted boundary too: applications can start current-account OTP re-auth by owned identity
-or confirm the current password from `sessionToken`, then persist the resulting `reAuthenticatedAt`
-marker in app-owned session state. The same layer can now also answer or enforce whether recent
-auth is currently required for a specific sensitive current-account action before application-owned
-side effects continue.
+manual session ownership resolution. Selected-device revoke, sign-in-method link or unlink, and
+local password setup or change can now stay on that same token-based boundary instead of bouncing
+back to raw `userId` mutation calls after middleware resolution. Recent-auth bootstrapping can now
+stay on the same trusted boundary too: applications can start current-account OTP re-auth by owned
+identity or confirm the current password from `sessionToken`, then persist the resulting
+`reAuthenticatedAt` marker in app-owned session state. The same layer can now also answer or
+enforce whether recent auth is currently required for a specific sensitive current-account action
+before application-owned side effects continue.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful

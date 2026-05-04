@@ -14,6 +14,7 @@ import {
 } from './current-account-security.js'
 import {
   changeCurrentAccountPasswordByToken,
+  linkCurrentIdentityByToken,
   revokeOwnedSessionByToken,
   setCurrentAccountPasswordByToken,
   unlinkCurrentIdentityByToken,
@@ -104,6 +105,7 @@ import type {
   GetCurrentAccountReAuthStatusInput,
   GetCurrentAccountSecuritySnapshotInput,
   GetVerificationResendWindowInput,
+  LinkCurrentIdentityByTokenInput,
   LinkInput,
   LinkResult,
   MergeAccountsInput,
@@ -292,6 +294,10 @@ export class DefaultAuthService implements AuthService {
     input: GetCurrentAccountAuditEventPageInput,
   ): Promise<AuditEventPage> {
     return getCurrentAccountAuditEventPage(this.runtime, input)
+  }
+
+  async linkCurrentIdentityByToken(input: LinkCurrentIdentityByTokenInput): Promise<LinkResult> {
+    return linkCurrentIdentityByToken(this.runtime, input)
   }
 
   async revokeCurrentSessionByToken(input: RevokeCurrentSessionByTokenInput): Promise<void> {

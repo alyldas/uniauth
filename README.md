@@ -50,8 +50,8 @@ license, subscription, private contract, or other written permission.
   trusted account-security routes after transport resolution.
 - Exposes current-account inspection aggregate and audit-page helpers for self-service security
   routes that already trust a local session token.
-- Exposes token-based current-account write-side helpers for selected-session revoke, sign-in-method
-  unlink, and local password setup or change after transport resolution.
+- Exposes token-based current-account write-side helpers for sign-in-method link/unlink,
+  selected-session revoke, and local password setup or change after transport resolution.
 - Exposes current-account OTP and password re-auth helpers for self-service recent-auth bootstrapping
   on the trusted local session-token boundary.
 - Exposes a trusted `getAccountInspectionSnapshot({ userId, audit? })` aggregate read-side
@@ -375,6 +375,12 @@ await service.revokeOwnedSessionByToken({
 await service.unlinkCurrentIdentityByToken({
   sessionToken,
   identityId,
+  reAuthenticatedAt,
+})
+
+await service.linkCurrentIdentityByToken({
+  sessionToken,
+  assertion,
   reAuthenticatedAt,
 })
 ```

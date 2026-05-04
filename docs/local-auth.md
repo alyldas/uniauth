@@ -181,6 +181,10 @@ await service.assertCurrentAccountReAuth({
 })
 ```
 
+Current-account linking routes can pass that same `reAuthenticatedAt` marker into
+`linkCurrentIdentityByToken(...)` instead of resolving the current user separately. See
+[Account security recipes](account-security.md) for the canonical route shape.
+
 ## Neutral Responses
 
 Public start responses should not reveal whether an account exists. Core keeps start flows focused

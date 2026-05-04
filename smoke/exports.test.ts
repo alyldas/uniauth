@@ -93,6 +93,7 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.getCurrentAccountReAuthStatus).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.assertCurrentAccountReAuth).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.startCurrentAccountOtpReAuth).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.linkCurrentIdentityByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeCurrentSessionByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeOwnedSessionByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeOtherSessionsByToken).toBeTypeOf('function')
@@ -207,9 +208,13 @@ describe('package exports', () => {
     expect(flowDeclarations).toContain('export interface AssertCurrentAccountReAuthInput')
     expect(flowDeclarations).toContain('export interface CurrentAccountReAuthAssertion')
     expect(flowDeclarations).toContain('export interface StartCurrentAccountOtpReAuthInput')
+    expect(flowDeclarations).toContain('export interface LinkCurrentIdentityByTokenInput')
     expect(flowDeclarations).toContain('export interface UnlinkCurrentIdentityByTokenInput')
     expect(flowDeclarations).toContain('export interface RevokeOwnedSessionByTokenResult')
     expect(flowDeclarations).toContain('export interface RevokeOtherSessionsByTokenResult')
+    expect(serviceDeclarations).toContain(
+      'linkCurrentIdentityByToken(input: LinkCurrentIdentityByTokenInput): Promise<LinkResult>',
+    )
     expect(localAuthDeclarations).toContain(
       'export interface SetCurrentAccountPasswordByTokenInput',
     )

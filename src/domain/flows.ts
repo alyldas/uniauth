@@ -61,6 +61,16 @@ export interface UnlinkCurrentIdentityByTokenInput {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface LinkCurrentIdentityByTokenInput {
+  readonly sessionToken: string
+  readonly assertion?: ProviderIdentityAssertion
+  readonly provider?: AuthIdentityProvider
+  readonly finishInput?: FinishInput
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface MergeAccountsInput {
   readonly sourceUserId: UserId
   readonly targetUserId: UserId

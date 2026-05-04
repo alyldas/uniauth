@@ -24,6 +24,7 @@ import type {
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
+  LinkCurrentIdentityByTokenInput,
   CurrentAccountReAuthAssertion,
   CurrentAccountReAuthStatus,
   StartCurrentAccountOtpReAuthInput,
@@ -120,6 +121,7 @@ export interface AuthService {
   getCurrentAccountAuditEventPage(
     input: GetCurrentAccountAuditEventPageInput,
   ): Promise<AuditEventPage>
+  linkCurrentIdentityByToken(input: LinkCurrentIdentityByTokenInput): Promise<LinkResult>
   revokeCurrentSessionByToken(input: RevokeCurrentSessionByTokenInput): Promise<void>
   revokeOwnedSessionByToken(
     input: RevokeOwnedSessionByTokenInput,

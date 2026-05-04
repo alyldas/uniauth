@@ -1,4 +1,4 @@
-import { unlink } from './accounts.js'
+import { link, unlink } from './accounts.js'
 import { optionalProp } from './optional.js'
 import { changePassword, setPassword } from './passwords.js'
 import type { AuthServiceRuntime } from './runtime.js'
@@ -7,6 +7,8 @@ import { revokeStoredSession } from './sessions.js'
 import type {
   ChangeCurrentAccountPasswordByTokenInput,
   Credential,
+  LinkCurrentIdentityByTokenInput,
+  LinkResult,
   RevokeOwnedSessionByTokenInput,
   RevokeOwnedSessionByTokenResult,
   SetCurrentAccountPasswordByTokenInput,
@@ -38,6 +40,29 @@ export async function revokeOwnedSessionByToken(
       revokedSessionId: target.id,
       revokedCurrentSession: target.id === session.id,
     }
+  })
+}
+
+export async function linkCurrentIdentityByToken(
+  runtime: AuthServiceRuntime,
+  input: LinkCurrentIdentityByTokenInput,
+): Promise<LinkResult> {
+  return runtime.transaction.run(async () => {
+    const now = input.now ?? runtime.clock.now()
+    const { user } = await resolveSessionContext(runtime, {
+      sessionToken: input.sessionToken,
+      now,
+    })
+
+    return link(runtime, {
+      userId: user.id,
+      ...optionalProp('assertion', input.assertion),
+      ...optionalProp('provider', input.provider),
+      ...optionalProp('finishInput', input.finishInput),
+      ...optionalProp('reAuthenticatedAt', input.reAuthenticatedAt),
+      now,
+      ...(input.metadata ? { metadata: input.metadata } : {}),
+    })
   })
 }
 
