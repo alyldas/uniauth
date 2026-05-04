@@ -68,7 +68,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
         throw new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
       }
 
-      const updated: User = { ...existing, ...patch }
+      const updated = applyPatch(existing, patch)
       this.users.set(updated.id, updated)
       return updated
     },
@@ -118,7 +118,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
         throw new UniAuthError(UniAuthErrorCode.IdentityNotFound, 'Identity was not found.')
       }
 
-      const updated: AuthIdentity = { ...existing, ...patch }
+      const updated = applyPatch(existing, patch)
       const oldKey = this.identityKey(existing.provider, existing.providerUserId)
       const newKey = this.identityKey(updated.provider, updated.providerUserId)
       const existingIdentityId = this.identityKeys.get(newKey)
@@ -172,7 +172,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
         throw new UniAuthError(UniAuthErrorCode.CredentialNotFound, 'Credential was not found.')
       }
 
-      const updated: Credential = { ...existing, ...patch }
+      const updated = applyPatch(existing, patch)
       const oldKey = this.credentialKey(existing.type, existing.subject)
       const newKey = this.credentialKey(updated.type, updated.subject)
       const oldUserKey = this.credentialUserKey(existing.type, existing.userId)
@@ -212,7 +212,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
         throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
       }
 
-      const updated: Verification = { ...existing, ...patch }
+      const updated = applyPatch(existing, patch)
       this.verifications.set(updated.id, updated)
       return updated
     },
@@ -242,7 +242,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
         throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
       }
 
-      const updated: Session = { ...existing, ...patch }
+      const updated = applyPatch(existing, patch)
       const existingSessionId = this.sessionKeys.get(updated.tokenHash)
 
       if (updated.tokenHash !== existing.tokenHash && existingSessionId) {
@@ -407,6 +407,24 @@ function compareAuditEventsDescending(left: AuditEvent, right: AuditEvent): numb
   }
 
   return right.id.localeCompare(left.id)
+}
+
+function applyPatch<Entity extends { readonly id: unknown }, Patch extends object>(
+  existing: Entity,
+  patch: Patch,
+): Entity {
+  const updated = { ...existing } as Record<string, unknown>
+
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) {
+      delete updated[key]
+      continue
+    }
+
+    updated[key] = value
+  }
+
+  return updated as Entity
 }
 
 function isOlderThanAuditCursor(

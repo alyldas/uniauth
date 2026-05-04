@@ -125,6 +125,10 @@ describe('package exports', () => {
       new URL('../dist/contracts.d.ts', import.meta.url),
       'utf8',
     )
+    const repositoryPortDeclarations = await readFile(
+      new URL('../dist/ports/repositories.d.ts', import.meta.url),
+      'utf8',
+    )
     const contractsRuntimeDeclarations = await readFile(
       new URL('../dist/contracts/runtime.d.ts', import.meta.url),
       'utf8',
@@ -135,6 +139,14 @@ describe('package exports', () => {
     )
 
     expect(contractsDeclarations).toContain('AuthServiceInfrastructure')
+    expect(contractsDeclarations).toContain('UserUpdatePatch')
+    expect(repositoryPortDeclarations).toContain('export interface UserUpdatePatch')
+    expect(repositoryPortDeclarations).toContain('export interface IdentityUpdatePatch')
+    expect(repositoryPortDeclarations).toContain('export interface CredentialUpdatePatch')
+    expect(repositoryPortDeclarations).toContain('export interface VerificationUpdatePatch')
+    expect(repositoryPortDeclarations).toContain('export interface SessionUpdatePatch')
+    expect(repositoryPortDeclarations).toContain('update(id: UserId, patch: UserUpdatePatch)')
+    expect(repositoryPortDeclarations).not.toContain("Partial<Omit<User, 'id' | 'createdAt'>>")
     expect(contractsRuntimeDeclarations).toContain('export interface AuthNormalizer')
     expect(contractsRuntimeDeclarations).toContain('export interface SecretHasher')
     expect(testingKitDeclarations).not.toContain('export interface InMemoryAuthKit')
