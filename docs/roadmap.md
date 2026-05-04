@@ -323,8 +323,6 @@ Tracking issues: #207, #208, #209, #210.
 
 Tracking issues: #214, #215, #216, #217.
 
-## Next Release
-
 ### v0.34 - Verification Cancellation Flows
 
 - Add a trusted public `cancelVerification(...)` API for explicitly invalidating active pending
@@ -337,6 +335,22 @@ Tracking issues: #214, #215, #216, #217.
   flows.
 
 Tracking issues: #221, #222, #223, #224.
+
+## Next Release
+
+### v0.35 - Package Boundary Hardening
+
+- Introduce a narrow public contracts boundary that future storage, provider, bridge, and testing
+  packages can depend on without importing implementation modules.
+- Move pure domain rules out of application support so package extraction does not drag service
+  orchestration internals across layers.
+- Separate runtime composition from application use cases and replace derived repository patches
+  with explicit patch contracts where the persistence boundary needs them.
+- Add provider-specific subpath exports and enforce source import boundaries so the public package
+  shape matches the intended long-term split.
+- Document extraction criteria and migration expectations before any physical multi-package move.
+
+Tracking issues: #225, #226, #227, #228, #229, #230, #231.
 
 ## Versioning
 
