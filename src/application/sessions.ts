@@ -39,8 +39,7 @@ export async function revokeSession(
 ): Promise<void> {
   await runtime.transaction.run(async () => {
     const now = runtime.clock.now()
-    const session = await requireStoredSession(runtime, sessionId)
-    await revokeSessionRecord(runtime, session, now)
+    await revokeStoredSession(runtime, sessionId, now)
   })
 }
 
@@ -200,6 +199,15 @@ async function requireStoredSession(
   }
 
   return session
+}
+
+export async function revokeStoredSession(
+  runtime: AuthServiceRuntime,
+  sessionId: SessionId,
+  now: Date,
+): Promise<void> {
+  const session = await requireStoredSession(runtime, sessionId)
+  await revokeSessionRecord(runtime, session, now)
 }
 
 async function revokeSessionRecord(

@@ -101,6 +101,26 @@ export interface ResolvedSessionContext {
   readonly user: User
 }
 
+export interface GetCurrentAccountSecuritySnapshotInput {
+  readonly sessionToken: string
+  readonly touch?: boolean
+  readonly now?: Date
+}
+
+export interface RevokeCurrentSessionByTokenInput {
+  readonly sessionToken: string
+  readonly now?: Date
+}
+
+export interface RevokeOtherSessionsByTokenInput {
+  readonly sessionToken: string
+  readonly now?: Date
+}
+
+export interface RevokeOtherSessionsByTokenResult extends RevokeUserSessionsResult {
+  readonly currentSessionId: SessionId
+}
+
 export interface RevokeUserSessionsInput {
   readonly userId: UserId
   readonly exceptSessionId?: SessionId

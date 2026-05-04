@@ -51,6 +51,11 @@ export interface AccountSecuritySnapshot {
   readonly sessions: readonly AccountSecuritySessionView[]
 }
 
+export interface CurrentAccountSecuritySnapshot {
+  readonly account: AccountSecuritySnapshot
+  readonly currentSessionId: Session['id']
+}
+
 export interface AuditEventView {
   readonly id: AuditEvent['id']
   readonly type: AuditEvent['type']

@@ -4,6 +4,11 @@ import { getAuditEventPage, getAuditEvents } from './audit-events.js'
 import { getUserIdentities, link, mergeAccounts, unlink } from './accounts.js'
 import { getUserCredentials } from './credentials.js'
 import {
+  getCurrentAccountSecuritySnapshot,
+  revokeCurrentSessionByToken,
+  revokeOtherSessionsByToken,
+} from './current-account-security.js'
+import {
   cancelEmailMagicLinkSignIn,
   finishEmailMagicLinkSignIn,
   resendEmailMagicLinkSignIn,
@@ -54,6 +59,7 @@ import type {
   AuditEventQuery,
   AuthResult,
   AuthService,
+  CurrentAccountSecuritySnapshot,
   CancelEmailMagicLinkSignInInput,
   CancelEmailPasswordRecoveryInput,
   CancelOtpChallengeInput,
@@ -70,11 +76,15 @@ import type {
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
+  GetCurrentAccountSecuritySnapshotInput,
   GetVerificationResendWindowInput,
   LinkInput,
   LinkResult,
   MergeAccountsInput,
   MergeResult,
+  RevokeCurrentSessionByTokenInput,
+  RevokeOtherSessionsByTokenInput,
+  RevokeOtherSessionsByTokenResult,
   RevokeUserSessionsInput,
   RevokeUserSessionsResult,
   ResendOtpChallengeInput,
@@ -215,6 +225,22 @@ export class DefaultAuthService implements AuthService {
 
   async resolveSessionContext(input: ResolveSessionContextInput): Promise<ResolvedSessionContext> {
     return resolveSessionContext(this.runtime, input)
+  }
+
+  async getCurrentAccountSecuritySnapshot(
+    input: GetCurrentAccountSecuritySnapshotInput,
+  ): Promise<CurrentAccountSecuritySnapshot> {
+    return getCurrentAccountSecuritySnapshot(this.runtime, input)
+  }
+
+  async revokeCurrentSessionByToken(input: RevokeCurrentSessionByTokenInput): Promise<void> {
+    return revokeCurrentSessionByToken(this.runtime, input)
+  }
+
+  async revokeOtherSessionsByToken(
+    input: RevokeOtherSessionsByTokenInput,
+  ): Promise<RevokeOtherSessionsByTokenResult> {
+    return revokeOtherSessionsByToken(this.runtime, input)
   }
 
   async touchSession(input: TouchSessionInput): Promise<Session> {

@@ -33,6 +33,9 @@ identities, and email/phone are optional identity attributes.
 - `revokeUserSessions`
 - `resolveSession`
 - `resolveSessionContext`
+- `getCurrentAccountSecuritySnapshot`
+- `revokeCurrentSessionByToken`
+- `revokeOtherSessionsByToken`
 - `touchSession`
 - `getUser`
 - `getUserCredentials`
@@ -62,6 +65,11 @@ the public service layer without reaching into adapter internals.
 Session resolution remains transport-agnostic. Core can now collapse `sessionToken -> session + user`
 into one trusted read-side helper, while cookie parsing, bearer extraction, and request decoration
 stay application-owned.
+
+Current-account security routes can also stay on trusted token-based helpers without reassembling
+that flow on every backend. Core can now resolve a trusted local `sessionToken`, load the current
+account-security aggregate, or revoke the current/other local sessions through one narrow helper
+layer while cookie clearing, header parsing, and outward payload shaping remain application-owned.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful

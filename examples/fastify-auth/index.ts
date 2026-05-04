@@ -29,7 +29,7 @@ import {
   sealSessionCookieValue,
   unsealSessionCookieValue,
 } from '../shared/session-cookie.js'
-import { serializeAccountSecuritySnapshot } from '../shared/views.js'
+import { serializeCurrentAccountSecuritySnapshot } from '../shared/views.js'
 
 interface FastifyAuthExample {
   readonly app: FastifyInstance
@@ -38,6 +38,7 @@ interface FastifyAuthExample {
 }
 
 interface FastifyRequestAuth {
+  readonly sessionToken: string
   readonly session: Session
   readonly user: User
   readonly userId: Session['userId']
@@ -178,9 +179,11 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
         return reply.status(401).send({ error: AUTHENTICATION_REQUIRED_MESSAGE })
       }
 
-      const snapshot = await authService.getAccountSecuritySnapshot(auth.user.id)
+      const snapshot = await authService.getCurrentAccountSecuritySnapshot({
+        sessionToken: auth.sessionToken,
+      })
 
-      return reply.status(200).send(serializeAccountSecuritySnapshot(snapshot))
+      return reply.status(200).send(serializeCurrentAccountSecuritySnapshot(snapshot))
     },
   )
 
@@ -262,6 +265,7 @@ function createFastifySessionPreHandler(
       })
 
       request.auth = {
+        sessionToken,
         session,
         user,
         userId: session.userId,

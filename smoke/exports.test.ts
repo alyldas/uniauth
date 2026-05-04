@@ -83,6 +83,11 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.resendEmailMagicLinkSignIn).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.resendEmailPasswordRecovery).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.resolveSessionContext).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.getCurrentAccountSecuritySnapshot).toBeTypeOf(
+      'function',
+    )
+    expect(core.DefaultAuthService.prototype.revokeCurrentSessionByToken).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.revokeOtherSessionsByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getVerification).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeUserSessions).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getUserSessions).toBeTypeOf('function')
@@ -143,6 +148,18 @@ describe('package exports', () => {
       new URL('../dist/contracts.d.ts', import.meta.url),
       'utf8',
     )
+    const flowDeclarations = await readFile(
+      new URL('../dist/domain/flows.d.ts', import.meta.url),
+      'utf8',
+    )
+    const serviceDeclarations = await readFile(
+      new URL('../dist/domain/service.d.ts', import.meta.url),
+      'utf8',
+    )
+    const viewDeclarations = await readFile(
+      new URL('../dist/domain/views.d.ts', import.meta.url),
+      'utf8',
+    )
     const repositoryPortDeclarations = await readFile(
       new URL('../dist/ports/repositories.d.ts', import.meta.url),
       'utf8',
@@ -157,6 +174,15 @@ describe('package exports', () => {
     )
 
     expect(contractsDeclarations).toContain('AuthServiceInfrastructure')
+    expect(viewDeclarations).toContain('export interface CurrentAccountSecuritySnapshot')
+    expect(flowDeclarations).toContain('export interface GetCurrentAccountSecuritySnapshotInput')
+    expect(flowDeclarations).toContain('export interface RevokeOtherSessionsByTokenResult')
+    expect(serviceDeclarations).toContain(
+      'getCurrentAccountSecuritySnapshot(input: GetCurrentAccountSecuritySnapshotInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'revokeOtherSessionsByToken(input: RevokeOtherSessionsByTokenInput)',
+    )
     expect(contractsDeclarations).toContain('UserUpdatePatch')
     expect(repositoryPortDeclarations).toContain('export interface UserUpdatePatch')
     expect(repositoryPortDeclarations).toContain('export interface IdentityUpdatePatch')

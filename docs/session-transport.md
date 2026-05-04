@@ -18,7 +18,7 @@ Use this document for:
 
 Use [Backend integration recipes](backend-recipes.md) for framework bootstrap and route/controller
 composition. Use [Account security recipes](account-security.md) for device lists, sign-in methods,
-and verification inspection after you already trust the caller and know the target `userId`.
+verification inspection, and current-account flows after you already trust the caller.
 
 ## Browser Cookies
 
@@ -58,13 +58,13 @@ resolve the token through UniAuth instead of treating `Session.id` as the client
 ```ts
 const sessionToken = unsealSessionToken(request.cookies.session)
 
-const { session, user } = await authService.resolveSessionContext({
+const auth = await authService.resolveSessionContext({
   sessionToken,
 })
 
 return {
-  user,
-  session,
+  user: auth.user,
+  session: auth.session,
 }
 ```
 
@@ -97,6 +97,7 @@ import {
 } from '@alyldas/uniauth'
 
 interface ExpressRequestAuth {
+  readonly sessionToken: string
   readonly session: Session
   readonly user: User
   readonly userId: Session['userId']
@@ -128,6 +129,7 @@ export function createExpressSessionMiddleware(authService: AuthService) {
       })
 
       request.auth = {
+        sessionToken,
         session,
         user,
         userId: session.userId,
@@ -194,6 +196,7 @@ import {
 } from '@alyldas/uniauth'
 
 interface FastifyRequestAuth {
+  readonly sessionToken: string
   readonly session: Session
   readonly user: User
   readonly userId: Session['userId']
@@ -220,6 +223,7 @@ export function createFastifySessionPreHandler(authService: AuthService) {
         sessionToken,
       })
       request.auth = {
+        sessionToken,
         session,
         user,
         userId: session.userId,
@@ -253,9 +257,9 @@ Fastify users often keep `touch: false` in the preHandler and call `touchSession
 protected-route hook or in the route handler itself, so lightweight public requests can resolve auth
 context without forcing an activity write every time.
 
-If one authenticated request also needs device lists or sign-in methods, resolve the transport here
-and then hand off to `authService.getAccountSecuritySnapshot(userId)` as described in
-[Account security recipes](account-security.md).
+If one authenticated request also needs the current account-security page, resolve the transport
+here and then hand off to `authService.getCurrentAccountSecuritySnapshot({ sessionToken, touch })`
+as described in [Account security recipes](account-security.md).
 
 What stays application-owned:
 
@@ -325,11 +329,21 @@ Treat logout as two coordinated steps:
    - delete the bearer token from client state;
    - delete the mobile-stored session token.
 
+For self-service logout after transport resolution, prefer the token-based helper:
+
+```ts
+await authService.revokeCurrentSessionByToken({
+  sessionToken,
+})
+clearSessionCookie(response)
+```
+
 For sign-out-all-devices or device-management screens, applications can first call
-`authService.getUserSessions(userId)` and then revoke the active subset through
-`authService.revokeUserSessions({ userId, exceptSessionId })`. UniAuth still does not clear cookies
-or bearer stores for those clients; the application must remove the transport artifact on each
-device as it becomes aware of the revoked local session.
+`authService.getCurrentAccountSecuritySnapshot({ sessionToken })` and then revoke the active subset
+through `authService.revokeOtherSessionsByToken({ sessionToken })` or, for trusted admin flows,
+through `authService.revokeUserSessions({ userId, exceptSessionId })`. UniAuth still does not clear
+cookies or bearer stores for those clients; the application must remove the transport artifact on
+each device as it becomes aware of the revoked local session.
 
 For the account-security write-side recipes, safe outward projection, and sign-in-method management
 flows, continue in [Account security recipes](account-security.md).
