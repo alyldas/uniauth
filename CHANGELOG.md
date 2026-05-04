@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/alyldas/uniauth/compare/v0.33.0...v0.34.0) (2026-05-04)
+
+
+### Features
+
+* add verification cancellation flows ([346de8a](https://github.com/alyldas/uniauth/commit/346de8a19d6bcb8582822117881ece1eb00e0be5))
+
 ## [0.33.0](https://github.com/alyldas/uniauth/compare/v0.32.0...v0.33.0) (2026-05-03)
 
 
