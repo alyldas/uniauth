@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.39.0](https://github.com/alyldas/uniauth/compare/v0.38.0...v0.39.0) (2026-05-04)
+
+
+### Features
+
+* add current-account re-auth helpers ([95e75c2](https://github.com/alyldas/uniauth/commit/95e75c227fb9b2f9d386b06edc8dbdbb3dcd8551))
+
 ## [0.38.0](https://github.com/alyldas/uniauth/compare/v0.37.0...v0.38.0) (2026-05-04)
 
 
