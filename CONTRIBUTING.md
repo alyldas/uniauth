@@ -130,6 +130,21 @@ project maintainer.
 - Keep public errors stable and avoid leaking account ownership state.
 - Add tests for security-sensitive behavior before changing policy or orchestration.
 
+## Source Boundaries
+
+`npm run lint` enforces source import boundaries.
+
+- `src/domain`, `src/contracts`, and `src/ports` must stay implementation-free.
+- `src/application` must not import provider adapters, bridges, persistence adapters, or testing
+  modules.
+- `src/providers` families must stay isolated from each other and from application, persistence,
+  bridge, and testing internals.
+- `src/postgres` stays below the application layer.
+- `src/utils` stays reusable and must not drift upward into application or adapter ownership.
+
+If a change needs a new dependency direction, document the reason in the same pull request instead
+of bypassing the rule silently.
+
 ## Useful Docs
 
 - [Development](docs/development.md)
