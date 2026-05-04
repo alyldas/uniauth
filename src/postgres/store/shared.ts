@@ -101,8 +101,8 @@ export interface SessionRow {
   readonly metadata: Record<string, unknown> | string | null
 }
 
-export interface UpdateColumn {
-  readonly key: string
+export interface UpdateColumn<Key extends string = string> {
+  readonly key: Key
   readonly column: string
 }
 
@@ -212,12 +212,13 @@ export function mapSessionRow(row: SessionRow): Session {
   }
 }
 
-export function buildUpdateQuery(
-  patch: Record<string, unknown>,
-  columns: readonly UpdateColumn[],
+export function buildUpdateQuery<Patch extends object, Key extends Extract<keyof Patch, string>>(
+  patch: Patch,
+  columns: readonly UpdateColumn<Key>[],
 ): { readonly setClause: string; readonly values: readonly unknown[] } | undefined {
   const assignments: string[] = []
   const values: unknown[] = []
+  const patchRecord = patch as Record<string, unknown>
 
   for (const column of columns) {
     if (!Object.prototype.hasOwnProperty.call(patch, column.key)) {
@@ -225,7 +226,7 @@ export function buildUpdateQuery(
     }
 
     assignments.push(`${column.column} = $${values.length + 1}`)
-    values.push(patch[column.key] ?? null)
+    values.push(patchRecord[column.key] ?? null)
   }
 
   if (assignments.length === 0) {

@@ -251,7 +251,7 @@ describe('Postgres reference persistence repository coverage and merge', () => {
     const clearedUserPhone = await store.userRepo.update(createdUser.id, {
       phone: undefined,
       updatedAt: new Date('2026-01-01T00:05:30.000Z'),
-    } as unknown as Parameters<typeof store.userRepo.update>[1])
+    })
 
     expect(clearedUserPhone).not.toHaveProperty('phone')
 

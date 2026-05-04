@@ -28,9 +28,25 @@ describe('InMemoryAuthStore', () => {
     const createdUser = await store.userRepo.create(user())
 
     expect(await store.userRepo.findById(createdUser.id)).toBe(createdUser)
-    expect(await store.userRepo.update(createdUser.id, { displayName: 'Alice' })).toMatchObject({
+    expect(
+      await store.userRepo.update(createdUser.id, {
+        displayName: 'Alice',
+      }),
+    ).toMatchObject({
       displayName: 'Alice',
     })
+    expect(
+      await store.userRepo.update(createdUser.id, {
+        phone: '+15551234567',
+      }),
+    ).toMatchObject({
+      phone: '+15551234567',
+    })
+    expect(
+      await store.userRepo.update(createdUser.id, {
+        phone: undefined,
+      }),
+    ).not.toHaveProperty('phone')
     expect(
       await store.userRepo
         .update(asUserId('missing'), { displayName: 'Missing' })
