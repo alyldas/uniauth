@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.41.0](https://github.com/alyldas/uniauth/compare/v0.40.0...v0.41.0) (2026-05-04)
+
+
+### Features
+
+* add current-account identity linking helper ([de0da1f](https://github.com/alyldas/uniauth/commit/de0da1f05721271cb1d01eb1a7fc2a0413f571f9))
+
 ## [0.40.0](https://github.com/alyldas/uniauth/compare/v0.39.0...v0.40.0) (2026-05-04)
 
 
