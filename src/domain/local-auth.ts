@@ -54,6 +54,17 @@ export interface SignInWithPasswordInput {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface CurrentAccountPasswordReAuthConfirmation {
+  readonly userId: UserId
+  readonly reAuthenticatedAt: Date
+}
+
+export interface ConfirmCurrentAccountPasswordByTokenInput {
+  readonly sessionToken: string
+  readonly currentPassword: string
+  readonly now?: Date
+}
+
 export interface SetPasswordInput {
   readonly userId: UserId
   readonly email: string

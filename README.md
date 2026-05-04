@@ -52,6 +52,8 @@ license, subscription, private contract, or other written permission.
   routes that already trust a local session token.
 - Exposes token-based current-account write-side helpers for selected-session revoke, sign-in-method
   unlink, and local password setup or change after transport resolution.
+- Exposes current-account OTP and password re-auth helpers for self-service recent-auth bootstrapping
+  on the trusted local session-token boundary.
 - Exposes a trusted `getAccountInspectionSnapshot({ userId, audit? })` aggregate read-side
   API for backend support and admin inspection flows.
 - Supports bulk local session revocation for sign-out-all-devices style account-security flows.
@@ -374,6 +376,22 @@ await service.unlinkCurrentIdentityByToken({
   sessionToken,
   identityId,
   reAuthenticatedAt,
+})
+```
+
+The same trusted boundary can bootstrap recent-auth proof for those sensitive current-account
+mutations:
+
+```ts
+const challenge = await service.startCurrentAccountOtpReAuth({
+  sessionToken,
+  identityId,
+  channel: OtpChannel.Email,
+})
+
+const passwordConfirmation = await service.confirmCurrentAccountPasswordByToken({
+  sessionToken,
+  currentPassword,
 })
 ```
 

@@ -261,6 +261,60 @@ Keep the same public security rules:
 - keep public HTTP responses neutral when mutation attempts fail;
 - require recent auth where your policy says it is required.
 
+### Bootstrap Recent Auth For Sensitive Current-Account Actions
+
+Keep recent-auth proof on the same trusted `sessionToken` boundary as the current-account
+inspection and write-side helpers. UniAuth can prove the owned current-account factor; the
+application still owns where the resulting recent-auth marker is stored and how long it remains
+valid.
+
+For owned OTP re-auth, let the route select an identity from the current-account snapshot and keep
+the ownership check inside core:
+
+```ts
+const challenge = await authService.startCurrentAccountOtpReAuth({
+  sessionToken: request.auth.sessionToken,
+  identityId: body.identityId,
+  channel: body.channel,
+})
+```
+
+Then finish the challenge through the existing generic verification consumer and persist the recent
+auth marker in app-owned request or session state:
+
+```ts
+const verification = await authService.finishOtpChallenge({
+  verificationId: body.verificationId,
+  secret: body.secret,
+  purpose: VerificationPurpose.ReAuth,
+  channel: body.channel,
+})
+
+request.auth.reAuthenticatedAt = verification.consumedAt ?? new Date()
+```
+
+If the UI prefers password confirmation instead of OTP, keep that proof on the same trusted local
+session boundary:
+
+```ts
+const confirmation = await authService.confirmCurrentAccountPasswordByToken({
+  sessionToken: request.auth.sessionToken,
+  currentPassword: body.currentPassword,
+})
+
+request.auth.reAuthenticatedAt = confirmation.reAuthenticatedAt
+```
+
+UniAuth still does not own:
+
+- your recent-auth cookie or session storage;
+- the TTL of that marker in app-owned auth state;
+- browser redirect or challenge-step UI;
+- whether the route offers OTP, password confirmation, or both.
+
+For resend or cancellation after a current-account OTP re-auth challenge has started, keep using
+the shared verification lifecycle helpers on the returned `verificationId`.
+
 ### Unlink One Sign-In Method
 
 Resolve the current account snapshot first so the application knows which method the user selected,

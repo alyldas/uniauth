@@ -90,11 +90,15 @@ describe('package exports', () => {
       'function',
     )
     expect(core.DefaultAuthService.prototype.getCurrentAccountAuditEventPage).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.startCurrentAccountOtpReAuth).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeCurrentSessionByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeOwnedSessionByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeOtherSessionsByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.unlinkCurrentIdentityByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.setCurrentAccountPasswordByToken).toBeTypeOf(
+      'function',
+    )
+    expect(core.DefaultAuthService.prototype.confirmCurrentAccountPasswordByToken).toBeTypeOf(
       'function',
     )
     expect(core.DefaultAuthService.prototype.changeCurrentAccountPasswordByToken).toBeTypeOf(
@@ -196,11 +200,18 @@ describe('package exports', () => {
     expect(flowDeclarations).toContain('export interface GetCurrentAccountSecuritySnapshotInput')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountInspectionSnapshotInput')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountAuditEventPageInput')
+    expect(flowDeclarations).toContain('export interface StartCurrentAccountOtpReAuthInput')
     expect(flowDeclarations).toContain('export interface UnlinkCurrentIdentityByTokenInput')
     expect(flowDeclarations).toContain('export interface RevokeOwnedSessionByTokenResult')
     expect(flowDeclarations).toContain('export interface RevokeOtherSessionsByTokenResult')
     expect(localAuthDeclarations).toContain(
       'export interface SetCurrentAccountPasswordByTokenInput',
+    )
+    expect(localAuthDeclarations).toContain(
+      'export interface ConfirmCurrentAccountPasswordByTokenInput',
+    )
+    expect(localAuthDeclarations).toContain(
+      'export interface CurrentAccountPasswordReAuthConfirmation',
     )
     expect(localAuthDeclarations).toContain(
       'export interface ChangeCurrentAccountPasswordByTokenInput',
@@ -215,6 +226,9 @@ describe('package exports', () => {
       'getCurrentAccountAuditEventPage(input: GetCurrentAccountAuditEventPageInput)',
     )
     expect(serviceDeclarations).toContain(
+      'startCurrentAccountOtpReAuth(input: StartCurrentAccountOtpReAuthInput)',
+    )
+    expect(serviceDeclarations).toContain(
       'revokeOwnedSessionByToken(input: RevokeOwnedSessionByTokenInput)',
     )
     expect(serviceDeclarations).toContain(
@@ -225,6 +239,9 @@ describe('package exports', () => {
     )
     expect(serviceDeclarations).toContain(
       'setCurrentAccountPasswordByToken(input: SetCurrentAccountPasswordByTokenInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'confirmCurrentAccountPasswordByToken(input: ConfirmCurrentAccountPasswordByTokenInput)',
     )
     expect(serviceDeclarations).toContain(
       'changeCurrentAccountPasswordByToken(input: ChangeCurrentAccountPasswordByTokenInput)',

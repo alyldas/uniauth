@@ -33,6 +33,28 @@ await service.cancelOtpChallenge({
 `finishOtpChallenge` remains for non-sign-in verification purposes such as link, re-auth, recovery,
 and app-owned custom purposes.
 
+If the route already trusts a local `sessionToken` and only needs a recent-auth OTP challenge for
+the current account, prefer the current-account helper over rebuilding the owned-target lookup in
+application code:
+
+```ts
+const challenge = await service.startCurrentAccountOtpReAuth({
+  sessionToken,
+  identityId,
+  channel: OtpChannel.Email,
+})
+
+const verification = await service.finishOtpChallenge({
+  verificationId: challenge.verificationId,
+  secret: 'code from user input',
+  purpose: VerificationPurpose.ReAuth,
+  channel: OtpChannel.Email,
+})
+```
+
+The application still owns how `verification.consumedAt` becomes a recent-auth marker in its own
+session, cookie, or server-side request context.
+
 The default OTP generator emits a 6-digit numeric code. Applications can configure a numeric length
 from 4 to 8 digits, provide a custom generator, or pass a per-request `secret`. Per-request secrets
 win over configured generation. Empty generated secrets are rejected before a verification is
@@ -123,6 +145,19 @@ await service.cancelEmailPasswordRecovery({
 
 Recovery does not create a session. Applications can decide whether a successful reset should be
 followed by a separate sign-in.
+
+If the route already trusts a local session token and only needs to prove the current password
+before a sensitive self-service mutation, prefer the current-account confirmation helper:
+
+```ts
+const confirmation = await service.confirmCurrentAccountPasswordByToken({
+  sessionToken,
+  currentPassword: body.currentPassword,
+})
+```
+
+The application still owns how `confirmation.reAuthenticatedAt` is stored, forwarded, or expired
+before it is passed back into token-based current-account mutation helpers.
 
 ## Neutral Responses
 
