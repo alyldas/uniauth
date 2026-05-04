@@ -1,5 +1,5 @@
 import type { AuthIdentityProvider, ProviderIdentityAssertion } from '../domain/types.js'
-import type { AuthProvider, ProviderRegistry } from '../ports.js'
+import type { AuthProvider, ProviderRegistry } from '../contracts.js'
 
 export class StaticAuthProvider implements AuthProvider {
   readonly id: AuthIdentityProvider

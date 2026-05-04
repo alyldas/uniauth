@@ -1,5 +1,5 @@
 import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
-import type { UserRepo } from '../../ports.js'
+import type { UserRepo } from '../../contracts.js'
 import { buildUpdateQuery, mapUserRow, type PostgresStoreContext, type UserRow } from './shared.js'
 
 export function createUserRepo(context: PostgresStoreContext): UserRepo {

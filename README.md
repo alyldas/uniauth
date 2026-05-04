@@ -222,6 +222,23 @@ Optional framework bridge helpers come from a dedicated bridges entry point:
 import { mapAuthJsOAuthToAssertion, mapBetterAuthOAuthToAssertion } from '@alyldas/uniauth/bridges'
 ```
 
+Shared runtime and infrastructure contracts can come from a dedicated contracts entry point:
+
+```ts
+import type {
+  AuthNormalizer,
+  AuthProvider,
+  AuthServiceInfrastructure,
+  Clock,
+  IdGenerator,
+  PasswordHasher,
+  ProviderRegistry,
+  RateLimiter,
+  SecretHasher,
+  UnitOfWork,
+} from '@alyldas/uniauth/contracts'
+```
+
 There are no root side effects. Importing the package does not register providers, touch storage,
 create sessions, read environment variables, or mutate global state.
 

@@ -1,5 +1,4 @@
-import type { AuthNormalizer } from '../utils/normalization.js'
-import type { SecretHasher } from '../utils/secrets.js'
+import type { AuthNormalizer, SecretHasher } from '../contracts.js'
 import type { EmailSender, SmsSender } from './messaging.js'
 import type { ProviderRegistry } from './providers.js'
 import type { AuthServiceRepositories } from './repositories.js'

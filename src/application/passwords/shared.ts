@@ -11,7 +11,7 @@ import {
   type Verification,
 } from '../../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidCredentials, invalidInput } from '../../errors.js'
-import type { PasswordHasher } from '../../ports.js'
+import type { PasswordHasher } from '../../contracts.js'
 
 export const DEFAULT_PASSWORD_RECOVERY_SUBJECT = 'Reset your password'
 export const PasswordAuditMode = {

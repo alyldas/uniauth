@@ -1,5 +1,5 @@
 import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
-import type { IdentityRepo } from '../../ports.js'
+import type { IdentityRepo } from '../../contracts.js'
 import {
   buildUpdateQuery,
   mapIdentityRow,

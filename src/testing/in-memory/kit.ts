@@ -5,11 +5,17 @@ import {
 } from '../../application/auth-service.js'
 import { optionalProp } from '../../application/optional.js'
 import type { AuthPolicy } from '../../application/policy.js'
-import type { Clock, IdGenerator } from '../../domain/types.js'
-import type { OtpSecretGenerator, PasswordHasher, RateLimiter } from '../../ports.js'
+import type {
+  AuthNormalizer,
+  Clock,
+  IdGenerator,
+  OtpSecretGenerator,
+  PasswordHasher,
+  RateLimiter,
+  SecretHasher,
+} from '../../contracts.js'
 import { createSequentialIdGenerator } from '../../utils/ids.js'
-import type { AuthNormalizer } from '../../utils/normalization.js'
-import { createScryptSecretHasher, type SecretHasher } from '../../utils/secrets.js'
+import { createScryptSecretHasher } from '../../utils/secrets.js'
 import { InMemoryProviderRegistry } from '../providers.js'
 import { InMemoryEmailSender, InMemorySmsSender } from './senders.js'
 import { InMemoryAuthStore } from './store.js'

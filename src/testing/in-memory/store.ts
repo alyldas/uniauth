@@ -9,9 +9,9 @@ import {
   type User,
   type Verification,
 } from '../../domain/types.js'
-import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
 import type {
   AuditLogRepo,
+  AuthNormalizer,
   AuthServiceRepositories,
   CredentialRepo,
   IdentityRepo,
@@ -19,8 +19,9 @@ import type {
   UnitOfWork,
   UserRepo,
   VerificationRepo,
-} from '../../ports.js'
-import { compatibilityAuthNormalizer, type AuthNormalizer } from '../../utils/normalization.js'
+} from '../../contracts.js'
+import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
+import { compatibilityAuthNormalizer } from '../../utils/normalization.js'
 
 interface StoreSnapshot {
   readonly users: Map<User['id'], User>

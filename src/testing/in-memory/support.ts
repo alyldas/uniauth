@@ -3,7 +3,7 @@ import type {
   RateLimitAttempt,
   RateLimitDecision,
   RateLimiter,
-} from '../../ports.js'
+} from '../../contracts.js'
 import { createScryptSecretHasher } from '../../utils/secrets.js'
 
 const TEST_PASSWORD_HASH_PREFIX = 'test-password:'

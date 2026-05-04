@@ -23,10 +23,12 @@ describe('package exports', () => {
 
   it('loads the public ESM entry points', async () => {
     const bridges = await import('../dist/bridges')
+    const contracts = await import('../dist/contracts')
     const core = await import('../dist')
     const postgres = await import('../dist/postgres')
     const testing = await import('../dist/testing')
 
+    expect(Object.keys(contracts)).toEqual([])
     expect(bridges.mapAuthJsOAuthToAssertion).toBeTypeOf('function')
     expect(bridges.mapBetterAuthOAuthToAssertion).toBeTypeOf('function')
     expect(core.AuditEventType.SignIn).toBe('auth.sign_in')
@@ -113,11 +115,22 @@ describe('package exports', () => {
   })
 
   it('keeps testing package declarations aligned with the stable public surface', async () => {
+    const contractsDeclarations = await readFile(
+      new URL('../dist/contracts.d.ts', import.meta.url),
+      'utf8',
+    )
+    const contractsRuntimeDeclarations = await readFile(
+      new URL('../dist/contracts/runtime.d.ts', import.meta.url),
+      'utf8',
+    )
     const testingKitDeclarations = await readFile(
       new URL('../dist/testing/in-memory/kit.d.ts', import.meta.url),
       'utf8',
     )
 
+    expect(contractsDeclarations).toContain('AuthServiceInfrastructure')
+    expect(contractsRuntimeDeclarations).toContain('export interface AuthNormalizer')
+    expect(contractsRuntimeDeclarations).toContain('export interface SecretHasher')
     expect(testingKitDeclarations).not.toContain('export interface InMemoryAuthKit')
     expect(testingKitDeclarations).toContain('export interface CreateInMemoryAuthKitOptions')
   })
@@ -141,6 +154,7 @@ describe('package exports', () => {
     for (const privateProviderSubpath of [
       `${packageMetadata.name}/bridges/authjs.js`,
       `${packageMetadata.name}/bridges/better-auth.js`,
+      `${packageMetadata.name}/contracts/runtime.js`,
       `${packageMetadata.name}/providers/messenger.js`,
       `${packageMetadata.name}/providers/oauth-oidc.js`,
       `${packageMetadata.name}/postgres/store.js`,

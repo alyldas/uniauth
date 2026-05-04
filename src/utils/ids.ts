@@ -8,12 +8,12 @@ import {
   asVerificationId,
   type AuditEventId,
   type CredentialId,
-  type IdGenerator,
   type IdentityId,
   type SessionId,
   type UserId,
   type VerificationId,
 } from '../domain/types.js'
+import type { IdGenerator } from '../contracts.js'
 
 export function createRandomIdGenerator(): IdGenerator {
   return {

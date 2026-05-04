@@ -1,4 +1,4 @@
-import type { Clock } from '../domain/types.js'
+import type { Clock } from '../contracts.js'
 import { invalidInput } from '../errors.js'
 
 export const systemClock: Clock = {

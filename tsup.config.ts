@@ -15,6 +15,7 @@ export default defineConfig({
   define: attributionDefines,
   entry: {
     'bridges/index': 'src/bridges.ts',
+    'contracts/index': 'src/contracts.ts',
     index: 'src/index.ts',
     'postgres/index': 'src/postgres.ts',
     'testing/index': 'src/testing/index.ts',

@@ -1,4 +1,4 @@
-import type { EmailSender, SmsSender } from '../../ports.js'
+import type { EmailSender, SmsSender } from '../../contracts.js'
 
 export interface InMemoryEmailMessage {
   readonly to: string

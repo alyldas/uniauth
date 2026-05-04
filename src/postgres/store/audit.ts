@@ -1,4 +1,4 @@
-import type { AuditLogRepo } from '../../ports.js'
+import type { AuditLogRepo } from '../../contracts.js'
 import { type AuditEventQuery } from '../../domain/types.js'
 import { type AuditEventRow, mapAuditEventRow, type PostgresStoreContext } from './shared.js'
 

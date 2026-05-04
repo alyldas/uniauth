@@ -2,16 +2,19 @@ import type { DefaultAuthServiceOptions } from './auth-service.js'
 import { optionalProp } from './optional.js'
 import type { AuthPolicy } from './policy.js'
 import { defaultAuthPolicy } from './policy.js'
-import type { Clock, IdGenerator } from '../domain/types.js'
 import type {
+  AuthNormalizer,
   AuthServiceInfrastructure,
   AuthServiceRepositories,
+  Clock,
+  IdGenerator,
   ProviderRegistry,
+  SecretHasher,
   UnitOfWork,
-} from '../ports.js'
+} from '../contracts.js'
 import { createRandomIdGenerator } from '../utils/ids.js'
-import { compatibilityAuthNormalizer, type AuthNormalizer } from '../utils/normalization.js'
-import { scryptSecretHasher, type SecretHasher } from '../utils/secrets.js'
+import { compatibilityAuthNormalizer } from '../utils/normalization.js'
+import { scryptSecretHasher } from '../utils/secrets.js'
 import { systemClock } from '../utils/time.js'
 
 const DEFAULT_SESSION_TTL_SECONDS = 60 * 60 * 24 * 30

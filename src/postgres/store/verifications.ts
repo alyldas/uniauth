@@ -1,5 +1,5 @@
 import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
-import type { VerificationRepo } from '../../ports.js'
+import type { VerificationRepo } from '../../contracts.js'
 import {
   buildUpdateQuery,
   mapVerificationRow,

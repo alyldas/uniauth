@@ -59,7 +59,6 @@ import type {
   CancelOtpChallengeInput,
   CancelVerificationInput,
   ChangePasswordInput,
-  Clock,
   Credential,
   ConsumeVerificationInput,
   CreateSessionInput,
@@ -72,7 +71,6 @@ import type {
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
   GetVerificationResendWindowInput,
-  IdGenerator,
   LinkInput,
   LinkResult,
   MergeAccountsInput,
@@ -107,9 +105,11 @@ import type {
 import type {
   AuthServiceInfrastructure,
   AuthServiceRepositories,
+  Clock,
+  IdGenerator,
   ProviderRegistry,
   UnitOfWork,
-} from '../ports.js'
+} from '../contracts.js'
 
 export interface DefaultAuthServiceOptions extends AuthServiceInfrastructure {
   readonly repos: AuthServiceRepositories

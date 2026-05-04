@@ -1,5 +1,5 @@
 import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
-import type { CredentialRepo } from '../../ports.js'
+import type { CredentialRepo } from '../../contracts.js'
 import {
   buildUpdateQuery,
   mapCredentialRow,

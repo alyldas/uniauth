@@ -1,10 +1,9 @@
 import type {
   AuthIdentityProvider,
-  Clock,
   FinishInput,
   ProviderIdentityAssertion,
 } from '../../domain/types.js'
-import type { AuthProvider } from '../../ports.js'
+import type { AuthProvider, Clock } from '../../contracts.js'
 import { optionalProp } from '../../utils/optional.js'
 import { MAX_WEBAPP_PROVIDER_ID, TELEGRAM_MINI_APP_PROVIDER_ID } from './constants.js'
 import { normalizeMaxWebAppInitData, readWebAppInitData } from './payload.js'
