@@ -14,8 +14,11 @@ import {
   mapOAuthOidcProfileToAssertion,
   type OAuthOidcClient,
   type OAuthOidcProfile,
-} from '@alyldas/uniauth'
+} from '@alyldas/uniauth/providers/oauth-oidc'
 ```
+
+The root package keeps these exports for compatibility, but provider-specific consumers should
+prefer the explicit `@alyldas/uniauth/providers/oauth-oidc` subpath.
 
 ## Runtime Boundary
 

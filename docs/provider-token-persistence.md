@@ -10,7 +10,7 @@ import {
   OAuthOidcTokenBindingKind,
   createOAuthOidcTokenRecord,
   type OAuthOidcTokenRecord,
-} from '@alyldas/uniauth'
+} from '@alyldas/uniauth/providers/oauth-oidc'
 ```
 
 `createOAuthOidcTokenRecord(...)` is a narrow helper for normalizing app-owned OAuth/OIDC token
