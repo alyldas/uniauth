@@ -340,6 +340,7 @@ Tracking issues: #221, #222, #223, #224.
 
 ### v0.35 - Package Boundary Hardening
 
+- Keep `v0.35` inside one package; this is boundary hardening, not a monorepo migration.
 - Introduce a narrow public contracts boundary that future storage, provider, bridge, and testing
   packages can depend on without importing implementation modules.
 - Move pure domain rules out of application support so package extraction does not drag service
@@ -348,7 +349,8 @@ Tracking issues: #221, #222, #223, #224.
   with explicit patch contracts where the persistence boundary needs them.
 - Add provider-specific subpath exports and enforce source import boundaries so the public package
   shape matches the intended long-term split.
-- Document extraction criteria and migration expectations before any physical multi-package move.
+- Document extraction criteria and migration expectations before any physical multi-package move, so
+  future package extraction happens only after the subpath boundary is already explicit.
 
 Tracking issues: #225, #226, #227, #228, #229, #230, #231.
 
