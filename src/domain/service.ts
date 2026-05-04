@@ -22,6 +22,7 @@ import type {
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
+  StartCurrentAccountOtpReAuthInput,
   GetVerificationResendWindowInput,
   LinkInput,
   LinkResult,
@@ -51,6 +52,8 @@ import type {
   ChangeCurrentAccountPasswordByTokenInput,
   CancelEmailMagicLinkSignInInput,
   CancelEmailPasswordRecoveryInput,
+  ConfirmCurrentAccountPasswordByTokenInput,
+  CurrentAccountPasswordReAuthConfirmation,
   FinishEmailMagicLinkSignInInput,
   FinishEmailPasswordRecoveryInput,
   ResendEmailMagicLinkSignInInput,
@@ -69,6 +72,9 @@ export interface AuthService {
   signIn(input: SignInInput): Promise<AuthResult>
   signInWithPassword(input: SignInWithPasswordInput): Promise<AuthResult>
   startOtpChallenge(input: StartOtpChallengeInput): Promise<StartOtpChallengeResult>
+  startCurrentAccountOtpReAuth(
+    input: StartCurrentAccountOtpReAuthInput,
+  ): Promise<StartOtpChallengeResult>
   resendOtpChallenge(input: ResendOtpChallengeInput): Promise<StartOtpChallengeResult>
   finishOtpChallenge(input: FinishOtpChallengeInput): Promise<Verification>
   finishOtpSignIn(input: FinishOtpSignInInput): Promise<AuthResult>
@@ -115,6 +121,9 @@ export interface AuthService {
   setCurrentAccountPasswordByToken(
     input: SetCurrentAccountPasswordByTokenInput,
   ): Promise<Credential>
+  confirmCurrentAccountPasswordByToken(
+    input: ConfirmCurrentAccountPasswordByTokenInput,
+  ): Promise<CurrentAccountPasswordReAuthConfirmation>
   changeCurrentAccountPasswordByToken(
     input: ChangeCurrentAccountPasswordByTokenInput,
   ): Promise<Credential>

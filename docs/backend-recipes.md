@@ -116,8 +116,8 @@ Express ownership notes:
   account existence hints.
 - For account-security screens and mutations, use [Account security recipes](account-security.md)
   and prefer `getCurrentAccountInspectionSnapshot({ sessionToken, audit? })` plus the token-based
-  self-service revoke, unlink, and password-action helpers instead of reading adapter internals or
-  re-routing current-account writes through raw `userId` calls.
+  self-service revoke, unlink, password-action, and recent-auth helpers instead of reading adapter
+  internals or re-routing current-account writes through raw `userId` calls.
 
 ## Fastify
 
@@ -167,7 +167,8 @@ Fastify ownership notes:
 - For a fuller copyable token/session recipe, see [Session transport recipes](session-transport.md).
 - For sign-in-method, device-management, revoke, and password-change routes, use
   [Account security recipes](account-security.md) and the current-account aggregate plus token-based
-  action helpers instead of rebuilding session + user + snapshot composition by hand.
+  action and recent-auth helpers instead of rebuilding session + user + snapshot composition by
+  hand.
 
 ## Nest
 

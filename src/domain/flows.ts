@@ -144,6 +144,16 @@ export interface GetCurrentAccountAuditEventPageInput {
   readonly limit?: AuditEventQuery['limit']
 }
 
+export interface StartCurrentAccountOtpReAuthInput {
+  readonly sessionToken: string
+  readonly identityId: IdentityId
+  readonly channel: OtpChannel
+  readonly secret?: string
+  readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface RevokeCurrentSessionByTokenInput {
   readonly sessionToken: string
   readonly now?: Date

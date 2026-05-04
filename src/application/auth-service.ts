@@ -19,6 +19,10 @@ import {
   unlinkCurrentIdentityByToken,
 } from './current-account-actions.js'
 import {
+  confirmCurrentAccountPasswordByToken,
+  startCurrentAccountOtpReAuth,
+} from './current-account-re-auth.js'
+import {
   cancelEmailMagicLinkSignIn,
   finishEmailMagicLinkSignIn,
   resendEmailMagicLinkSignIn,
@@ -77,7 +81,9 @@ import type {
   CancelVerificationInput,
   ChangePasswordInput,
   ChangeCurrentAccountPasswordByTokenInput,
+  ConfirmCurrentAccountPasswordByTokenInput,
   Credential,
+  CurrentAccountPasswordReAuthConfirmation,
   ConsumeVerificationInput,
   CreateSessionInput,
   CreateSessionResult,
@@ -113,6 +119,7 @@ import type {
   SetCurrentAccountPasswordByTokenInput,
   SignInInput,
   SignInWithPasswordInput,
+  StartCurrentAccountOtpReAuthInput,
   StartEmailMagicLinkSignInInput,
   StartEmailMagicLinkSignInResult,
   ResendEmailMagicLinkSignInInput,
@@ -149,6 +156,12 @@ export class DefaultAuthService implements AuthService {
 
   async startOtpChallenge(input: StartOtpChallengeInput): Promise<StartOtpChallengeResult> {
     return startOtpChallenge(this.runtime, input)
+  }
+
+  async startCurrentAccountOtpReAuth(
+    input: StartCurrentAccountOtpReAuthInput,
+  ): Promise<StartOtpChallengeResult> {
+    return startCurrentAccountOtpReAuth(this.runtime, input)
   }
 
   async resendOtpChallenge(input: ResendOtpChallengeInput): Promise<StartOtpChallengeResult> {
@@ -287,6 +300,12 @@ export class DefaultAuthService implements AuthService {
     input: SetCurrentAccountPasswordByTokenInput,
   ): Promise<Credential> {
     return setCurrentAccountPasswordByToken(this.runtime, input)
+  }
+
+  async confirmCurrentAccountPasswordByToken(
+    input: ConfirmCurrentAccountPasswordByTokenInput,
+  ): Promise<CurrentAccountPasswordReAuthConfirmation> {
+    return confirmCurrentAccountPasswordByToken(this.runtime, input)
   }
 
   async changeCurrentAccountPasswordByToken(
