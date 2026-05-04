@@ -91,7 +91,15 @@ describe('package exports', () => {
     )
     expect(core.DefaultAuthService.prototype.getCurrentAccountAuditEventPage).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeCurrentSessionByToken).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.revokeOwnedSessionByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeOtherSessionsByToken).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.unlinkCurrentIdentityByToken).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.setCurrentAccountPasswordByToken).toBeTypeOf(
+      'function',
+    )
+    expect(core.DefaultAuthService.prototype.changeCurrentAccountPasswordByToken).toBeTypeOf(
+      'function',
+    )
     expect(core.DefaultAuthService.prototype.getVerification).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeUserSessions).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getUserSessions).toBeTypeOf('function')
@@ -161,6 +169,10 @@ describe('package exports', () => {
       new URL('../dist/domain/service.d.ts', import.meta.url),
       'utf8',
     )
+    const localAuthDeclarations = await readFile(
+      new URL('../dist/domain/local-auth.d.ts', import.meta.url),
+      'utf8',
+    )
     const viewDeclarations = await readFile(
       new URL('../dist/domain/views.d.ts', import.meta.url),
       'utf8',
@@ -184,7 +196,15 @@ describe('package exports', () => {
     expect(flowDeclarations).toContain('export interface GetCurrentAccountSecuritySnapshotInput')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountInspectionSnapshotInput')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountAuditEventPageInput')
+    expect(flowDeclarations).toContain('export interface UnlinkCurrentIdentityByTokenInput')
+    expect(flowDeclarations).toContain('export interface RevokeOwnedSessionByTokenResult')
     expect(flowDeclarations).toContain('export interface RevokeOtherSessionsByTokenResult')
+    expect(localAuthDeclarations).toContain(
+      'export interface SetCurrentAccountPasswordByTokenInput',
+    )
+    expect(localAuthDeclarations).toContain(
+      'export interface ChangeCurrentAccountPasswordByTokenInput',
+    )
     expect(serviceDeclarations).toContain(
       'getCurrentAccountSecuritySnapshot(input: GetCurrentAccountSecuritySnapshotInput)',
     )
@@ -195,7 +215,19 @@ describe('package exports', () => {
       'getCurrentAccountAuditEventPage(input: GetCurrentAccountAuditEventPageInput)',
     )
     expect(serviceDeclarations).toContain(
+      'revokeOwnedSessionByToken(input: RevokeOwnedSessionByTokenInput)',
+    )
+    expect(serviceDeclarations).toContain(
       'revokeOtherSessionsByToken(input: RevokeOtherSessionsByTokenInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'unlinkCurrentIdentityByToken(input: UnlinkCurrentIdentityByTokenInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'setCurrentAccountPasswordByToken(input: SetCurrentAccountPasswordByTokenInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'changeCurrentAccountPasswordByToken(input: ChangeCurrentAccountPasswordByTokenInput)',
     )
     expect(contractsDeclarations).toContain('UserUpdatePatch')
     expect(repositoryPortDeclarations).toContain('export interface UserUpdatePatch')

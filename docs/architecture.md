@@ -37,7 +37,11 @@ identities, and email/phone are optional identity attributes.
 - `getCurrentAccountInspectionSnapshot`
 - `getCurrentAccountAuditEventPage`
 - `revokeCurrentSessionByToken`
+- `revokeOwnedSessionByToken`
 - `revokeOtherSessionsByToken`
+- `unlinkCurrentIdentityByToken`
+- `setCurrentAccountPasswordByToken`
+- `changeCurrentAccountPasswordByToken`
 - `touchSession`
 - `getUser`
 - `getUserCredentials`
@@ -74,7 +78,9 @@ account-security aggregate, or revoke the current/other local sessions through o
 layer while cookie clearing, header parsing, and outward payload shaping remain application-owned.
 That same trusted boundary now also covers current-account inspection snapshots and current-account
 audit page reads, so self-service security routes do not have to mix admin inspection helpers with
-manual session ownership resolution.
+manual session ownership resolution. Selected-device revoke, sign-in-method unlink, and local
+password setup or change can now stay on that same token-based boundary instead of bouncing back to
+raw `userId` mutation calls after middleware resolution.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful

@@ -28,6 +28,8 @@ import type {
   MergeAccountsInput,
   MergeResult,
   RevokeCurrentSessionByTokenInput,
+  RevokeOwnedSessionByTokenInput,
+  RevokeOwnedSessionByTokenResult,
   RevokeOtherSessionsByTokenInput,
   RevokeOtherSessionsByTokenResult,
   RevokeUserSessionsInput,
@@ -41,16 +43,19 @@ import type {
   StartOtpChallengeResult,
   TouchSessionInput,
   UnlinkInput,
+  UnlinkCurrentIdentityByTokenInput,
 } from './flows.js'
 import type { SessionId, UserId, VerificationId } from './ids.js'
 import type {
   ChangePasswordInput,
+  ChangeCurrentAccountPasswordByTokenInput,
   CancelEmailMagicLinkSignInInput,
   CancelEmailPasswordRecoveryInput,
   FinishEmailMagicLinkSignInInput,
   FinishEmailPasswordRecoveryInput,
   ResendEmailMagicLinkSignInInput,
   ResendEmailPasswordRecoveryInput,
+  SetCurrentAccountPasswordByTokenInput,
   SetPasswordInput,
   SignInWithPasswordInput,
   StartEmailMagicLinkSignInInput,
@@ -100,9 +105,19 @@ export interface AuthService {
     input: GetCurrentAccountAuditEventPageInput,
   ): Promise<AuditEventPage>
   revokeCurrentSessionByToken(input: RevokeCurrentSessionByTokenInput): Promise<void>
+  revokeOwnedSessionByToken(
+    input: RevokeOwnedSessionByTokenInput,
+  ): Promise<RevokeOwnedSessionByTokenResult>
   revokeOtherSessionsByToken(
     input: RevokeOtherSessionsByTokenInput,
   ): Promise<RevokeOtherSessionsByTokenResult>
+  unlinkCurrentIdentityByToken(input: UnlinkCurrentIdentityByTokenInput): Promise<void>
+  setCurrentAccountPasswordByToken(
+    input: SetCurrentAccountPasswordByTokenInput,
+  ): Promise<Credential>
+  changeCurrentAccountPasswordByToken(
+    input: ChangeCurrentAccountPasswordByTokenInput,
+  ): Promise<Credential>
   touchSession(input: TouchSessionInput): Promise<Session>
   getUser(userId: UserId): Promise<User>
   getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]>

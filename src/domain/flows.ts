@@ -52,6 +52,14 @@ export interface UnlinkInput {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface UnlinkCurrentIdentityByTokenInput {
+  readonly sessionToken: string
+  readonly identityId: IdentityId
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface MergeAccountsInput {
   readonly sourceUserId: UserId
   readonly targetUserId: UserId
@@ -139,6 +147,18 @@ export interface GetCurrentAccountAuditEventPageInput {
 export interface RevokeCurrentSessionByTokenInput {
   readonly sessionToken: string
   readonly now?: Date
+}
+
+export interface RevokeOwnedSessionByTokenInput {
+  readonly sessionToken: string
+  readonly targetSessionId: SessionId
+  readonly now?: Date
+}
+
+export interface RevokeOwnedSessionByTokenResult {
+  readonly currentSessionId: SessionId
+  readonly revokedSessionId: SessionId
+  readonly revokedCurrentSession: boolean
 }
 
 export interface RevokeOtherSessionsByTokenInput {

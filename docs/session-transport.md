@@ -341,10 +341,11 @@ clearSessionCookie(response)
 
 For sign-out-all-devices or device-management screens, applications can first call
 `authService.getCurrentAccountSecuritySnapshot({ sessionToken })` and then revoke the active subset
-through `authService.revokeOtherSessionsByToken({ sessionToken })` or, for trusted admin flows,
-through `authService.revokeUserSessions({ userId, exceptSessionId })`. UniAuth still does not clear
-cookies or bearer stores for those clients; the application must remove the transport artifact on
-each device as it becomes aware of the revoked local session.
+through `authService.revokeOtherSessionsByToken({ sessionToken })`,
+`authService.revokeOwnedSessionByToken({ sessionToken, targetSessionId })`, or, for trusted admin
+flows, through `authService.revokeUserSessions({ userId, exceptSessionId })`. UniAuth still does
+not clear cookies or bearer stores for those clients; the application must remove the transport
+artifact on each device as it becomes aware of the revoked local session.
 
 For the account-security write-side recipes, safe outward projection, and sign-in-method management
 flows, continue in [Account security recipes](account-security.md).

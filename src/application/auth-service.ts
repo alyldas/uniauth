@@ -13,6 +13,12 @@ import {
   revokeOtherSessionsByToken,
 } from './current-account-security.js'
 import {
+  changeCurrentAccountPasswordByToken,
+  revokeOwnedSessionByToken,
+  setCurrentAccountPasswordByToken,
+  unlinkCurrentIdentityByToken,
+} from './current-account-actions.js'
+import {
   cancelEmailMagicLinkSignIn,
   finishEmailMagicLinkSignIn,
   resendEmailMagicLinkSignIn,
@@ -70,6 +76,7 @@ import type {
   CancelOtpChallengeInput,
   CancelVerificationInput,
   ChangePasswordInput,
+  ChangeCurrentAccountPasswordByTokenInput,
   Credential,
   ConsumeVerificationInput,
   CreateSessionInput,
@@ -90,6 +97,8 @@ import type {
   MergeAccountsInput,
   MergeResult,
   RevokeCurrentSessionByTokenInput,
+  RevokeOwnedSessionByTokenInput,
+  RevokeOwnedSessionByTokenResult,
   RevokeOtherSessionsByTokenInput,
   RevokeOtherSessionsByTokenResult,
   RevokeUserSessionsInput,
@@ -101,6 +110,7 @@ import type {
   Session,
   SessionId,
   SetPasswordInput,
+  SetCurrentAccountPasswordByTokenInput,
   SignInInput,
   SignInWithPasswordInput,
   StartEmailMagicLinkSignInInput,
@@ -113,6 +123,7 @@ import type {
   StartOtpChallengeResult,
   TouchSessionInput,
   UnlinkInput,
+  UnlinkCurrentIdentityByTokenInput,
   User,
   UserId,
   Verification,
@@ -256,10 +267,32 @@ export class DefaultAuthService implements AuthService {
     return revokeCurrentSessionByToken(this.runtime, input)
   }
 
+  async revokeOwnedSessionByToken(
+    input: RevokeOwnedSessionByTokenInput,
+  ): Promise<RevokeOwnedSessionByTokenResult> {
+    return revokeOwnedSessionByToken(this.runtime, input)
+  }
+
   async revokeOtherSessionsByToken(
     input: RevokeOtherSessionsByTokenInput,
   ): Promise<RevokeOtherSessionsByTokenResult> {
     return revokeOtherSessionsByToken(this.runtime, input)
+  }
+
+  async unlinkCurrentIdentityByToken(input: UnlinkCurrentIdentityByTokenInput): Promise<void> {
+    return unlinkCurrentIdentityByToken(this.runtime, input)
+  }
+
+  async setCurrentAccountPasswordByToken(
+    input: SetCurrentAccountPasswordByTokenInput,
+  ): Promise<Credential> {
+    return setCurrentAccountPasswordByToken(this.runtime, input)
+  }
+
+  async changeCurrentAccountPasswordByToken(
+    input: ChangeCurrentAccountPasswordByTokenInput,
+  ): Promise<Credential> {
+    return changeCurrentAccountPasswordByToken(this.runtime, input)
   }
 
   async touchSession(input: TouchSessionInput): Promise<Session> {

@@ -222,30 +222,26 @@ records and returns the current session id the application can mark in its respo
 
 ### Revoke One Selected Device
 
-For per-device revoke actions, first prove ownership from the read-side snapshot and only then call
-`revokeSession(...)`:
+For per-device revoke actions, keep the mutation on the trusted current-account boundary and let the
+service enforce ownership of the selected session:
 
 ```ts
-const current = await authService.getCurrentAccountSecuritySnapshot({
+const result = await authService.revokeOwnedSessionByToken({
   sessionToken: request.auth.sessionToken,
+  targetSessionId: body.sessionId,
 })
-const target = current.account.sessions.find((session) => session.id === body.sessionId)
 
-if (!target) {
-  return response.status(404).json({ error: 'Session not found.' })
-}
-
-await authService.revokeSession(target.id)
-
-if (target.id === current.currentSessionId) {
+if (result.revokedCurrentSession) {
   clearSessionCookie(response)
 }
 
 return response.status(204).send()
 ```
 
-The application decides whether a missing or foreign session should look like `404`, `204`, or a
-generic neutral response. UniAuth only enforces local session state.
+The application can still pre-load the session list through
+`getCurrentAccountSecuritySnapshot(...)` for UI rendering, but the write-side route no longer has to
+re-prove ownership by hand. Missing, foreign, stale, or disabled-account session targets collapse
+to the neutral `SessionNotFound` path.
 
 ## Sign-In Method Action Recipes
 
@@ -255,7 +251,8 @@ For sign-in method screens:
    `authService.getAccountSecuritySnapshot(userId)`, depending on whether the route is self-service
    or trusted admin/support;
 2. present provider ids, statuses, email or phone hints, and credential types;
-3. compose mutations through `unlink(...)`, `setPassword(...)`, `changePassword(...)`, or new
+3. compose mutations through `unlinkCurrentIdentityByToken(...)`,
+   `setCurrentAccountPasswordByToken(...)`, `changeCurrentAccountPasswordByToken(...)`, or new
    provider link flows.
 
 Keep the same public security rules:
@@ -267,23 +264,12 @@ Keep the same public security rules:
 ### Unlink One Sign-In Method
 
 Resolve the current account snapshot first so the application knows which method the user selected,
-then unlink by `identityId`:
+then keep the unlink on the current-account token boundary:
 
 ```ts
-const current = await authService.getCurrentAccountInspectionSnapshot({
+await authService.unlinkCurrentIdentityByToken({
   sessionToken: request.auth.sessionToken,
-})
-const targetIdentity = current.account.identities.find(
-  (identity) => identity.id === body.identityId,
-)
-
-if (!targetIdentity) {
-  return response.status(404).json({ error: 'Sign-in method not found.' })
-}
-
-await authService.unlink({
-  userId: request.auth.userId,
-  identityId: targetIdentity.id,
+  identityId: body.identityId,
   reAuthenticatedAt: request.auth.reAuthenticatedAt,
 })
 
@@ -291,43 +277,37 @@ return response.status(204).send()
 ```
 
 If policy or invariant checks reject the unlink, keep the outward response neutral enough for your
-surface. Core already protects the last remaining active sign-in method.
+surface. Core still protects the last remaining active sign-in method and now also keeps foreign or
+stale identity targets on the same trusted current-account boundary.
 
 ### Add Or Replace A Local Password
 
-Use `setPassword(...)` when the account does not yet have a local password or when the application
-allows a provider-first account to add one from a trusted account-security screen:
+Use `setCurrentAccountPasswordByToken(...)` when the account does not yet have a local password or
+when the application allows a provider-first account to add one from a trusted account-security
+screen:
 
 ```ts
-const current = await authService.getCurrentAccountSecuritySnapshot({
+await authService.setCurrentAccountPasswordByToken({
   sessionToken: request.auth.sessionToken,
-})
-const passwordEmail = current.account.user.email
-
-if (!passwordEmail) {
-  return response.status(400).json({ error: 'Password setup requires a trusted email address.' })
-}
-
-await authService.setPassword({
-  userId: request.auth.userId,
-  email: passwordEmail,
   password: body.newPassword,
   reAuthenticatedAt: request.auth.reAuthenticatedAt,
 })
 ```
 
 The application still owns password policy UX, strength hints, recent-auth requirements, and
-whether the route should even be offered when a password credential already exists. Feed
-`setPassword(...)` with a trusted account-owned email, not with an arbitrary unverified request
-field.
+whether the route should even be offered when a password credential already exists.
+`setCurrentAccountPasswordByToken(...)` only works when the current account already has a trusted
+email address. If not, core rejects the route with `invalid_input` instead of letting the
+application invent a local password identity subject.
 
 ### Change Password
 
-Use `changePassword(...)` when the current user already knows the existing password:
+Use `changeCurrentAccountPasswordByToken(...)` when the current user already knows the existing
+password:
 
 ```ts
-await authService.changePassword({
-  userId: request.auth.userId,
+await authService.changeCurrentAccountPasswordByToken({
+  sessionToken: request.auth.sessionToken,
   currentPassword: body.currentPassword,
   newPassword: body.newPassword,
   reAuthenticatedAt: request.auth.reAuthenticatedAt,
