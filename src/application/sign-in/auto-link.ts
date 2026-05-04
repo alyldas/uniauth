@@ -1,6 +1,6 @@
 import type { AuthServiceRuntime } from '../runtime.js'
-import { isActiveIdentity } from '../support.js'
 import type { AuthIdentity, ProviderIdentityAssertion, User } from '../../domain/types.js'
+import { isActiveIdentity, isActiveUser } from '../../domain/types.js'
 
 export async function findAutoLinkTarget(
   runtime: AuthServiceRuntime,
@@ -15,7 +15,7 @@ export async function findAutoLinkTarget(
 
   const targetUser = await runtime.repos.userRepo.findById(userIds[0]!)
 
-  if (!targetUser || targetUser.disabledAt) {
+  if (!targetUser || !isActiveUser(targetUser)) {
     return undefined
   }
 

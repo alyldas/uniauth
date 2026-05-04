@@ -3,9 +3,9 @@ import { AuthPolicyAction } from '../policy.js'
 import type { AuthServiceRuntime } from '../runtime.js'
 import { createIdentityFromAssertion, resolveAssertion } from '../sign-in.js'
 import { PolicyDenialReason } from './shared.js'
-import { audit, ensureReAuth, getActiveUser, isActiveIdentity } from '../support.js'
+import { audit, ensureReAuth, getActiveUser } from '../support.js'
 import type { LinkInput, LinkResult } from '../../domain/types.js'
-import { AuditEventType } from '../../domain/types.js'
+import { AuditEventType, isActiveIdentity } from '../../domain/types.js'
 import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
 
 export async function link(runtime: AuthServiceRuntime, input: LinkInput): Promise<LinkResult> {

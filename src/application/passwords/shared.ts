@@ -1,10 +1,12 @@
-import { audit, isActiveIdentity } from '../support.js'
+import { audit } from '../support.js'
 import type { AuthServiceRuntime } from '../runtime.js'
 import {
   AuditEventType,
   AuthIdentityStatus,
   PASSWORD_PROVIDER_ID,
   VerificationPurpose,
+  isActiveIdentity,
+  isActiveUser,
   type AuthIdentity,
   type Credential,
   type User,
@@ -126,7 +128,7 @@ export async function findUsableCredentialUser(
 ): Promise<User> {
   const user = await runtime.repos.userRepo.findById(credential.userId)
 
-  if (!user || user.disabledAt) {
+  if (!user || !isActiveUser(user)) {
     throw invalidCredentials()
   }
 

@@ -1,6 +1,6 @@
 import { optionalProp } from './optional.js'
 import type { AuthServiceRuntime } from './runtime.js'
-import { audit, enforceRateLimit, getActiveUser, isActiveIdentity } from './support.js'
+import { audit, enforceRateLimit, getActiveUser } from './support.js'
 import { findAutoLinkTarget } from './sign-in/auto-link.js'
 import { resolveAssertion } from './sign-in/assertion.js'
 import {
@@ -13,6 +13,7 @@ import {
 } from './sign-in/materialize.js'
 import {
   AuditEventType,
+  isActiveIdentity,
   type AuthResult,
   type ProviderIdentityAssertion,
   type SignInInput,

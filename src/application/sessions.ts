@@ -12,7 +12,12 @@ import type {
   TouchSessionInput,
   UserId,
 } from '../domain/types.js'
-import { AuditEventType, SessionStatus } from '../domain/types.js'
+import {
+  AuditEventType,
+  SessionStatus,
+  hasActiveSessionStatus,
+  isActiveSession,
+} from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
 import { generateSecret, hashSecret } from '../utils/secrets.js'
 import { addSeconds, assertValidDate } from '../utils/time.js'
@@ -58,7 +63,7 @@ export async function revokeUserSessions(
     const revokedSessionIds: SessionId[] = []
 
     for (const session of sessions) {
-      if (session.id === input.exceptSessionId || session.status !== SessionStatus.Active) {
+      if (session.id === input.exceptSessionId || !hasActiveSessionStatus(session)) {
         continue
       }
 
@@ -86,11 +91,7 @@ export async function resolveSession(
 
   const session = await runtime.repos.sessionRepo.findByTokenHash(hashSecret(sessionToken))
 
-  if (
-    !session ||
-    session.status !== SessionStatus.Active ||
-    session.expiresAt.getTime() <= now.getTime()
-  ) {
+  if (!session || !isActiveSession(session, now)) {
     throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
   }
 
@@ -181,11 +182,7 @@ async function requireActiveSession(
 ): Promise<Session> {
   const session = await runtime.repos.sessionRepo.findById(sessionId)
 
-  if (
-    !session ||
-    session.status !== SessionStatus.Active ||
-    session.expiresAt.getTime() <= now.getTime()
-  ) {
+  if (!session || !isActiveSession(session, now)) {
     throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
   }
 
