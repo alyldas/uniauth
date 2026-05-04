@@ -1,6 +1,6 @@
 import type { AuthServiceRuntime } from '../runtime.js'
-import { isActiveIdentity } from '../support.js'
 import type { AuthIdentity, UserId } from '../../domain/types.js'
+import { isActiveIdentity } from '../../domain/types.js'
 
 export const PolicyDenialReason = {
   IdentityAlreadyLinked: 'identity-already-linked',

@@ -9,7 +9,7 @@ import type {
   User,
   UserId,
 } from '../domain/types.js'
-import { AuditEventType, AuthIdentityStatus } from '../domain/types.js'
+import { AuditEventType, isActiveIdentity, isActiveUser } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, rateLimited } from '../errors.js'
 import type { RateLimitAttempt } from '../contracts.js'
 
@@ -17,14 +17,10 @@ const PolicyDenialReason = {
   ReAuthRequired: 're-auth-required',
 } as const
 
-export function isActiveIdentity(identity: AuthIdentity): boolean {
-  return identity.status === AuthIdentityStatus.Active && !identity.disabledAt
-}
-
 export async function getActiveUser(runtime: AuthServiceRuntime, userId: UserId): Promise<User> {
   const user = await runtime.repos.userRepo.findById(userId)
 
-  if (!user || user.disabledAt) {
+  if (!user || !isActiveUser(user)) {
     throw new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
   }
 

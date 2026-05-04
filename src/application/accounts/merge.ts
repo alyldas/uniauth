@@ -16,7 +16,7 @@ import {
 } from './merge-support.js'
 import { audit } from '../support.js'
 import type { MergeAccountsInput, MergeResult } from '../../domain/types.js'
-import { AuditEventType } from '../../domain/types.js'
+import { AuditEventType, isActiveUser } from '../../domain/types.js'
 import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
 
 export async function mergeAccounts(
@@ -125,7 +125,7 @@ async function resolveAlreadyMergedResult(
   now: Date,
   requestMetadata: Record<string, unknown> | undefined,
 ): Promise<MergeResult | undefined> {
-  if (!state.sourceUser.disabledAt) {
+  if (isActiveUser(state.sourceUser)) {
     return undefined
   }
 

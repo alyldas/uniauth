@@ -3,6 +3,9 @@ import { optionalProp } from './optional.js'
 import { audit } from './support.js'
 import {
   AuditEventType,
+  isConsumedVerification,
+  isExpiredVerification,
+  isUsableVerification,
   toVerificationResendWindow,
   VerificationStatus,
   type AuthIdentityProvider,
@@ -101,7 +104,7 @@ export async function requireVerificationResendAllowed(
     cooldownSeconds: resolveVerificationResendCooldownSeconds(runtime, undefined),
   })
 
-  if (verification.status === VerificationStatus.Consumed) {
+  if (isConsumedVerification(verification)) {
     throw new UniAuthError(
       UniAuthErrorCode.VerificationConsumed,
       'Verification has already been consumed.',
@@ -180,14 +183,14 @@ export async function consumeVerificationRecord(
     throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
   }
 
-  if (verification.status === VerificationStatus.Consumed) {
+  if (isConsumedVerification(verification)) {
     throw new UniAuthError(
       UniAuthErrorCode.VerificationConsumed,
       'Verification has already been consumed.',
     )
   }
 
-  if (verification.expiresAt.getTime() <= now.getTime()) {
+  if (isExpiredVerification(verification, now)) {
     throw new UniAuthError(UniAuthErrorCode.VerificationExpired, 'Verification has expired.')
   }
 
@@ -229,10 +232,7 @@ export async function cancelVerificationRecord(
 ): Promise<Verification> {
   assertValidDate(now, 'Verification cancellation time is invalid.')
 
-  if (
-    verification.status === VerificationStatus.Consumed ||
-    verification.expiresAt.getTime() <= now.getTime()
-  ) {
+  if (!isUsableVerification(verification, now)) {
     return verification
   }
 

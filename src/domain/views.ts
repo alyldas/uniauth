@@ -1,6 +1,7 @@
 import type { AuditEvent, AuditEventCursor } from './audit.js'
 import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
-import { VerificationStatus, type ProviderTrustLevel } from './kinds.js'
+import type { ProviderTrustLevel } from './kinds.js'
+import { isExpiredVerification, isUsableVerification } from './rules.js'
 
 export interface AccountSecurityUserView {
   readonly id: User['id']
@@ -195,9 +196,9 @@ export function toVerificationResendWindow(
     0,
     Math.ceil((resendAvailableAt.getTime() - input.now.getTime()) / 1000),
   )
-  const expired = verification.expiresAt.getTime() <= input.now.getTime()
+  const expired = isExpiredVerification(verification, input.now)
   const resendAllowed =
-    verification.status === VerificationStatus.Pending && !expired && cooldownRemainingSeconds === 0
+    isUsableVerification(verification, input.now) && cooldownRemainingSeconds === 0
 
   return {
     ...toVerificationStatusView(verification),

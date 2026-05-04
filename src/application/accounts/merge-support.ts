@@ -15,7 +15,7 @@ import type {
   User,
   UserId,
 } from '../../domain/types.js'
-import { SessionStatus } from '../../domain/types.js'
+import { SessionStatus, hasActiveSessionStatus } from '../../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../../errors.js'
 
 export interface MergeDeniedAudit {
@@ -134,7 +134,7 @@ export async function revokeActiveSessions(
   const revokedSessionIds: SessionId[] = []
 
   for (const session of sessions) {
-    if (session.status !== SessionStatus.Active) {
+    if (!hasActiveSessionStatus(session)) {
       continue
     }
 
@@ -190,7 +190,7 @@ export function isAlreadyMergedSource(
   return (
     activeSourceIdentities.length === 0 &&
     sourceCredentials.length === 0 &&
-    sourceSessions.every((session) => session.status !== SessionStatus.Active)
+    sourceSessions.every((session) => !hasActiveSessionStatus(session))
   )
 }
 
