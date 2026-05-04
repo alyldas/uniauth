@@ -336,8 +336,6 @@ Tracking issues: #214, #215, #216, #217.
 
 Tracking issues: #221, #222, #223, #224.
 
-## Next Release
-
 ### v0.35 - Package Boundary Hardening
 
 - Keep `v0.35` inside one package; this is boundary hardening, not a monorepo migration.
@@ -353,6 +351,12 @@ Tracking issues: #221, #222, #223, #224.
   future package extraction happens only after the subpath boundary is already explicit.
 
 Tracking issues: #225, #226, #227, #228, #229, #230, #231.
+
+## Next Release
+
+### v0.36 - Backlog To Be Defined
+
+- The next releasable scope has not been defined yet.
 
 ## Versioning
 
