@@ -138,6 +138,12 @@ export interface CreateVerificationResult {
   readonly secret: string
 }
 
+export interface CancelVerificationInput {
+  readonly verificationId: VerificationId
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface GetVerificationResendWindowInput {
   readonly verificationId: VerificationId
   readonly cooldownSeconds?: number
@@ -170,6 +176,14 @@ export interface ResendOtpChallengeInput {
   readonly verificationId: VerificationId
   readonly secret?: string
   readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface CancelOtpChallengeInput {
+  readonly verificationId: VerificationId
+  readonly purpose?: VerificationPurpose
+  readonly channel?: OtpChannel
   readonly now?: Date
   readonly metadata?: Record<string, unknown>
 }

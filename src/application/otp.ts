@@ -4,6 +4,7 @@ import { optionalProp } from './optional.js'
 import { normalizeAssertion, signInWithAssertion } from './sign-in.js'
 import { enforceRateLimit } from './support.js'
 import {
+  cancelVerificationRecord,
   consumeVerificationRecord,
   createVerificationRecord,
   expireVerificationForResend,
@@ -12,6 +13,7 @@ import {
 } from './verifications.js'
 import type {
   AuthResult,
+  CancelOtpChallengeInput,
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   OtpChannel as OtpChannelType,
@@ -162,6 +164,23 @@ export async function resendOtpChallenge(
     expiresAt: created.verification.expiresAt,
     delivery: challenge.channel,
   }
+}
+
+export async function cancelOtpChallenge(
+  runtime: AuthServiceRuntime,
+  input: CancelOtpChallengeInput,
+): Promise<Verification> {
+  return runtime.transaction.run(async () => {
+    const now = input.now ?? runtime.clock.now()
+    const challenge = await findOtpChallengeRecord(runtime, {
+      verificationId: input.verificationId,
+      ...optionalProp('purpose', input.purpose),
+      ...optionalProp('channel', input.channel),
+      context: 'OTP cancellation',
+    })
+
+    return cancelVerificationRecord(runtime, challenge.verification, now, input.metadata)
+  })
 }
 
 export async function finishOtpSignIn(

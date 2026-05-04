@@ -8,6 +8,8 @@ import type { AuditEvent, AuditEventPage, AuditEventQuery } from './audit.js'
 import type {
   AuthResult,
   ConsumeVerificationInput,
+  CancelOtpChallengeInput,
+  CancelVerificationInput,
   CreateSessionInput,
   CreateSessionResult,
   CreateVerificationInput,
@@ -42,6 +44,8 @@ import type {
 } from './ids.js'
 import type {
   ChangePasswordInput,
+  CancelEmailMagicLinkSignInInput,
+  CancelEmailPasswordRecoveryInput,
   FinishEmailMagicLinkSignInInput,
   FinishEmailPasswordRecoveryInput,
   ResendEmailMagicLinkSignInInput,
@@ -110,9 +114,13 @@ export interface AuthService {
   ): Promise<AccountInspectionSnapshot>
   createSession(input: CreateSessionInput): Promise<CreateSessionResult>
   createVerification(input: CreateVerificationInput): Promise<CreateVerificationResult>
+  cancelVerification(input: CancelVerificationInput): Promise<Verification>
   getVerification(verificationId: VerificationId): Promise<Verification>
   getVerificationResendWindow(
     input: GetVerificationResendWindowInput,
   ): Promise<VerificationResendWindow>
   consumeVerification(input: ConsumeVerificationInput): Promise<Verification>
+  cancelOtpChallenge(input: CancelOtpChallengeInput): Promise<Verification>
+  cancelEmailMagicLinkSignIn(input: CancelEmailMagicLinkSignInInput): Promise<Verification>
+  cancelEmailPasswordRecovery(input: CancelEmailPasswordRecoveryInput): Promise<Verification>
 }

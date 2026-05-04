@@ -2,6 +2,7 @@ import { optionalProp } from '../optional.js'
 import type { AuthServiceRuntime } from '../runtime.js'
 import { enforceRateLimit } from '../support.js'
 import {
+  cancelVerificationRecord,
   consumeVerificationRecord,
   createVerificationRecord,
   expireVerificationForResend,
@@ -9,6 +10,7 @@ import {
   requireVerificationResendAllowed,
 } from '../verifications.js'
 import {
+  type CancelEmailPasswordRecoveryInput,
   OtpChannel,
   PASSWORD_PROVIDER_ID,
   VerificationPurpose,
@@ -17,6 +19,7 @@ import {
   type ResendEmailPasswordRecoveryInput,
   type StartEmailPasswordRecoveryInput,
   type StartEmailPasswordRecoveryResult,
+  type Verification,
 } from '../../domain/types.js'
 import { invalidInput } from '../../errors.js'
 import { RateLimitAction, rateLimitKey } from '../../ports.js'
@@ -183,4 +186,16 @@ export async function resendEmailPasswordRecovery(
     expiresAt: created.verification.expiresAt,
     delivery: OtpChannel.Email,
   }
+}
+
+export async function cancelEmailPasswordRecovery(
+  runtime: AuthServiceRuntime,
+  input: CancelEmailPasswordRecoveryInput,
+): Promise<Verification> {
+  return runtime.transaction.run(async () => {
+    const now = input.now ?? runtime.clock.now()
+    const verification = await findPasswordRecoveryVerification(runtime, input.verificationId)
+
+    return cancelVerificationRecord(runtime, verification, now, input.metadata)
+  })
 }

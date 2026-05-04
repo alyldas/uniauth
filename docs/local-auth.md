@@ -23,6 +23,11 @@ const result = await service.finishOtpSignIn({
 const resent = await service.resendOtpChallenge({
   verificationId: challenge.verificationId,
 })
+
+await service.cancelOtpChallenge({
+  verificationId: challenge.verificationId,
+  channel: OtpChannel.Email,
+})
 ```
 
 `finishOtpChallenge` remains for non-sign-in verification purposes such as link, re-auth, recovery,
@@ -58,6 +63,10 @@ const resentMagic = await service.resendEmailMagicLinkSignIn({
   verificationId: magic.verificationId,
   createLink: ({ verificationId, secret }) =>
     `/auth/magic?verification=${verificationId}&token=${secret}`,
+})
+
+await service.cancelEmailMagicLinkSignIn({
+  verificationId: magic.verificationId,
 })
 ```
 
@@ -106,6 +115,10 @@ const resentRecovery = await service.resendEmailPasswordRecovery({
   createLink: ({ verificationId, secret }) =>
     `/auth/recovery?verification=${verificationId}&token=${secret}`,
 })
+
+await service.cancelEmailPasswordRecovery({
+  verificationId: recovery.verificationId,
+})
 ```
 
 Recovery does not create a session. Applications can decide whether a successful reset should be
@@ -122,6 +135,9 @@ directly in HTTP responses.
 
 For trusted resend cooldown reads and canonical 429 shaping, use
 [OTP and magic-link abuse-control recipes](abuse-control.md).
+
+For trusted cancellation endpoints that terminate pending verification flows without direct
+repository writes, use [OTP and magic-link abuse-control recipes](abuse-control.md).
 
 ## Rate Limits
 
@@ -147,7 +163,9 @@ Public helper surface:
 - `rateLimitKey(...)` for canonical key composition when tests or surrounding middleware need the
   same low-level format as core;
 - `getRateLimitedErrorDetails(error)` for typed inspection of stable `rate_limited` errors;
-- `getVerificationResendWindow(...)` for trusted resend countdown and verification cooldown reads.
+- `getVerificationResendWindow(...)` for trusted resend countdown and verification cooldown reads;
+- `cancelVerification(...)` and the flow-aware cancellation helpers for trusted shutdown of pending
+  verification flows.
 
 ## Production Boundaries
 

@@ -8,6 +8,7 @@ export const AuditEventType = {
   SessionCreated: 'auth.session_created',
   SessionRevoked: 'auth.session_revoked',
   VerificationCreated: 'auth.verification_created',
+  VerificationCancelled: 'auth.verification_cancelled',
   VerificationConsumed: 'auth.verification_consumed',
   PolicyDenied: 'auth.policy_denied',
   RateLimited: 'auth.rate_limited',

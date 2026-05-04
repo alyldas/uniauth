@@ -56,6 +56,10 @@ interface ResendOtpBody {
   readonly verificationId: string
 }
 
+interface CancelOtpBody {
+  readonly verificationId: string
+}
+
 interface DeliveredEmail {
   readonly to: string
   readonly subject: string
@@ -138,6 +142,24 @@ async function postOtpResend(
         verificationId: challenge.verificationId,
         delivery: challenge.delivery,
       },
+    }
+  } catch (error) {
+    return toRateLimitedResponse(error)
+  }
+}
+
+async function postOtpCancel(
+  request: JsonRequest<CancelOtpBody>,
+): Promise<JsonResponse<null> | JsonResponse<RateLimitedBody>> {
+  try {
+    await authService.cancelOtpChallenge({
+      verificationId: parseVerificationId(request.body.verificationId),
+      channel: OtpChannel.Email,
+    })
+
+    return {
+      status: 204,
+      body: null,
     }
   } catch (error) {
     return toRateLimitedResponse(error)
@@ -291,6 +313,33 @@ export async function runOtpBackendExample(): Promise<void> {
   const consumedVerification = await getVerificationStatus(
     parseVerificationId(resentChallenge.verificationId),
   )
+  const cancelStart = await postOtpStart({
+    body: {
+      email: 'cancel@example.com',
+    },
+  })
+
+  if (cancelStart.status !== 202) {
+    throw new Error(`Expected OTP start success for cancellation, received ${cancelStart.status}.`)
+  }
+
+  const cancelChallenge = cancelStart.body as {
+    readonly verificationId: string
+    readonly delivery: OtpChannel
+  }
+  const cancelResponse = await postOtpCancel({
+    body: {
+      verificationId: cancelChallenge.verificationId,
+    },
+  })
+
+  if (cancelResponse.status !== 204) {
+    throw new Error(`Expected OTP cancel success, received ${cancelResponse.status}.`)
+  }
+
+  const cancelledVerification = await getVerificationStatus(
+    parseVerificationId(cancelChallenge.verificationId),
+  )
 
   console.log({
     startStatus: startResponse.status,
@@ -304,6 +353,8 @@ export async function runOtpBackendExample(): Promise<void> {
     resentDeliveredText: resentEmail.text,
     finishStatus: finishResponse.status,
     consumedVerification: consumedVerification.body,
+    cancelStatus: cancelResponse.status,
+    cancelledVerification: cancelledVerification.body,
     sessionCookie: finishResponse.cookies?.[0],
     userId: finishResponse.body.userId,
   })

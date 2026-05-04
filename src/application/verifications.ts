@@ -7,6 +7,7 @@ import {
   VerificationStatus,
   type AuthIdentityProvider,
   type ConsumeVerificationInput,
+  type CancelVerificationInput,
   type CreateVerificationInput,
   type CreateVerificationResult,
   type GetVerificationResendWindowInput,
@@ -46,6 +47,18 @@ export async function getVerification(
   }
 
   return verification
+}
+
+export async function cancelVerification(
+  runtime: AuthServiceRuntime,
+  input: CancelVerificationInput,
+): Promise<Verification> {
+  return runtime.transaction.run(async () => {
+    const now = input.now ?? runtime.clock.now()
+    const verification = await getVerification(runtime, input.verificationId)
+
+    return cancelVerificationRecord(runtime, verification, now, input.metadata)
+  })
 }
 
 export async function getVerificationResendWindow(
@@ -206,6 +219,36 @@ export async function expireVerificationForResend(
   return runtime.repos.verificationRepo.update(verificationId, {
     expiresAt: now,
   })
+}
+
+export async function cancelVerificationRecord(
+  runtime: AuthServiceRuntime,
+  verification: Verification,
+  now: Date,
+  metadata?: Record<string, unknown>,
+): Promise<Verification> {
+  assertValidDate(now, 'Verification cancellation time is invalid.')
+
+  if (
+    verification.status === VerificationStatus.Consumed ||
+    verification.expiresAt.getTime() <= now.getTime()
+  ) {
+    return verification
+  }
+
+  const cancelled = await runtime.repos.verificationRepo.update(verification.id, {
+    expiresAt: now,
+  })
+
+  await audit(runtime, AuditEventType.VerificationCancelled, now, {
+    metadata: {
+      verificationId: cancelled.id,
+      purpose: cancelled.purpose,
+      ...(metadata ?? {}),
+    },
+  })
+
+  return cancelled
 }
 
 function resolveVerificationExpiresAt(

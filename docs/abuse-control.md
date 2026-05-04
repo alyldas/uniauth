@@ -1,7 +1,7 @@
-# OTP and Magic-Link Abuse-Control Recipes
+# OTP, Magic-Link, and Verification Cancellation Recipes
 
-Use this document when a trusted backend needs to expose resend cooldown, neutral 429 payloads, or
-polling status for OTP, magic-link, or password-recovery flows.
+Use this document when a trusted backend needs to expose resend cooldown, neutral 429 payloads,
+polling status, or explicit cancellation for OTP, magic-link, or password-recovery flows.
 
 UniAuth still does not own HTTP middleware, client timers, CAPTCHA, Redis counters, or edge
 throttling infrastructure. It gives you the verification lifecycle and rate-limit integration
@@ -16,6 +16,8 @@ Keep all abuse-control reads and writes server-owned:
 
 - browser and mobile clients should never talk directly to repository-backed verification records;
 - resend cooldown state should be read through a trusted backend route;
+- cancellation should happen through a trusted backend route instead of direct client-side storage
+  access;
 - rate-limit errors should be shaped by the server, not by leaking raw `details` blindly.
 
 ## Canonical Rate-Limit Handling
@@ -120,6 +122,43 @@ Recommended semantics:
 - cooldown denial should stay neutral and use the same `rate_limited` shape as other abuse-control
   flows.
 
+## Cancellation Execution
+
+Trusted backends can explicitly terminate the active pending verification:
+
+```ts
+await authService.cancelVerification({
+  verificationId,
+  metadata: { reason: 'user_cancelled' },
+})
+```
+
+For the common local-auth flows, use the narrower helpers when the backend already knows the flow
+type:
+
+```ts
+await authService.cancelOtpChallenge({
+  verificationId,
+  channel: OtpChannel.Email,
+})
+
+await authService.cancelEmailMagicLinkSignIn({
+  verificationId,
+})
+
+await authService.cancelEmailPasswordRecovery({
+  verificationId,
+})
+```
+
+Recommended semantics:
+
+- cancellation should keep the outward HTTP response neutral;
+- cancelled verifications should fall back to the existing expired path for later finish/resend
+  attempts;
+- trusted backends should prefer flow-aware helpers over ad hoc repository checks when the flow type
+  is already known.
+
 ## OTP Start Endpoint
 
 One practical trusted backend pattern:
@@ -167,6 +206,22 @@ async function postOtpResend(verificationId: string) {
     }
   } catch (error) {
     return toRateLimitedResponse(error)
+  }
+}
+```
+
+And one explicit cancellation endpoint can stay equally small:
+
+```ts
+async function postOtpCancel(verificationId: string) {
+  await authService.cancelOtpChallenge({
+    verificationId,
+    channel: OtpChannel.Email,
+  })
+
+  return {
+    status: 204,
+    body: null,
   }
 }
 ```
@@ -225,6 +280,21 @@ async function postMagicLinkResend(verificationId: string) {
 }
 ```
 
+Cancellation can stay just as narrow:
+
+```ts
+async function postMagicLinkCancel(verificationId: string) {
+  await authService.cancelEmailMagicLinkSignIn({
+    verificationId,
+  })
+
+  return {
+    status: 204,
+    body: null,
+  }
+}
+```
+
 ## Recovery Flows
 
 Password-recovery start can reuse the exact same pattern:
@@ -274,6 +344,21 @@ async function postPasswordRecoveryResend(verificationId: string) {
     }
   } catch (error) {
     return toRateLimitedResponse(error)
+  }
+}
+```
+
+And the matching cancellation endpoint:
+
+```ts
+async function postPasswordRecoveryCancel(verificationId: string) {
+  await authService.cancelEmailPasswordRecovery({
+    verificationId,
+  })
+
+  return {
+    status: 204,
+    body: null,
   }
 }
 ```
