@@ -381,9 +381,20 @@ Tracking issues: #244, #245, #246, #247.
 
 Tracking issues: #251, #252, #253, #254.
 
+### v0.38 - Current-Account Action Helpers
+
+- Added token-based current-account write-side helpers for selected-session revoke, sign-in-method
+  unlink, and local password setup or change after transport resolution.
+- Added parity and neutrality coverage for those helpers across in-memory and Postgres-backed
+  service setups, including disabled-account session-token paths.
+- Updated account-security, backend, session-transport, and README recipes so self-service routes
+  stay on the trusted `sessionToken` boundary instead of bouncing back to raw `userId` mutations.
+
+Tracking issues: #258, #259, #260, #261.
+
 ## Next Release
 
-### v0.38 - Backlog To Be Defined
+### v0.39 - Backlog To Be Defined
 
 - The next releasable scope has not been defined yet.
 
