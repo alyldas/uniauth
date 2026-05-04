@@ -18,7 +18,8 @@ Use this document for:
 
 Use [Backend integration recipes](backend-recipes.md) for framework bootstrap and route/controller
 composition. Use [Account security recipes](account-security.md) for device lists, sign-in methods,
-verification inspection, and current-account flows after you already trust the caller.
+verification inspection, audit timelines, and current-account flows after you already trust the
+caller.
 
 ## Browser Cookies
 

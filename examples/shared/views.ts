@@ -1,4 +1,5 @@
 import type {
+  CurrentAccountInspectionSnapshot,
   AccountSecuritySnapshot,
   CurrentAccountSecuritySnapshot,
   VerificationResendWindow,
@@ -51,6 +52,28 @@ export function serializeCurrentAccountSecuritySnapshot(snapshot: CurrentAccount
   return {
     ...serializeAccountSecuritySnapshot(snapshot.account),
     currentSessionId: snapshot.currentSessionId,
+  }
+}
+
+export function serializeCurrentAccountInspectionSnapshot(
+  snapshot: CurrentAccountInspectionSnapshot,
+) {
+  return {
+    ...serializeCurrentAccountSecuritySnapshot(snapshot),
+    auditEvents: snapshot.auditEvents.map((event) => ({
+      id: event.id,
+      type: event.type,
+      occurredAt: event.occurredAt.toISOString(),
+      userId: event.userId ?? null,
+      identityId: event.identityId ?? null,
+      sessionId: event.sessionId ?? null,
+    })),
+    nextAuditCursor: snapshot.nextAuditCursor
+      ? {
+          id: snapshot.nextAuditCursor.id,
+          occurredAt: snapshot.nextAuditCursor.occurredAt.toISOString(),
+        }
+      : null,
   }
 }
 

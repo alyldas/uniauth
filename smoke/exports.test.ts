@@ -86,6 +86,10 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.getCurrentAccountSecuritySnapshot).toBeTypeOf(
       'function',
     )
+    expect(core.DefaultAuthService.prototype.getCurrentAccountInspectionSnapshot).toBeTypeOf(
+      'function',
+    )
+    expect(core.DefaultAuthService.prototype.getCurrentAccountAuditEventPage).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeCurrentSessionByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeOtherSessionsByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getVerification).toBeTypeOf('function')
@@ -94,6 +98,7 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.touchSession).toBeTypeOf('function')
     expect(core.toAccountInspectionSnapshot).toBeTypeOf('function')
     expect(core.toAccountSecuritySnapshot).toBeTypeOf('function')
+    expect(core.toCurrentAccountInspectionSnapshot).toBeTypeOf('function')
     expect(core.toAuditEventView).toBeTypeOf('function')
     expect(core.toAuditEventCursor).toBeTypeOf('function')
     expect(core.toAccountSecurityCredentialView).toBeTypeOf('function')
@@ -175,10 +180,19 @@ describe('package exports', () => {
 
     expect(contractsDeclarations).toContain('AuthServiceInfrastructure')
     expect(viewDeclarations).toContain('export interface CurrentAccountSecuritySnapshot')
+    expect(viewDeclarations).toContain('export interface CurrentAccountInspectionSnapshot')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountSecuritySnapshotInput')
+    expect(flowDeclarations).toContain('export interface GetCurrentAccountInspectionSnapshotInput')
+    expect(flowDeclarations).toContain('export interface GetCurrentAccountAuditEventPageInput')
     expect(flowDeclarations).toContain('export interface RevokeOtherSessionsByTokenResult')
     expect(serviceDeclarations).toContain(
       'getCurrentAccountSecuritySnapshot(input: GetCurrentAccountSecuritySnapshotInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'getCurrentAccountInspectionSnapshot(input: GetCurrentAccountInspectionSnapshotInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'getCurrentAccountAuditEventPage(input: GetCurrentAccountAuditEventPageInput)',
     )
     expect(serviceDeclarations).toContain(
       'revokeOtherSessionsByToken(input: RevokeOtherSessionsByTokenInput)',

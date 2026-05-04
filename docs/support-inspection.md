@@ -8,7 +8,8 @@ fields a support surface is allowed to expose. Keep this recipe server-only and 
 
 Use [Account security recipes](account-security.md) for end-user account settings, revoke flows,
 unlink, and password-management actions. Use this document when a trusted backend operator needs a
-read-only inspection surface.
+read-only inspection surface. Self-service current-account routes should stay on the token-based
+current-account inspection helpers instead of reusing the admin/support aggregate directly.
 
 ## Trusted Boundary
 

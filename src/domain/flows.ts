@@ -107,6 +107,35 @@ export interface GetCurrentAccountSecuritySnapshotInput {
   readonly now?: Date
 }
 
+export interface CurrentAccountAuditWindow {
+  readonly identityId?: AuditEventQuery['identityId']
+  readonly sessionId?: AuditEventQuery['sessionId']
+  readonly type?: AuditEventQuery['type']
+  readonly before?: AuditEventQuery['before']
+  readonly after?: AuditEventQuery['after']
+  readonly limit?: AuditEventQuery['limit']
+}
+
+export interface GetCurrentAccountInspectionSnapshotInput {
+  readonly sessionToken: string
+  readonly touch?: boolean
+  readonly now?: Date
+  readonly auditLimit?: number
+  readonly audit?: CurrentAccountAuditWindow
+}
+
+export interface GetCurrentAccountAuditEventPageInput {
+  readonly sessionToken: string
+  readonly touch?: boolean
+  readonly now?: Date
+  readonly identityId?: AuditEventQuery['identityId']
+  readonly sessionId?: AuditEventQuery['sessionId']
+  readonly type?: AuditEventQuery['type']
+  readonly before?: AuditEventQuery['before']
+  readonly after?: AuditEventQuery['after']
+  readonly limit?: AuditEventQuery['limit']
+}
+
 export interface RevokeCurrentSessionByTokenInput {
   readonly sessionToken: string
   readonly now?: Date

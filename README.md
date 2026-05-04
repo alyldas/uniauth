@@ -48,6 +48,8 @@ license, subscription, private contract, or other written permission.
   screens.
 - Exposes a current-account aggregate helper and token-based self-service session revoke helpers for
   trusted account-security routes after transport resolution.
+- Exposes current-account inspection aggregate and audit-page helpers for self-service security
+  routes that already trust a local session token.
 - Exposes a trusted `getAccountInspectionSnapshot({ userId, audit? })` aggregate read-side
   API for backend support and admin inspection flows.
 - Supports bulk local session revocation for sign-out-all-devices style account-security flows.
@@ -329,6 +331,19 @@ const current = await service.getCurrentAccountSecuritySnapshot({
 })
 ```
 
+When the current account page also needs a bounded self-service audit timeline, prefer the current
+inspection aggregate instead of mixing current-account and admin-oriented helpers:
+
+```ts
+const currentInspection = await service.getCurrentAccountInspectionSnapshot({
+  sessionToken,
+  touch: true,
+  audit: {
+    limit: 20,
+  },
+})
+```
+
 Trusted backend tooling can start from one trusted aggregate inspection helper:
 
 ```ts
@@ -342,7 +357,8 @@ const inspection = await service.getAccountInspectionSnapshot({
 
 If the surrounding tooling truly needs raw audit entities, custom filters, or metadata-aware
 serialization, `getAuditEvents(...)` and `getAuditEventPage(...)` remain available as the narrower
-read-side primitives.
+read-side primitives. Self-service current-account routes that need timeline pagination can stay on
+the trusted token boundary through `getCurrentAccountAuditEventPage(...)`.
 
 Trusted resend and cooldown polling can use one read-side helper per verification:
 

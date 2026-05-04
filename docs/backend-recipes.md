@@ -115,8 +115,8 @@ Express ownership notes:
 - Keep route-neutral errors neutral at the HTTP layer too; do not translate invalid credentials into
   account existence hints.
 - For account-security screens and mutations, use [Account security recipes](account-security.md)
-  and prefer `getCurrentAccountSecuritySnapshot({ sessionToken })` plus the token-based self-service
-  revoke helpers instead of reading adapter internals.
+  and prefer `getCurrentAccountInspectionSnapshot({ sessionToken, audit? })` plus the token-based
+  self-service revoke helpers instead of reading adapter internals.
 
 ## Fastify
 

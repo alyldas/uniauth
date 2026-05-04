@@ -4,6 +4,10 @@ import { getAuditEventPage, getAuditEvents } from './audit-events.js'
 import { getUserIdentities, link, mergeAccounts, unlink } from './accounts.js'
 import { getUserCredentials } from './credentials.js'
 import {
+  getCurrentAccountAuditEventPage,
+  getCurrentAccountInspectionSnapshot,
+} from './current-account-inspection.js'
+import {
   getCurrentAccountSecuritySnapshot,
   revokeCurrentSessionByToken,
   revokeOtherSessionsByToken,
@@ -59,6 +63,7 @@ import type {
   AuditEventQuery,
   AuthResult,
   AuthService,
+  CurrentAccountInspectionSnapshot,
   CurrentAccountSecuritySnapshot,
   CancelEmailMagicLinkSignInInput,
   CancelEmailPasswordRecoveryInput,
@@ -76,6 +81,8 @@ import type {
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
+  GetCurrentAccountAuditEventPageInput,
+  GetCurrentAccountInspectionSnapshotInput,
   GetCurrentAccountSecuritySnapshotInput,
   GetVerificationResendWindowInput,
   LinkInput,
@@ -231,6 +238,18 @@ export class DefaultAuthService implements AuthService {
     input: GetCurrentAccountSecuritySnapshotInput,
   ): Promise<CurrentAccountSecuritySnapshot> {
     return getCurrentAccountSecuritySnapshot(this.runtime, input)
+  }
+
+  async getCurrentAccountInspectionSnapshot(
+    input: GetCurrentAccountInspectionSnapshotInput,
+  ): Promise<CurrentAccountInspectionSnapshot> {
+    return getCurrentAccountInspectionSnapshot(this.runtime, input)
+  }
+
+  async getCurrentAccountAuditEventPage(
+    input: GetCurrentAccountAuditEventPageInput,
+  ): Promise<AuditEventPage> {
+    return getCurrentAccountAuditEventPage(this.runtime, input)
   }
 
   async revokeCurrentSessionByToken(input: RevokeCurrentSessionByTokenInput): Promise<void> {
