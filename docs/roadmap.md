@@ -392,23 +392,30 @@ Tracking issues: #251, #252, #253, #254.
 
 Tracking issues: #258, #259, #260, #261.
 
-## Next Release
-
 ### v0.39 - Current-Account Re-Auth Helpers
 
-- Add trusted current-account OTP re-auth helpers so self-service security routes can bootstrap
+- Added trusted current-account OTP re-auth helpers so self-service security routes can bootstrap
   recent-auth challenges from a local `sessionToken` boundary instead of rebuilding owned-target
   verification flows in application code.
-- Add a current-account password re-auth confirmation helper that proves the current password on
+- Added a current-account password re-auth confirmation helper that proves the current password on
   the trusted session boundary without mutating local credentials or widening neutral failure
   shapes.
-- Add parity and neutrality coverage for current-account re-auth helpers across in-memory and
+- Added parity and neutrality coverage for current-account re-auth helpers across in-memory and
   Postgres-backed service setups, including stale-session, disabled-account, and owned-target edge
   cases.
-- Add canonical backend and account-security recipes for app-owned recent-auth persistence, OTP
+- Added canonical backend and account-security recipes for app-owned recent-auth persistence, OTP
   re-auth challenge routes, and sensitive current-account actions that consume `reAuthenticatedAt`.
 
 Tracking issues: #265, #266, #267, #268.
+
+## Next Release
+
+### v0.40 - Backlog To Be Defined
+
+- Define the next releasable feature set after current-account re-auth helpers.
+- Keep `v0.40` scoped to product-facing additions rather than another maintenance-only batch.
+
+Tracking issues: none yet.
 
 ## Versioning
 
