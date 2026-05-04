@@ -1,17 +1,11 @@
+export { AuthPolicyAction } from '../domain/policy.js'
+import {
+  AuthPolicyAction,
+  type AuthPolicyAction as AuthPolicyActionType,
+} from '../domain/policy.js'
 import type { AuthIdentity, ProviderIdentityAssertion, User, UserId } from '../domain/types.js'
 
 export type MaybePromise<T> = T | Promise<T>
-
-export const AuthPolicyAction = {
-  SignIn: 'signIn',
-  Link: 'link',
-  Unlink: 'unlink',
-  MergeAccounts: 'mergeAccounts',
-  SetPassword: 'setPassword',
-  ChangePassword: 'changePassword',
-} as const
-
-export type AuthPolicyAction = (typeof AuthPolicyAction)[keyof typeof AuthPolicyAction]
 
 export interface AutoLinkContext {
   readonly assertion: ProviderIdentityAssertion
@@ -39,7 +33,7 @@ export interface MergeUsersContext {
 }
 
 export interface ReAuthContext {
-  readonly action: AuthPolicyAction
+  readonly action: AuthPolicyActionType
   readonly userId: UserId
   readonly reAuthenticatedAt?: Date | undefined
   readonly now: Date
@@ -56,12 +50,12 @@ export interface AuthPolicy {
 export interface DefaultAuthPolicyOptions {
   readonly allowAutoLink?: boolean
   readonly allowMergeAccounts?: boolean
-  readonly requireReAuthFor?: readonly AuthPolicyAction[]
+  readonly requireReAuthFor?: readonly AuthPolicyActionType[]
   readonly reAuthMaxAgeSeconds?: number
 }
 
 export function createDefaultAuthPolicy(options: DefaultAuthPolicyOptions = {}): AuthPolicy {
-  const requireReAuthFor = new Set<AuthPolicyAction>(
+  const requireReAuthFor = new Set<AuthPolicyActionType>(
     options.requireReAuthFor ?? [AuthPolicyAction.MergeAccounts],
   )
   const reAuthMaxAgeMs = (options.reAuthMaxAgeSeconds ?? 15 * 60) * 1000

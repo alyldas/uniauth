@@ -90,6 +90,8 @@ describe('package exports', () => {
       'function',
     )
     expect(core.DefaultAuthService.prototype.getCurrentAccountAuditEventPage).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.getCurrentAccountReAuthStatus).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.assertCurrentAccountReAuth).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.startCurrentAccountOtpReAuth).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeCurrentSessionByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeOwnedSessionByToken).toBeTypeOf('function')
@@ -200,6 +202,10 @@ describe('package exports', () => {
     expect(flowDeclarations).toContain('export interface GetCurrentAccountSecuritySnapshotInput')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountInspectionSnapshotInput')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountAuditEventPageInput')
+    expect(flowDeclarations).toContain('export interface GetCurrentAccountReAuthStatusInput')
+    expect(flowDeclarations).toContain('export interface CurrentAccountReAuthStatus')
+    expect(flowDeclarations).toContain('export interface AssertCurrentAccountReAuthInput')
+    expect(flowDeclarations).toContain('export interface CurrentAccountReAuthAssertion')
     expect(flowDeclarations).toContain('export interface StartCurrentAccountOtpReAuthInput')
     expect(flowDeclarations).toContain('export interface UnlinkCurrentIdentityByTokenInput')
     expect(flowDeclarations).toContain('export interface RevokeOwnedSessionByTokenResult')
@@ -224,6 +230,12 @@ describe('package exports', () => {
     )
     expect(serviceDeclarations).toContain(
       'getCurrentAccountAuditEventPage(input: GetCurrentAccountAuditEventPageInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'getCurrentAccountReAuthStatus(input: GetCurrentAccountReAuthStatusInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'assertCurrentAccountReAuth(input: AssertCurrentAccountReAuthInput)',
     )
     expect(serviceDeclarations).toContain(
       'startCurrentAccountOtpReAuth(input: StartCurrentAccountOtpReAuthInput)',

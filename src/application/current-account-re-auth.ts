@@ -7,15 +7,22 @@ import {
   findUsablePasswordIdentity,
   assertPassword,
 } from './passwords/shared.js'
+import { ensureReAuth } from './support.js'
 import type { AuthServiceRuntime } from './runtime.js'
 import { resolveSessionContext } from './session-context.js'
 import type {
+  AssertCurrentAccountReAuthInput,
   AuthIdentity,
   ConfirmCurrentAccountPasswordByTokenInput,
+  CurrentAccountReAuthAssertion,
+  CurrentAccountReAuthStatus,
   CurrentAccountPasswordReAuthConfirmation,
+  GetCurrentAccountReAuthStatusInput,
   OtpChannel as OtpChannelType,
+  SessionId,
   StartCurrentAccountOtpReAuthInput,
   StartOtpChallengeResult,
+  UserId,
 } from '../domain/types.js'
 import { OtpChannel, VerificationPurpose } from '../domain/types.js'
 import { invalidCredentials, invalidInput } from '../errors.js'
@@ -23,16 +30,56 @@ import { invalidCredentials, invalidInput } from '../errors.js'
 const CURRENT_ACCOUNT_RE_AUTH_TARGET_ERROR =
   'Identity cannot be used for current-account OTP re-auth.'
 
+interface ResolvedCurrentAccountActor {
+  readonly now: Date
+  readonly sessionId: SessionId
+  readonly userId: UserId
+}
+
+export async function getCurrentAccountReAuthStatus(
+  runtime: AuthServiceRuntime,
+  input: GetCurrentAccountReAuthStatusInput,
+): Promise<CurrentAccountReAuthStatus> {
+  const actor = await resolveCurrentAccountActor(runtime, input.sessionToken, input.now)
+
+  return {
+    currentSessionId: actor.sessionId,
+    userId: actor.userId,
+    action: input.action,
+    required: await runtime.policy.requiresReAuth({
+      action: input.action,
+      userId: actor.userId,
+      reAuthenticatedAt: input.reAuthenticatedAt,
+      now: actor.now,
+    }),
+    checkedAt: actor.now,
+    ...optionalProp('reAuthenticatedAt', input.reAuthenticatedAt),
+  }
+}
+
+export async function assertCurrentAccountReAuth(
+  runtime: AuthServiceRuntime,
+  input: AssertCurrentAccountReAuthInput,
+): Promise<CurrentAccountReAuthAssertion> {
+  const actor = await resolveCurrentAccountActor(runtime, input.sessionToken, input.now)
+
+  await ensureReAuth(runtime, input.action, actor.userId, input.reAuthenticatedAt, actor.now)
+
+  return {
+    currentSessionId: actor.sessionId,
+    userId: actor.userId,
+    action: input.action,
+    checkedAt: actor.now,
+    ...optionalProp('reAuthenticatedAt', input.reAuthenticatedAt),
+  }
+}
+
 export async function startCurrentAccountOtpReAuth(
   runtime: AuthServiceRuntime,
   input: StartCurrentAccountOtpReAuthInput,
 ): Promise<StartOtpChallengeResult> {
-  const now = input.now ?? runtime.clock.now()
-  const { user } = await resolveSessionContext(runtime, {
-    sessionToken: input.sessionToken,
-    now,
-  })
-  const identities = await listActiveIdentitiesForUser(runtime, user.id)
+  const actor = await resolveCurrentAccountActor(runtime, input.sessionToken, input.now)
+  const identities = await listActiveIdentitiesForUser(runtime, actor.userId)
   const identity = identities.find((candidate) => candidate.id === input.identityId)
 
   if (!identity) {
@@ -47,7 +94,7 @@ export async function startCurrentAccountOtpReAuth(
     target,
     ...optionalProp('secret', input.secret),
     ...optionalProp('ttlSeconds', input.ttlSeconds),
-    now,
+    now: actor.now,
     ...(input.metadata ? { metadata: input.metadata } : {}),
   })
 }
@@ -57,15 +104,11 @@ export async function confirmCurrentAccountPasswordByToken(
   input: ConfirmCurrentAccountPasswordByTokenInput,
 ): Promise<CurrentAccountPasswordReAuthConfirmation> {
   return runtime.transaction.run(async () => {
-    const now = input.now ?? runtime.clock.now()
-    const { user } = await resolveSessionContext(runtime, {
-      sessionToken: input.sessionToken,
-      now,
-    })
+    const actor = await resolveCurrentAccountActor(runtime, input.sessionToken, input.now)
 
     assertPassword(input.currentPassword)
 
-    const credential = await runtime.repos.credentialRepo.findPasswordByUserId(user.id)
+    const credential = await runtime.repos.credentialRepo.findPasswordByUserId(actor.userId)
 
     if (!credential) {
       throw invalidCredentials()
@@ -80,10 +123,28 @@ export async function confirmCurrentAccountPasswordByToken(
     await findUsablePasswordIdentity(runtime, credential, credential.subject)
 
     return {
-      userId: user.id,
-      reAuthenticatedAt: now,
+      userId: actor.userId,
+      reAuthenticatedAt: actor.now,
     }
   })
+}
+
+async function resolveCurrentAccountActor(
+  runtime: AuthServiceRuntime,
+  sessionToken: string,
+  now: Date | undefined,
+): Promise<ResolvedCurrentAccountActor> {
+  const resolvedNow = now ?? runtime.clock.now()
+  const { session, user } = await resolveSessionContext(runtime, {
+    sessionToken,
+    now: resolvedNow,
+  })
+
+  return {
+    now: resolvedNow,
+    sessionId: session.id,
+    userId: user.id,
+  }
 }
 
 function resolveCurrentAccountOtpReAuthTarget(

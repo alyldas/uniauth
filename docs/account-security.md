@@ -305,6 +305,28 @@ const confirmation = await authService.confirmCurrentAccountPasswordByToken({
 request.auth.reAuthenticatedAt = confirmation.reAuthenticatedAt
 ```
 
+If the route only needs to render whether a fresh recent-auth step is still required, keep that
+check on the same trusted current-account boundary too:
+
+```ts
+const status = await authService.getCurrentAccountReAuthStatus({
+  sessionToken: request.auth.sessionToken,
+  action: AuthPolicyAction.ChangePassword,
+  reAuthenticatedAt: request.auth.reAuthenticatedAt,
+})
+```
+
+If the route must actively enforce recent-auth before additional app-owned side effects, prefer the
+assert helper over duplicating policy checks in application code:
+
+```ts
+await authService.assertCurrentAccountReAuth({
+  sessionToken: request.auth.sessionToken,
+  action: AuthPolicyAction.ChangePassword,
+  reAuthenticatedAt: request.auth.reAuthenticatedAt,
+})
+```
+
 UniAuth still does not own:
 
 - your recent-auth cookie or session storage;

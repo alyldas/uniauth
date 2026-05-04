@@ -55,6 +55,17 @@ const verification = await service.finishOtpChallenge({
 The application still owns how `verification.consumedAt` becomes a recent-auth marker in its own
 session, cookie, or server-side request context.
 
+If the UI only needs to know whether a fresh recent-auth step is currently required for a sensitive
+self-service action, prefer the dedicated status helper over hand-rolled freshness math:
+
+```ts
+const status = await service.getCurrentAccountReAuthStatus({
+  sessionToken,
+  action: AuthPolicyAction.ChangePassword,
+  reAuthenticatedAt,
+})
+```
+
 The default OTP generator emits a 6-digit numeric code. Applications can configure a numeric length
 from 4 to 8 digits, provide a custom generator, or pass a per-request `secret`. Per-request secrets
 win over configured generation. Empty generated secrets are rejected before a verification is
@@ -158,6 +169,17 @@ const confirmation = await service.confirmCurrentAccountPasswordByToken({
 
 The application still owns how `confirmation.reAuthenticatedAt` is stored, forwarded, or expired
 before it is passed back into token-based current-account mutation helpers.
+
+If the route must actively enforce the same recent-auth policy before app-owned follow-up work,
+keep that on the trusted token boundary too:
+
+```ts
+await service.assertCurrentAccountReAuth({
+  sessionToken,
+  action: AuthPolicyAction.ChangePassword,
+  reAuthenticatedAt,
+})
+```
 
 ## Neutral Responses
 

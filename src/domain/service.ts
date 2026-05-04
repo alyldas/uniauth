@@ -9,7 +9,9 @@ import type {
 import type { AuditEvent, AuditEventPage, AuditEventQuery } from './audit.js'
 import type {
   AuthResult,
+  AssertCurrentAccountReAuthInput,
   GetCurrentAccountSecuritySnapshotInput,
+  GetCurrentAccountReAuthStatusInput,
   GetCurrentAccountAuditEventPageInput,
   GetCurrentAccountInspectionSnapshotInput,
   ConsumeVerificationInput,
@@ -22,6 +24,8 @@ import type {
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
+  CurrentAccountReAuthAssertion,
+  CurrentAccountReAuthStatus,
   StartCurrentAccountOtpReAuthInput,
   GetVerificationResendWindowInput,
   LinkInput,
@@ -101,6 +105,12 @@ export interface AuthService {
   revokeUserSessions(input: RevokeUserSessionsInput): Promise<RevokeUserSessionsResult>
   resolveSession(input: ResolveSessionInput): Promise<Session>
   resolveSessionContext(input: ResolveSessionContextInput): Promise<ResolvedSessionContext>
+  getCurrentAccountReAuthStatus(
+    input: GetCurrentAccountReAuthStatusInput,
+  ): Promise<CurrentAccountReAuthStatus>
+  assertCurrentAccountReAuth(
+    input: AssertCurrentAccountReAuthInput,
+  ): Promise<CurrentAccountReAuthAssertion>
   getCurrentAccountSecuritySnapshot(
     input: GetCurrentAccountSecuritySnapshotInput,
   ): Promise<CurrentAccountSecuritySnapshot>
