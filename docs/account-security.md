@@ -251,7 +251,7 @@ For sign-in method screens:
    `authService.getAccountSecuritySnapshot(userId)`, depending on whether the route is self-service
    or trusted admin/support;
 2. present provider ids, statuses, email or phone hints, and credential types;
-3. compose mutations through `unlinkCurrentIdentityByToken(...)`,
+3. compose mutations through `linkCurrentIdentityByToken(...)`, `unlinkCurrentIdentityByToken(...)`,
    `setCurrentAccountPasswordByToken(...)`, `changeCurrentAccountPasswordByToken(...)`, or new
    provider link flows.
 
@@ -336,6 +336,62 @@ UniAuth still does not own:
 
 For resend or cancellation after a current-account OTP re-auth challenge has started, keep using
 the shared verification lifecycle helpers on the returned `verificationId`.
+
+### Link A New Sign-In Method
+
+Keep self-service linking on the same trusted `sessionToken` boundary as the rest of the
+current-account write-side surface. The route should still resolve assertion input or provider
+finish payloads in application code, but it should not fall back to raw `userId` orchestration
+once the caller is already authenticated.
+
+For direct assertion linking:
+
+```ts
+const result = await authService.linkCurrentIdentityByToken({
+  sessionToken: request.auth.sessionToken,
+  assertion: {
+    provider: 'github',
+    providerUserId: body.providerUserId,
+    email: body.email,
+    emailVerified: body.emailVerified,
+    displayName: body.displayName,
+  },
+  reAuthenticatedAt: request.auth.reAuthenticatedAt,
+})
+
+return {
+  identityId: result.identity.id,
+  linked: result.linked,
+}
+```
+
+For provider-finish flows such as OAuth/OIDC or messenger adapters, keep the same trusted boundary
+and pass the finish payload through the helper instead of resolving the current account first and
+then calling raw `link(...)`:
+
+```ts
+const result = await authService.linkCurrentIdentityByToken({
+  sessionToken: request.auth.sessionToken,
+  provider: 'oidc',
+  finishInput: {
+    payload: request.body,
+  },
+  reAuthenticatedAt: request.auth.reAuthenticatedAt,
+})
+
+return {
+  identityId: result.identity.id,
+  linked: result.linked,
+}
+```
+
+This keeps the same core semantics as `link(...)`:
+
+- exact already-linked identities still win before policy or looser matching logic;
+- same-user relinks stay idempotent through `linked: false`;
+- stale or disabled current-account state collapses to the neutral `SessionNotFound` path on the
+  trusted session boundary;
+- policy-denied and already-linked failures still use the existing public error codes.
 
 ### Unlink One Sign-In Method
 
