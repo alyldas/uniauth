@@ -32,7 +32,7 @@ import {
   sealSessionCookieValue,
   unsealSessionCookieValue,
 } from '../shared/session-cookie.js'
-import { serializeCurrentAccountSecuritySnapshot } from '../shared/views.js'
+import { serializeCurrentAccountInspectionSnapshot } from '../shared/views.js'
 
 interface ExpressAuthExample {
   readonly app: Express
@@ -182,11 +182,12 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
           return
         }
 
-        const snapshot = await authService.getCurrentAccountSecuritySnapshot({
+        const inspection = await authService.getCurrentAccountInspectionSnapshot({
           sessionToken: auth.sessionToken,
+          audit: { limit: 10 },
         })
 
-        response.status(200).json(serializeCurrentAccountSecuritySnapshot(snapshot))
+        response.status(200).json(serializeCurrentAccountInspectionSnapshot(inspection))
       } catch (error) {
         next(error)
       }

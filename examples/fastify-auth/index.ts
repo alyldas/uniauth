@@ -29,7 +29,7 @@ import {
   sealSessionCookieValue,
   unsealSessionCookieValue,
 } from '../shared/session-cookie.js'
-import { serializeCurrentAccountSecuritySnapshot } from '../shared/views.js'
+import { serializeCurrentAccountInspectionSnapshot } from '../shared/views.js'
 
 interface FastifyAuthExample {
   readonly app: FastifyInstance
@@ -179,11 +179,12 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
         return reply.status(401).send({ error: AUTHENTICATION_REQUIRED_MESSAGE })
       }
 
-      const snapshot = await authService.getCurrentAccountSecuritySnapshot({
+      const inspection = await authService.getCurrentAccountInspectionSnapshot({
         sessionToken: auth.sessionToken,
+        audit: { limit: 10 },
       })
 
-      return reply.status(200).send(serializeCurrentAccountSecuritySnapshot(snapshot))
+      return reply.status(200).send(serializeCurrentAccountInspectionSnapshot(inspection))
     },
   )
 

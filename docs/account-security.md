@@ -29,9 +29,12 @@ When the caller is already authenticated by a trusted local session token, prefe
 helper instead of manually composing `resolveSessionContext(...)` with a second user-scoped read:
 
 ```ts
-const current = await authService.getCurrentAccountSecuritySnapshot({
+const current = await authService.getCurrentAccountInspectionSnapshot({
   sessionToken,
   touch: true,
+  audit: {
+    limit: 20,
+  },
 })
 ```
 
@@ -40,9 +43,12 @@ const current = await authService.getCurrentAccountSecuritySnapshot({
 The minimal current-account server-side composition usually looks like this:
 
 ```ts
-const current = await authService.getCurrentAccountSecuritySnapshot({
+const current = await authService.getCurrentAccountInspectionSnapshot({
   sessionToken,
   touch: true,
+  audit: {
+    limit: 20,
+  },
 })
 ```
 
@@ -80,6 +86,12 @@ return {
     lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
     revokedAt: session.revokedAt?.toISOString() ?? null,
   })),
+  auditEvents: current.auditEvents.map((event) => ({
+    id: event.id,
+    type: event.type,
+    occurredAt: event.occurredAt.toISOString(),
+  })),
+  nextAuditCursor: current.nextAuditCursor ?? null,
 }
 ```
 
@@ -90,6 +102,15 @@ Do not serialize:
 - `Verification.secretHash`
 
 ## Security Timeline
+
+For self-service security timelines backed by a trusted local session token:
+
+```ts
+const page = await authService.getCurrentAccountAuditEventPage({
+  sessionToken,
+  limit: 20,
+})
+```
 
 For trusted backend security timelines or support inspection:
 
@@ -105,8 +126,24 @@ const events = page.events
 The service returns local `AuditEvent` records newest-first. Keep outward serialization
 application-owned and expose only the fields your support or admin surface actually needs.
 
-For continuation-based trusted pagination, keep the cursor application-owned and derive it from the
-last event you already returned:
+For continuation-based current-account pagination, keep the cursor application-owned and derive it
+from the last event you already returned:
+
+```ts
+const firstPage = await authService.getCurrentAccountAuditEventPage({
+  sessionToken,
+  limit: 20,
+})
+
+const nextPage = await authService.getCurrentAccountAuditEventPage({
+  sessionToken,
+  before: firstPage.nextCursor,
+  limit: 20,
+})
+```
+
+Trusted backend or support inspection can use the same pagination semantics through the user-scoped
+helper:
 
 ```ts
 const firstPage = await authService.getAuditEventPage({
@@ -214,7 +251,7 @@ generic neutral response. UniAuth only enforces local session state.
 
 For sign-in method screens:
 
-1. load the aggregate view through `authService.getCurrentAccountSecuritySnapshot(...)` or
+1. load the aggregate view through `authService.getCurrentAccountInspectionSnapshot(...)` or
    `authService.getAccountSecuritySnapshot(userId)`, depending on whether the route is self-service
    or trusted admin/support;
 2. present provider ids, statuses, email or phone hints, and credential types;
@@ -233,7 +270,7 @@ Resolve the current account snapshot first so the application knows which method
 then unlink by `identityId`:
 
 ```ts
-const current = await authService.getCurrentAccountSecuritySnapshot({
+const current = await authService.getCurrentAccountInspectionSnapshot({
   sessionToken: request.auth.sessionToken,
 })
 const targetIdentity = current.account.identities.find(

@@ -2,6 +2,7 @@ import type { AuthIdentity, Credential, Session, User, Verification } from './en
 import type {
   AccountInspectionSnapshot,
   AccountSecuritySnapshot,
+  CurrentAccountInspectionSnapshot,
   CurrentAccountSecuritySnapshot,
   VerificationResendWindow,
 } from './views.js'
@@ -9,6 +10,8 @@ import type { AuditEvent, AuditEventPage, AuditEventQuery } from './audit.js'
 import type {
   AuthResult,
   GetCurrentAccountSecuritySnapshotInput,
+  GetCurrentAccountAuditEventPageInput,
+  GetCurrentAccountInspectionSnapshotInput,
   ConsumeVerificationInput,
   CancelOtpChallengeInput,
   CancelVerificationInput,
@@ -90,6 +93,12 @@ export interface AuthService {
   getCurrentAccountSecuritySnapshot(
     input: GetCurrentAccountSecuritySnapshotInput,
   ): Promise<CurrentAccountSecuritySnapshot>
+  getCurrentAccountInspectionSnapshot(
+    input: GetCurrentAccountInspectionSnapshotInput,
+  ): Promise<CurrentAccountInspectionSnapshot>
+  getCurrentAccountAuditEventPage(
+    input: GetCurrentAccountAuditEventPageInput,
+  ): Promise<AuditEventPage>
   revokeCurrentSessionByToken(input: RevokeCurrentSessionByTokenInput): Promise<void>
   revokeOtherSessionsByToken(
     input: RevokeOtherSessionsByTokenInput,

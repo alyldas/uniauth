@@ -367,9 +367,21 @@ Tracking issues: #244, #245, #246, #247.
 
 ## Next Release
 
-### v0.37 - Backlog To Be Defined
+### v0.37 - Current-Account Inspection Helpers
 
-- The next releasable scope has not been defined yet.
+- Add `getCurrentAccountInspectionSnapshot({ sessionToken, touch?, now?, audit? })` so self-service
+  security routes can load current-account snapshot state and a bounded audit window through one
+  trusted local-session helper.
+- Add `getCurrentAccountAuditEventPage({ sessionToken, touch?, now?, ...filters })` so current
+  account security timelines can paginate through the same neutral trusted-session boundary without
+  re-resolving ownership in each route.
+- Add parity coverage for current-account aggregate inspection and page helpers across in-memory and
+  Postgres-backed service setups, including stale-session neutrality and current-session markers.
+- Update account-security, session-transport, backend, and architecture docs so self-service
+  security routes use the current-account inspection layer instead of mixing admin inspection with
+  manual session resolution.
+
+Tracking issues: #251, #252, #253, #254.
 
 ## Versioning
 

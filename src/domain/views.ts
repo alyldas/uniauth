@@ -56,6 +56,11 @@ export interface CurrentAccountSecuritySnapshot {
   readonly currentSessionId: Session['id']
 }
 
+export interface CurrentAccountInspectionSnapshot extends CurrentAccountSecuritySnapshot {
+  readonly auditEvents: readonly AuditEventView[]
+  readonly nextAuditCursor?: AuditEventCursor
+}
+
 export interface AuditEventView {
   readonly id: AuditEvent['id']
   readonly type: AuditEvent['type']
@@ -172,6 +177,20 @@ export function toAccountInspectionSnapshot(input: {
 }): AccountInspectionSnapshot {
   return {
     account: input.account,
+    auditEvents: input.auditEvents.map((event) => toAuditEventView(event)),
+    ...(input.nextAuditCursor ? { nextAuditCursor: input.nextAuditCursor } : {}),
+  }
+}
+
+export function toCurrentAccountInspectionSnapshot(input: {
+  readonly account: AccountSecuritySnapshot
+  readonly currentSessionId: Session['id']
+  readonly auditEvents: readonly AuditEvent[]
+  readonly nextAuditCursor?: AuditEventCursor
+}): CurrentAccountInspectionSnapshot {
+  return {
+    account: input.account,
+    currentSessionId: input.currentSessionId,
     auditEvents: input.auditEvents.map((event) => toAuditEventView(event)),
     ...(input.nextAuditCursor ? { nextAuditCursor: input.nextAuditCursor } : {}),
   }

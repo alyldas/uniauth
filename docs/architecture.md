@@ -34,6 +34,8 @@ identities, and email/phone are optional identity attributes.
 - `resolveSession`
 - `resolveSessionContext`
 - `getCurrentAccountSecuritySnapshot`
+- `getCurrentAccountInspectionSnapshot`
+- `getCurrentAccountAuditEventPage`
 - `revokeCurrentSessionByToken`
 - `revokeOtherSessionsByToken`
 - `touchSession`
@@ -70,6 +72,9 @@ Current-account security routes can also stay on trusted token-based helpers wit
 that flow on every backend. Core can now resolve a trusted local `sessionToken`, load the current
 account-security aggregate, or revoke the current/other local sessions through one narrow helper
 layer while cookie clearing, header parsing, and outward payload shaping remain application-owned.
+That same trusted boundary now also covers current-account inspection snapshots and current-account
+audit page reads, so self-service security routes do not have to mix admin inspection helpers with
+manual session ownership resolution.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful
