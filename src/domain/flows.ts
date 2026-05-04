@@ -165,6 +165,22 @@ export interface StartCurrentAccountOtpReAuthInput {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface ResendCurrentAccountOtpReAuthInput {
+  readonly sessionToken: string
+  readonly verificationId: VerificationId
+  readonly secret?: string
+  readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface CancelCurrentAccountOtpReAuthInput {
+  readonly sessionToken: string
+  readonly verificationId: VerificationId
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface GetCurrentAccountReAuthStatusInput {
   readonly sessionToken: string
   readonly action: AuthPolicyAction

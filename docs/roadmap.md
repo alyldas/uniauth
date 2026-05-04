@@ -440,12 +440,17 @@ Tracking issues: #280, #281, #282, #283.
 
 ## Next Release
 
-### v0.42 - Backlog To Be Defined
+### v0.42 - Current-Account OTP Re-Auth Challenge Management
 
-- Define the next releasable feature set after current-account identity linking.
-- Keep `v0.42` scoped to product-facing additions rather than another maintenance-only batch.
+- Keep current-account recent-auth flows on the same trusted `sessionToken` boundary after the
+  challenge has started, so self-service routes do not fall back to generic verification ownership
+  orchestration for resend or cancellation.
+- Add parity and neutrality coverage for resend and cancellation across in-memory and Postgres
+  stores, including stale-session and foreign-verification paths.
+- Document canonical current-account OTP re-auth management routes alongside the existing account
+  security and local-auth recipes.
 
-Tracking issues: none yet.
+Tracking issues: #287, #288, #289, #290.
 
 ## Versioning
 

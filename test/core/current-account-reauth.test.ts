@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   AuditEventType,
   AuthPolicyAction,
+  DefaultAuthService,
   OtpChannel,
   UniAuthErrorCode,
   VerificationPurpose,
@@ -110,7 +111,7 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
       now: addSeconds(now, 5),
     })
 
-    await service.startCurrentAccountOtpReAuth({
+    const challenge = await service.startCurrentAccountOtpReAuth({
       sessionToken: alice.sessionToken,
       identityId: phoneIdentity.identity.id,
       channel: OtpChannel.Phone,
@@ -121,6 +122,24 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
     expect(smsSender.listMessages()[0]).toMatchObject({
       to: '+15550000001',
       text: 'Your sign-in code is 222222.',
+    })
+
+    const resent = await service.resendCurrentAccountOtpReAuth({
+      sessionToken: alice.sessionToken,
+      verificationId: challenge.verificationId,
+      secret: '222223',
+      now: addSeconds(now, 9),
+    })
+
+    expect(smsSender.listMessages()[1]).toMatchObject({
+      to: '+15550000001',
+      text: 'Your sign-in code is 222223.',
+    })
+
+    await service.cancelCurrentAccountOtpReAuth({
+      sessionToken: alice.sessionToken,
+      verificationId: resent.verificationId,
+      now: addSeconds(now, 10),
     })
 
     await expect(
@@ -144,6 +163,208 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.InvalidInput,
     })
+  })
+
+  it('resends and cancels current-account OTP re-auth on the trusted session boundary', async () => {
+    const { service, emailSender, store } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-reauth-resend-owner',
+        email: 'current-account-reauth-resend@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+
+    const challenge = await service.startCurrentAccountOtpReAuth({
+      sessionToken: signedIn.sessionToken,
+      identityId: signedIn.identity.id,
+      channel: OtpChannel.Email,
+      secret: '111111',
+      now: addSeconds(now, 10),
+      metadata: { source: 'current-account-reauth-start' },
+    })
+
+    const resent = await service.resendCurrentAccountOtpReAuth({
+      sessionToken: signedIn.sessionToken,
+      verificationId: challenge.verificationId,
+      secret: '222222',
+      ttlSeconds: 120,
+      now: addSeconds(now, 20),
+      metadata: { source: 'current-account-reauth-resend' },
+    })
+
+    expect(resent.verificationId).not.toBe(challenge.verificationId)
+    expect(emailSender.listMessages()[1]).toMatchObject({
+      to: 'current-account-reauth-resend@example.com',
+      text: 'Your sign-in code is 222222.',
+      metadata: {
+        verificationId: resent.verificationId,
+        purpose: VerificationPurpose.ReAuth,
+        delivery: OtpChannel.Email,
+      },
+    })
+    expect(store.listVerifications()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: challenge.verificationId,
+          expiresAt: addSeconds(now, 20),
+        }),
+        expect.objectContaining({
+          id: resent.verificationId,
+          purpose: VerificationPurpose.ReAuth,
+          target: 'current-account-reauth-resend@example.com',
+          metadata: {
+            source: 'current-account-reauth-resend',
+          },
+        }),
+      ]),
+    )
+
+    const cancelled = await service.cancelCurrentAccountOtpReAuth({
+      sessionToken: signedIn.sessionToken,
+      verificationId: resent.verificationId,
+      now: addSeconds(now, 21),
+      metadata: { source: 'current-account-reauth-cancel' },
+    })
+
+    expect(cancelled).toMatchObject({
+      id: resent.verificationId,
+      expiresAt: addSeconds(now, 21),
+    })
+    expect(store.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.VerificationCancelled,
+          metadata: {
+            verificationId: resent.verificationId,
+            purpose: VerificationPurpose.ReAuth,
+            source: 'current-account-reauth-cancel',
+          },
+        }),
+      ]),
+    )
+
+    await expect(
+      service.finishOtpChallenge({
+        verificationId: resent.verificationId,
+        secret: '222222',
+        purpose: VerificationPurpose.ReAuth,
+        channel: OtpChannel.Email,
+        now: addSeconds(now, 22),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationExpired,
+    })
+  })
+
+  it('keeps current-account OTP re-auth resend and cancellation neutral for foreign or non-re-auth challenges', async () => {
+    const { service } = createInMemoryAuthKit()
+    const alice = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-reauth-neutral-owner',
+        email: 'current-account-reauth-neutral-owner@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const bob = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-reauth-neutral-foreign',
+        email: 'current-account-reauth-neutral-foreign@example.com',
+        emailVerified: true,
+      }),
+      now: addSeconds(now, 1),
+    })
+
+    const ownedChallenge = await service.startCurrentAccountOtpReAuth({
+      sessionToken: alice.sessionToken,
+      identityId: alice.identity.id,
+      channel: OtpChannel.Email,
+      secret: '333333',
+      now: addSeconds(now, 10),
+    })
+    const signInChallenge = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: 'current-account-reauth-neutral-owner@example.com',
+      secret: '444444',
+      now: addSeconds(now, 11),
+    })
+
+    await expect(
+      service.resendCurrentAccountOtpReAuth({
+        sessionToken: bob.sessionToken,
+        verificationId: ownedChallenge.verificationId,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
+    })
+
+    await expect(
+      service.cancelCurrentAccountOtpReAuth({
+        sessionToken: alice.sessionToken,
+        verificationId: signInChallenge.verificationId,
+        now: addSeconds(now, 21),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
+    })
+  })
+
+  it('rethrows unexpected verification lookup failures from current-account OTP re-auth management helpers', async () => {
+    const {
+      service: setupService,
+      store,
+      emailSender,
+      smsSender,
+      rateLimiter,
+      passwordHasher,
+    } = createInMemoryAuthKit()
+    const signedIn = await setupService.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-reauth-verification-lookup-failure',
+        email: 'current-account-reauth-verification-lookup-failure@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const challenge = await setupService.startCurrentAccountOtpReAuth({
+      sessionToken: signedIn.sessionToken,
+      identityId: signedIn.identity.id,
+      channel: OtpChannel.Email,
+      secret: '777777',
+      now: addSeconds(now, 5),
+    })
+    const lookupFailure = new Error('verification lookup failed')
+    const service = new DefaultAuthService({
+      repos: {
+        userRepo: store.userRepo,
+        identityRepo: store.identityRepo,
+        credentialRepo: store.credentialRepo,
+        verificationRepo: {
+          ...store.verificationRepo,
+          findById: async () => {
+            throw lookupFailure
+          },
+        },
+        sessionRepo: store.sessionRepo,
+        auditLogRepo: store.auditLogRepo,
+      },
+      emailSender,
+      smsSender,
+      rateLimiter,
+      passwordHasher,
+    })
+
+    await expect(
+      service.resendCurrentAccountOtpReAuth({
+        sessionToken: signedIn.sessionToken,
+        verificationId: challenge.verificationId,
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toBe(lookupFailure)
   })
 
   it('confirms the current account password on the trusted session boundary without writing audit noise', async () => {
@@ -369,6 +590,13 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
       }),
       now,
     })
+    const challenge = await service.startCurrentAccountOtpReAuth({
+      sessionToken: signedIn.sessionToken,
+      identityId: signedIn.identity.id,
+      channel: OtpChannel.Email,
+      secret: '555555',
+      now: addSeconds(now, 5),
+    })
 
     await store.userRepo.update(signedIn.user.id, {
       disabledAt: addSeconds(now, 10),
@@ -379,6 +607,26 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
         sessionToken: signedIn.sessionToken,
         identityId: signedIn.identity.id,
         channel: OtpChannel.Email,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+
+    await expect(
+      service.resendCurrentAccountOtpReAuth({
+        sessionToken: signedIn.sessionToken,
+        verificationId: challenge.verificationId,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+
+    await expect(
+      service.cancelCurrentAccountOtpReAuth({
+        sessionToken: signedIn.sessionToken,
+        verificationId: challenge.verificationId,
         now: addSeconds(now, 20),
       }),
     ).rejects.toMatchObject({
@@ -443,6 +691,22 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
       to: 'current-account-reauth-no-now@example.com',
       text: 'Your sign-in code is 333333.',
     })
+
+    const resent = await service.resendCurrentAccountOtpReAuth({
+      sessionToken: signedIn.sessionToken,
+      verificationId: challenge.verificationId,
+      secret: '444444',
+    })
+    const resentVerification = await service.getVerification(resent.verificationId)
+
+    expect(resentVerification.createdAt).toEqual(runtimeNow)
+
+    const cancelled = await service.cancelCurrentAccountOtpReAuth({
+      sessionToken: signedIn.sessionToken,
+      verificationId: resent.verificationId,
+    })
+
+    expect(cancelled.expiresAt).toEqual(runtimeNow)
 
     await service.setCurrentAccountPasswordByToken({
       sessionToken: signedIn.sessionToken,

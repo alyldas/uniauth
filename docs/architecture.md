@@ -88,7 +88,9 @@ stay on the same trusted boundary too: applications can start current-account OT
 identity or confirm the current password from `sessionToken`, then persist the resulting
 `reAuthenticatedAt` marker in app-owned session state. The same layer can now also answer or
 enforce whether recent auth is currently required for a specific sensitive current-account action
-before application-owned side effects continue.
+before application-owned side effects continue. Resend and cancellation of those current-account
+OTP re-auth challenges can stay on that trusted token boundary as well instead of dropping back to
+generic verification ownership checks in route code.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful

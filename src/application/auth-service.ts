@@ -21,8 +21,10 @@ import {
 } from './current-account-actions.js'
 import {
   assertCurrentAccountReAuth,
+  cancelCurrentAccountOtpReAuth,
   getCurrentAccountReAuthStatus,
   confirmCurrentAccountPasswordByToken,
+  resendCurrentAccountOtpReAuth,
   startCurrentAccountOtpReAuth,
 } from './current-account-re-auth.js'
 import {
@@ -100,6 +102,7 @@ import type {
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
+  CancelCurrentAccountOtpReAuthInput,
   GetCurrentAccountAuditEventPageInput,
   GetCurrentAccountInspectionSnapshotInput,
   GetCurrentAccountReAuthStatusInput,
@@ -117,6 +120,7 @@ import type {
   RevokeOtherSessionsByTokenResult,
   RevokeUserSessionsInput,
   RevokeUserSessionsResult,
+  ResendCurrentAccountOtpReAuthInput,
   ResendOtpChallengeInput,
   ResolveSessionContextInput,
   ResolveSessionInput,
@@ -170,6 +174,18 @@ export class DefaultAuthService implements AuthService {
     input: StartCurrentAccountOtpReAuthInput,
   ): Promise<StartOtpChallengeResult> {
     return startCurrentAccountOtpReAuth(this.runtime, input)
+  }
+
+  async resendCurrentAccountOtpReAuth(
+    input: ResendCurrentAccountOtpReAuthInput,
+  ): Promise<StartOtpChallengeResult> {
+    return resendCurrentAccountOtpReAuth(this.runtime, input)
+  }
+
+  async cancelCurrentAccountOtpReAuth(
+    input: CancelCurrentAccountOtpReAuthInput,
+  ): Promise<Verification> {
+    return cancelCurrentAccountOtpReAuth(this.runtime, input)
   }
 
   async resendOtpChallenge(input: ResendOtpChallengeInput): Promise<StartOtpChallengeResult> {
