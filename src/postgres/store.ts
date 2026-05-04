@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
-import type { AuthServiceRepositories, UnitOfWork } from '../ports.js'
+import type { AuthServiceRepositories, UnitOfWork } from '../contracts.js'
 import { createAuditLogRepo } from './store/audit.js'
 import { createCredentialRepo } from './store/credentials.js'
 import { createIdentityRepo } from './store/identities.js'

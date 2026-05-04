@@ -16,7 +16,7 @@ import {
   type VerificationResendWindow,
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput, rateLimited } from '../errors.js'
-import type { RateLimitAction } from '../ports.js'
+import type { RateLimitAction } from '../contracts.js'
 import { generateSecret } from '../utils/secrets.js'
 import { addSeconds, assertValidDate } from '../utils/time.js'
 

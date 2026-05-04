@@ -46,6 +46,10 @@
       "types": "./dist/bridges.d.ts",
       "import": "./dist/bridges/index.js"
     },
+    "./contracts": {
+      "types": "./dist/contracts.d.ts",
+      "import": "./dist/contracts/index.js"
+    },
     "./postgres": {
       "types": "./dist/postgres.d.ts",
       "import": "./dist/postgres/index.js"

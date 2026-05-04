@@ -1,6 +1,6 @@
 import type { FinishInput } from '../../domain/types.js'
+import type { AuthProvider } from '../../contracts.js'
 import { invalidInput } from '../../errors.js'
-import type { AuthProvider } from '../../ports.js'
 import { optionalProp } from '../../utils/optional.js'
 import { mapOAuthOidcProfileToAssertion } from './profile.js'
 import { isRecord, readFinishPayload, readString, requireNonBlankString } from './support.js'

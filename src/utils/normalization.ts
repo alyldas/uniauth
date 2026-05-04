@@ -1,21 +1,10 @@
-export interface AuthNormalizer {
-  normalizeEmail(email: string): string
-  normalizePhone(phone: string): string
-  normalizeTarget(target: string): string
-}
-
-export type AuthValueNormalizer = (value: string) => string
-
-export type AuthTargetNormalizer = (
-  target: string,
-  helpers: Pick<AuthNormalizer, 'normalizeEmail' | 'normalizePhone'>,
-) => string
-
-export interface CreateAuthNormalizerOptions {
-  readonly normalizeEmail?: AuthValueNormalizer
-  readonly normalizePhone?: AuthValueNormalizer
-  readonly normalizeTarget?: AuthTargetNormalizer
-}
+import type { AuthNormalizer, CreateAuthNormalizerOptions } from '../contracts.js'
+export type {
+  AuthNormalizer,
+  AuthTargetNormalizer,
+  AuthValueNormalizer,
+  CreateAuthNormalizerOptions,
+} from '../contracts.js'
 
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()

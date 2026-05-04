@@ -1,5 +1,5 @@
 import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
-import type { SessionRepo } from '../../ports.js'
+import type { SessionRepo } from '../../contracts.js'
 import {
   buildUpdateQuery,
   mapSessionRow,

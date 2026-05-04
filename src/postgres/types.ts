@@ -1,4 +1,4 @@
-import type { AuthServiceRepositories, UnitOfWork } from '../ports.js'
+import type { AuthServiceRepositories, UnitOfWork } from '../contracts.js'
 
 export interface PostgresQueryResult<Row extends object = Record<string, unknown>> {
   readonly rows: readonly Row[]

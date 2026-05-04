@@ -30,7 +30,8 @@ import {
   VerificationPurpose,
 } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
-import { RateLimitAction, rateLimitKey, type OtpSecretGeneratorInput } from '../ports.js'
+import type { OtpSecretGeneratorInput } from '../contracts.js'
+import { RateLimitAction, rateLimitKey } from '../ports.js'
 import { generateOtpSecret } from '../utils/secrets.js'
 
 const DEFAULT_OTP_SECRET_LENGTH = 6

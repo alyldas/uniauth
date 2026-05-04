@@ -34,14 +34,7 @@ import type {
   TouchSessionInput,
   UnlinkInput,
 } from './flows.js'
-import type {
-  AuditEventId,
-  CredentialId,
-  IdentityId,
-  SessionId,
-  UserId,
-  VerificationId,
-} from './ids.js'
+import type { SessionId, UserId, VerificationId } from './ids.js'
 import type {
   ChangePasswordInput,
   CancelEmailMagicLinkSignInInput,
@@ -57,19 +50,7 @@ import type {
   StartEmailPasswordRecoveryInput,
   StartEmailPasswordRecoveryResult,
 } from './local-auth.js'
-
-export interface Clock {
-  now(): Date
-}
-
-export interface IdGenerator {
-  userId(): UserId
-  identityId(): IdentityId
-  credentialId(): CredentialId
-  verificationId(): VerificationId
-  sessionId(): SessionId
-  auditEventId(): AuditEventId
-}
+export type { Clock, IdGenerator } from '../contracts.js'
 
 export interface AuthService {
   signIn(input: SignInInput): Promise<AuthResult>

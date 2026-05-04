@@ -11,7 +11,7 @@ import type {
 } from '../domain/types.js'
 import { AuditEventType, AuthIdentityStatus } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, rateLimited } from '../errors.js'
-import type { RateLimitAttempt } from '../ports.js'
+import type { RateLimitAttempt } from '../contracts.js'
 
 const PolicyDenialReason = {
   ReAuthRequired: 're-auth-required',

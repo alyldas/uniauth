@@ -8,6 +8,8 @@ import {
   type ScryptOptions,
 } from 'node:crypto'
 import { promisify } from 'node:util'
+import type { ScryptSecretHasherOptions, SecretHasher } from '../contracts.js'
+export type { ScryptSecretHasherOptions, SecretHasher } from '../contracts.js'
 
 const SECRET_HASH_PREFIX = 'sha256:'
 const HMAC_SECRET_HASH_PREFIX = 'hmac-sha256:'
@@ -27,20 +29,6 @@ const scryptAsync = promisify(
     callback: (error: Error | null, derivedKey: Buffer) => void,
   ) => void,
 )
-
-export interface SecretHasher {
-  hash(secret: string): string | Promise<string>
-  verify(secret: string, secretHash: string): boolean | Promise<boolean>
-}
-
-export interface ScryptSecretHasherOptions {
-  readonly cost?: number
-  readonly blockSize?: number
-  readonly parallelization?: number
-  readonly keyLength?: number
-  readonly saltByteLength?: number
-  readonly maxmem?: number
-}
 
 export function generateSecret(byteLength = 32): string {
   return randomBytes(byteLength).toString('base64url')
