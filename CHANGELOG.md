@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.0](https://github.com/alyldas/uniauth/compare/v0.36.0...v0.37.0) (2026-05-04)
+
+
+### Features
+
+* add current-account inspection helpers ([832875d](https://github.com/alyldas/uniauth/commit/832875d721abf0c0b5ea43970af37c783e8e4739))
+
 ## [0.36.0](https://github.com/alyldas/uniauth/compare/v0.35.0...v0.36.0) (2026-05-04)
 
 
