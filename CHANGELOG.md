@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.0](https://github.com/alyldas/uniauth/compare/v0.34.0...v0.35.0) (2026-05-04)
+
+
+### Features
+
+* add provider family subpath exports ([b6aacb7](https://github.com/alyldas/uniauth/commit/b6aacb7af7ffc30529bf767f3d38237559f80df0))
+
 ## [0.34.0](https://github.com/alyldas/uniauth/compare/v0.33.0...v0.34.0) (2026-05-04)
 
 
