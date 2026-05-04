@@ -25,7 +25,8 @@ import {
   signInWithPassword,
   startEmailPasswordRecovery,
 } from './passwords.js'
-import { type AuthServiceRuntime, createAuthServiceRuntime } from './runtime.js'
+import { createAuthServiceRuntime, type DefaultAuthServiceOptions } from './runtime-defaults.js'
+import type { AuthServiceRuntime } from './runtime.js'
 import { resolveSessionContext } from './session-context.js'
 import {
   createSession,
@@ -44,7 +45,6 @@ import {
   getVerification,
   getVerificationResendWindow,
 } from './verifications.js'
-import type { AuthPolicy } from './policy.js'
 import type {
   AuthIdentity,
   AccountInspectionSnapshot,
@@ -102,26 +102,7 @@ import type {
   VerificationResendWindow,
   VerificationId,
 } from '../domain/types.js'
-import type {
-  AuthServiceInfrastructure,
-  AuthServiceRepositories,
-  Clock,
-  IdGenerator,
-  ProviderRegistry,
-  UnitOfWork,
-} from '../contracts.js'
-
-export interface DefaultAuthServiceOptions extends AuthServiceInfrastructure {
-  readonly repos: AuthServiceRepositories
-  readonly policy?: AuthPolicy
-  readonly providerRegistry?: ProviderRegistry | undefined
-  readonly transaction?: UnitOfWork
-  readonly idGenerator?: IdGenerator
-  readonly clock?: Clock
-  readonly sessionTtlSeconds?: number
-  readonly verificationTtlSeconds?: number
-  readonly verificationResendCooldownSeconds?: number
-}
+export type { DefaultAuthServiceOptions } from './runtime-defaults.js'
 
 export class DefaultAuthService implements AuthService {
   private readonly runtime: AuthServiceRuntime
