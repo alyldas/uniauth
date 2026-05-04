@@ -423,12 +423,27 @@ Tracking issues: #265, #266, #267, #268.
 
 Tracking issues: #273, #274, #275, #276.
 
+### v0.41 - Current-Account Identity Linking
+
+- Added a trusted `linkCurrentIdentityByToken(...)` helper so self-service account-management
+  routes can keep identity linking on the same `sessionToken` boundary as current-account
+  inspection, session revoke, password actions, and recent-auth helpers.
+- Added provider-finish parity for that helper so OAuth/OIDC, messenger, and other adapter-backed
+  identity linking can stay on the trusted current-account boundary instead of dropping back to raw
+  `userId` orchestration.
+- Added focused in-memory and Postgres parity coverage for same-user relinks, exact already-linked
+  conflicts, policy-denied paths, and stale or disabled current-account neutrality.
+- Added canonical account-security, backend, architecture, and local-auth docs for current-account
+  re-auth plus self-service identity linking route recipes.
+
+Tracking issues: #280, #281, #282, #283.
+
 ## Next Release
 
-### v0.41 - Backlog To Be Defined
+### v0.42 - Backlog To Be Defined
 
-- Define the next releasable feature set after current-account recent-auth guards.
-- Keep `v0.41` scoped to product-facing additions rather than another maintenance-only batch.
+- Define the next releasable feature set after current-account identity linking.
+- Keep `v0.42` scoped to product-facing additions rather than another maintenance-only batch.
 
 Tracking issues: none yet.
 
