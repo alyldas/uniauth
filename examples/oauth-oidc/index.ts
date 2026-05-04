@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
+import { DefaultAuthService } from '@alyldas/uniauth'
 import {
-  DefaultAuthService,
   OAuthOidcTokenBindingKind,
   createOAuthOidcTokenRecord,
   createOAuthOidcProvider,
@@ -10,7 +10,7 @@ import {
   type OAuthOidcProfile,
   type OAuthOidcTokenBinding,
   type OAuthOidcTokenRecord,
-} from '@alyldas/uniauth'
+} from '@alyldas/uniauth/providers/oauth-oidc'
 import {
   InMemoryAuthStore,
   InMemoryProviderRegistry,

@@ -10,6 +10,8 @@
     "src/index.ts",
     "src/bridges.ts",
     "src/contracts.ts",
+    "src/providers/messenger.ts",
+    "src/providers/oauth-oidc.ts",
     "src/postgres.ts",
     "src/testing/index.ts"
   ],

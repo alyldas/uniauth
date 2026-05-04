@@ -18,8 +18,11 @@ import {
   createMaxWebAppProvider,
   createTelegramMiniAppProvider,
   validateSignedWebAppInitData,
-} from '@alyldas/uniauth'
+} from '@alyldas/uniauth/providers/messenger'
 ```
+
+The root package keeps these exports for compatibility, but messenger-specific consumers should
+prefer the explicit `@alyldas/uniauth/providers/messenger` subpath.
 
 The shared validator follows the signed WebApp launch-data algorithm used by Telegram and MAX:
 
@@ -120,7 +123,10 @@ Messenger providers stay app-owned at bootstrap and transport layers:
 ### Telegram Mini App Route
 
 ```ts
-import { TELEGRAM_MINI_APP_PROVIDER_ID, createTelegramMiniAppProvider } from '@alyldas/uniauth'
+import {
+  TELEGRAM_MINI_APP_PROVIDER_ID,
+  createTelegramMiniAppProvider,
+} from '@alyldas/uniauth/providers/messenger'
 import { authService, providerRegistry } from './auth-bootstrap.js'
 
 providerRegistry.register(
@@ -161,7 +167,10 @@ export async function postTelegramMiniAppSignIn(request: Request) {
 ### MAX WebApp Route
 
 ```ts
-import { MAX_WEBAPP_PROVIDER_ID, createMaxWebAppProvider } from '@alyldas/uniauth'
+import {
+  MAX_WEBAPP_PROVIDER_ID,
+  createMaxWebAppProvider,
+} from '@alyldas/uniauth/providers/messenger'
 import { authService, providerRegistry } from './auth-bootstrap.js'
 
 providerRegistry.register(

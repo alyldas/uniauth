@@ -342,10 +342,12 @@ const resendWindow = await service.getVerificationResendWindow({
 ```
 
 Messenger Mini App providers are SDK-free `AuthProvider` adapters for signed Telegram and MAX
-launch data. See [Messenger providers](docs/messenger-providers.md).
+launch data. Prefer the explicit `@alyldas/uniauth/providers/messenger` subpath. See
+[Messenger providers](docs/messenger-providers.md).
 
 OAuth/OIDC providers use an SDK-free client contract for authorization-code finish flows. See
-[OAuth / OIDC providers](docs/oauth-oidc.md).
+[OAuth / OIDC providers](docs/oauth-oidc.md). Prefer
+`@alyldas/uniauth/providers/oauth-oidc` for provider-specific helpers.
 If provider tokens need to survive beyond profile fetch, keep them in app-owned storage and use the
 public helper described in [Provider token persistence](docs/provider-token-persistence.md).
 

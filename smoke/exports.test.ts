@@ -25,6 +25,8 @@ describe('package exports', () => {
     const bridges = await import('../dist/bridges')
     const contracts = await import('../dist/contracts')
     const core = await import('../dist')
+    const messengerProviders = await import('../dist/providers/messenger')
+    const oauthOidcProviders = await import('../dist/providers/oauth-oidc')
     const postgres = await import('../dist/postgres')
     const testing = await import('../dist/testing')
 
@@ -100,6 +102,12 @@ describe('package exports', () => {
     expect(core.mapOAuthOidcProfileToAssertion).toBeTypeOf('function')
     expect(core.OAuthOidcTokenBindingKind.CallbackState).toBe('callback-state')
     expect(core.validateSignedWebAppInitData).toBeTypeOf('function')
+    expect(messengerProviders.MAX_WEBAPP_PROVIDER_ID).toBe('max-webapp')
+    expect(messengerProviders.createTelegramMiniAppProvider).toBeTypeOf('function')
+    expect(messengerProviders.validateSignedWebAppInitData).toBeTypeOf('function')
+    expect(oauthOidcProviders.createOAuthOidcProvider).toBeTypeOf('function')
+    expect(oauthOidcProviders.createOAuthOidcTokenRecord).toBeTypeOf('function')
+    expect(oauthOidcProviders.mapOAuthOidcProfileToAssertion).toBeTypeOf('function')
     expect(core.UNIAUTH_ATTRIBUTION).toBeTypeOf('object')
     expect(core.getUniAuthAttributionNotice).toBeTypeOf('function')
     expect(core.UNIAUTH_ATTRIBUTION).toMatchObject({
@@ -118,6 +126,16 @@ describe('package exports', () => {
     expect(testing.InMemoryRateLimiter).toBeTypeOf('function')
     expect(testing.InMemorySmsSender).toBeTypeOf('function')
     expect(testing.StaticAuthProvider).toBeTypeOf('function')
+  })
+
+  it('loads provider family package subpaths through self-reference exports', async () => {
+    const messengerProviders = await import(`${packageMetadata.name}/providers/messenger`)
+    const oauthOidcProviders = await import(`${packageMetadata.name}/providers/oauth-oidc`)
+
+    expect(messengerProviders.MAX_WEBAPP_PROVIDER_ID).toBe('max-webapp')
+    expect(messengerProviders.createMaxWebAppProvider).toBeTypeOf('function')
+    expect(oauthOidcProviders.createOAuthOidcProvider).toBeTypeOf('function')
+    expect(oauthOidcProviders.createOAuthOidcTokenRecord).toBeTypeOf('function')
   })
 
   it('keeps testing package declarations aligned with the stable public surface', async () => {

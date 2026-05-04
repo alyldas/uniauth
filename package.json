@@ -50,6 +50,14 @@
       "types": "./dist/contracts.d.ts",
       "import": "./dist/contracts/index.js"
     },
+    "./providers/messenger": {
+      "types": "./dist/providers/messenger.d.ts",
+      "import": "./dist/providers/messenger.js"
+    },
+    "./providers/oauth-oidc": {
+      "types": "./dist/providers/oauth-oidc.d.ts",
+      "import": "./dist/providers/oauth-oidc.js"
+    },
     "./postgres": {
       "types": "./dist/postgres.d.ts",
       "import": "./dist/postgres/index.js"

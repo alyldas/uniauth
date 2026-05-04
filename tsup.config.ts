@@ -17,6 +17,8 @@ export default defineConfig({
     'bridges/index': 'src/bridges.ts',
     'contracts/index': 'src/contracts.ts',
     index: 'src/index.ts',
+    'providers/messenger': 'src/providers/messenger.ts',
+    'providers/oauth-oidc': 'src/providers/oauth-oidc.ts',
     'postgres/index': 'src/postgres.ts',
     'testing/index': 'src/testing/index.ts',
   },

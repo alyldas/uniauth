@@ -178,9 +178,10 @@ signals instead of leaking provider SDK payloads into core policy hooks.
 
 ## Provider Adapter Layout
 
-Reference provider adapters use root package exports only. Provider-specific source modules may live
-under `src/providers`, but those paths are internal implementation details and must not be added to
-`package.json` subpath exports without a package-level reason.
+Reference provider adapters now prefer explicit package subpaths such as
+`@alyldas/uniauth/providers/messenger` and `@alyldas/uniauth/providers/oauth-oidc`. Root exports
+remain for pre-1.0 compatibility, but new provider families should not automatically widen the root
+surface when a package-level subpath is enough.
 
 Each provider family should keep the same rough split when it reduces real complexity:
 
