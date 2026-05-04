@@ -2,11 +2,13 @@ import type { AuthIdentity, Credential, Session, User, Verification } from './en
 import type {
   AccountInspectionSnapshot,
   AccountSecuritySnapshot,
+  CurrentAccountSecuritySnapshot,
   VerificationResendWindow,
 } from './views.js'
 import type { AuditEvent, AuditEventPage, AuditEventQuery } from './audit.js'
 import type {
   AuthResult,
+  GetCurrentAccountSecuritySnapshotInput,
   ConsumeVerificationInput,
   CancelOtpChallengeInput,
   CancelVerificationInput,
@@ -22,6 +24,9 @@ import type {
   LinkResult,
   MergeAccountsInput,
   MergeResult,
+  RevokeCurrentSessionByTokenInput,
+  RevokeOtherSessionsByTokenInput,
+  RevokeOtherSessionsByTokenResult,
   RevokeUserSessionsInput,
   RevokeUserSessionsResult,
   ResendOtpChallengeInput,
@@ -82,6 +87,13 @@ export interface AuthService {
   revokeUserSessions(input: RevokeUserSessionsInput): Promise<RevokeUserSessionsResult>
   resolveSession(input: ResolveSessionInput): Promise<Session>
   resolveSessionContext(input: ResolveSessionContextInput): Promise<ResolvedSessionContext>
+  getCurrentAccountSecuritySnapshot(
+    input: GetCurrentAccountSecuritySnapshotInput,
+  ): Promise<CurrentAccountSecuritySnapshot>
+  revokeCurrentSessionByToken(input: RevokeCurrentSessionByTokenInput): Promise<void>
+  revokeOtherSessionsByToken(
+    input: RevokeOtherSessionsByTokenInput,
+  ): Promise<RevokeOtherSessionsByTokenResult>
   touchSession(input: TouchSessionInput): Promise<Session>
   getUser(userId: UserId): Promise<User>
   getUserIdentities(userId: UserId): Promise<readonly AuthIdentity[]>

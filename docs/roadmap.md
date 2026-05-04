@@ -354,9 +354,18 @@ Tracking issues: #225, #226, #227, #228, #229, #230, #231.
 
 ## Next Release
 
-### v0.36 - Backlog To Be Defined
+### v0.36 - Current-Account Security Helpers
 
-- The next releasable scope has not been defined yet.
+- Add `getCurrentAccountSecuritySnapshot({ sessionToken, touch?, now? })` for self-service
+  account-security routes that already trust a local session token.
+- Add token-based self-service session revoke helpers for current-session logout and
+  sign-out-other-devices flows without rebuilding session + user ownership checks in every backend.
+- Add parity coverage for the new current-account helper layer across in-memory and Postgres-backed
+  service setups, including stale-session neutrality and current-session markers.
+- Update account-security and session-transport recipes so current-account routes use the aggregate
+  helper layer instead of manual multi-call composition.
+
+Tracking issues: #244, #245, #246, #247.
 
 ## Versioning
 

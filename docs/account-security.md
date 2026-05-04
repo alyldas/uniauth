@@ -25,12 +25,25 @@ const snapshot = await authService.getAccountSecuritySnapshot(userId)
 const verificationStatus = toVerificationStatusView(verification)
 ```
 
-## Recommended Read-Side Shape
-
-The minimal server-side composition usually looks like this:
+When the caller is already authenticated by a trusted local session token, prefer the aggregate
+helper instead of manually composing `resolveSessionContext(...)` with a second user-scoped read:
 
 ```ts
-const snapshot = await authService.getAccountSecuritySnapshot(userId)
+const current = await authService.getCurrentAccountSecuritySnapshot({
+  sessionToken,
+  touch: true,
+})
+```
+
+## Recommended Read-Side Shape
+
+The minimal current-account server-side composition usually looks like this:
+
+```ts
+const current = await authService.getCurrentAccountSecuritySnapshot({
+  sessionToken,
+  touch: true,
+})
 ```
 
 Keep the response client-safe:
@@ -38,11 +51,12 @@ Keep the response client-safe:
 ```ts
 return {
   user: {
-    id: snapshot.user.id,
-    email: snapshot.user.email ?? null,
-    displayName: snapshot.user.displayName ?? null,
+    id: current.account.user.id,
+    email: current.account.user.email ?? null,
+    displayName: current.account.user.displayName ?? null,
   },
-  identities: snapshot.identities.map((identity) => ({
+  currentSessionId: current.currentSessionId,
+  identities: current.account.identities.map((identity) => ({
     id: identity.id,
     provider: identity.provider,
     status: identity.status,
@@ -50,16 +64,17 @@ return {
     phone: identity.phone ?? null,
     trustLevel: identity.trustLevel ?? null,
   })),
-  credentials: snapshot.credentials.map((credential) => ({
+  credentials: current.account.credentials.map((credential) => ({
     id: credential.id,
     type: credential.type,
     subject: credential.subject,
     createdAt: credential.createdAt.toISOString(),
     updatedAt: credential.updatedAt.toISOString(),
   })),
-  sessions: snapshot.sessions.map((session) => ({
+  sessions: current.account.sessions.map((session) => ({
     id: session.id,
     status: session.status,
+    isCurrent: session.id === current.currentSessionId,
     createdAt: session.createdAt.toISOString(),
     expiresAt: session.expiresAt.toISOString(),
     lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
@@ -130,8 +145,8 @@ verification reads, continue in [Support and admin inspection recipe](support-in
 
 For device-list or active-session screens:
 
-1. resolve the current local session from the transport;
-2. load the aggregate view through `authService.getAccountSecuritySnapshot(userId)`;
+1. resolve or trust the current local session token from the transport;
+2. load the aggregate view through `authService.getCurrentAccountSecuritySnapshot(...)`;
 3. present a sanitized session list;
 4. keep revoke and logout responses application-owned.
 
@@ -140,7 +155,9 @@ For device-list or active-session screens:
 Treat sign-out of the current device as one backend write plus one transport cleanup:
 
 ```ts
-await authService.revokeSession(request.auth.session.id)
+await authService.revokeCurrentSessionByToken({
+  sessionToken: request.auth.sessionToken,
+})
 clearSessionCookie(response)
 ```
 
@@ -152,19 +169,19 @@ token deletion, mobile secure-storage deletion, redirect behavior, and neutral r
 For "sign out other devices" or "sign out all devices except this one":
 
 ```ts
-const result = await authService.revokeUserSessions({
-  userId: request.auth.userId,
-  exceptSessionId: request.auth.session.id,
+const result = await authService.revokeOtherSessionsByToken({
+  sessionToken: request.auth.sessionToken,
 })
 
 return {
+  currentSessionId: result.currentSessionId,
   revokedSessionCount: result.revokedSessionIds.length,
 }
 ```
 
 This is the narrowest server-side flow when the caller is already authenticated and the target user
 is the current account. It keeps the current transport alive while revoking the other local session
-records.
+records and returns the current session id the application can mark in its response.
 
 ### Revoke One Selected Device
 
@@ -172,8 +189,10 @@ For per-device revoke actions, first prove ownership from the read-side snapshot
 `revokeSession(...)`:
 
 ```ts
-const snapshot = await authService.getAccountSecuritySnapshot(request.auth.userId)
-const target = snapshot.sessions.find((session) => session.id === body.sessionId)
+const current = await authService.getCurrentAccountSecuritySnapshot({
+  sessionToken: request.auth.sessionToken,
+})
+const target = current.account.sessions.find((session) => session.id === body.sessionId)
 
 if (!target) {
   return response.status(404).json({ error: 'Session not found.' })
@@ -181,7 +200,7 @@ if (!target) {
 
 await authService.revokeSession(target.id)
 
-if (target.id === request.auth.session.id) {
+if (target.id === current.currentSessionId) {
   clearSessionCookie(response)
 }
 
@@ -195,7 +214,9 @@ generic neutral response. UniAuth only enforces local session state.
 
 For sign-in method screens:
 
-1. load the aggregate view through `authService.getAccountSecuritySnapshot(userId)`;
+1. load the aggregate view through `authService.getCurrentAccountSecuritySnapshot(...)` or
+   `authService.getAccountSecuritySnapshot(userId)`, depending on whether the route is self-service
+   or trusted admin/support;
 2. present provider ids, statuses, email or phone hints, and credential types;
 3. compose mutations through `unlink(...)`, `setPassword(...)`, `changePassword(...)`, or new
    provider link flows.
@@ -212,8 +233,12 @@ Resolve the current account snapshot first so the application knows which method
 then unlink by `identityId`:
 
 ```ts
-const snapshot = await authService.getAccountSecuritySnapshot(request.auth.userId)
-const targetIdentity = snapshot.identities.find((identity) => identity.id === body.identityId)
+const current = await authService.getCurrentAccountSecuritySnapshot({
+  sessionToken: request.auth.sessionToken,
+})
+const targetIdentity = current.account.identities.find(
+  (identity) => identity.id === body.identityId,
+)
 
 if (!targetIdentity) {
   return response.status(404).json({ error: 'Sign-in method not found.' })
@@ -237,7 +262,10 @@ Use `setPassword(...)` when the account does not yet have a local password or wh
 allows a provider-first account to add one from a trusted account-security screen:
 
 ```ts
-const passwordEmail = snapshot.user.email
+const current = await authService.getCurrentAccountSecuritySnapshot({
+  sessionToken: request.auth.sessionToken,
+})
+const passwordEmail = current.account.user.email
 
 if (!passwordEmail) {
   return response.status(400).json({ error: 'Password setup requires a trusted email address.' })

@@ -5,6 +5,7 @@ import {
   createAuthService,
   createDefaultAuthPolicy,
   createSequentialIdGenerator,
+  type Clock,
   type AuthPolicy,
 } from '../../src'
 import {
@@ -22,6 +23,7 @@ import { now } from '../helpers.js'
 
 interface PostgresTestKitOptions {
   readonly policy?: AuthPolicy
+  readonly clock?: Clock
   readonly verificationResendCooldownSeconds?: number
 }
 
@@ -90,6 +92,7 @@ export async function createPostgresTestKit(
         allowMergeAccounts: true,
         requireReAuthFor: [],
       }),
+    ...(options.clock ? { clock: options.clock } : {}),
   })
 
   return {

@@ -115,7 +115,8 @@ Express ownership notes:
 - Keep route-neutral errors neutral at the HTTP layer too; do not translate invalid credentials into
   account existence hints.
 - For account-security screens and mutations, use [Account security recipes](account-security.md)
-  and the built-in safe projection helpers instead of reading adapter internals.
+  and prefer `getCurrentAccountSecuritySnapshot({ sessionToken })` plus the token-based self-service
+  revoke helpers instead of reading adapter internals.
 
 ## Fastify
 
@@ -164,7 +165,8 @@ Fastify ownership notes:
   rather than introducing a Fastify-specific auth dispatcher.
 - For a fuller copyable token/session recipe, see [Session transport recipes](session-transport.md).
 - For sign-in-method, device-management, revoke, and password-change routes, use
-  [Account security recipes](account-security.md).
+  [Account security recipes](account-security.md) and the current-account aggregate helper instead
+  of rebuilding session + user + snapshot composition by hand.
 
 ## Nest
 

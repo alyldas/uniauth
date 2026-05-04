@@ -32,7 +32,7 @@ import {
   sealSessionCookieValue,
   unsealSessionCookieValue,
 } from '../shared/session-cookie.js'
-import { serializeAccountSecuritySnapshot } from '../shared/views.js'
+import { serializeCurrentAccountSecuritySnapshot } from '../shared/views.js'
 
 interface ExpressAuthExample {
   readonly app: Express
@@ -47,6 +47,7 @@ interface DemoAccount {
 }
 
 interface ExpressRequestAuth {
+  readonly sessionToken: string
   readonly session: Session
   readonly user: User
   readonly userId: Session['userId']
@@ -181,9 +182,11 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
           return
         }
 
-        const snapshot = await authService.getAccountSecuritySnapshot(auth.user.id)
+        const snapshot = await authService.getCurrentAccountSecuritySnapshot({
+          sessionToken: auth.sessionToken,
+        })
 
-        response.status(200).json(serializeAccountSecuritySnapshot(snapshot))
+        response.status(200).json(serializeCurrentAccountSecuritySnapshot(snapshot))
       } catch (error) {
         next(error)
       }
@@ -320,6 +323,7 @@ function createExpressSessionMiddleware(
       })
 
       request.auth = {
+        sessionToken,
         session,
         user,
         userId: session.userId,

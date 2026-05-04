@@ -46,6 +46,8 @@ license, subscription, private contract, or other written permission.
 - Exposes safe projection helpers for account-security and verification-status read-side flows.
 - Exposes an aggregated `getAccountSecuritySnapshot(userId)` read-side API for account-security
   screens.
+- Exposes a current-account aggregate helper and token-based self-service session revoke helpers for
+  trusted account-security routes after transport resolution.
 - Exposes a trusted `getAccountInspectionSnapshot({ userId, audit? })` aggregate read-side
   API for backend support and admin inspection flows.
 - Supports bulk local session revocation for sign-out-all-devices style account-security flows.
@@ -315,6 +317,16 @@ helpers instead of serializing raw entities directly:
 const snapshot = await service.getAccountSecuritySnapshot(userId)
 
 const verificationStatus = toVerificationStatusView(verification)
+```
+
+When the caller is already authenticated by a trusted local `sessionToken`, prefer the aggregate
+helper instead of manually composing `resolveSessionContext(...)` and `getAccountSecuritySnapshot(...)`:
+
+```ts
+const current = await service.getCurrentAccountSecuritySnapshot({
+  sessionToken,
+  touch: true,
+})
 ```
 
 Trusted backend tooling can start from one trusted aggregate inspection helper:

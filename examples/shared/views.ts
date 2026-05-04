@@ -1,5 +1,6 @@
 import type {
   AccountSecuritySnapshot,
+  CurrentAccountSecuritySnapshot,
   VerificationResendWindow,
   VerificationStatusView,
 } from '@alyldas/uniauth'
@@ -43,6 +44,13 @@ export function serializeAccountSecuritySnapshot(snapshot: AccountSecuritySnapsh
       lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
       revokedAt: session.revokedAt?.toISOString() ?? null,
     })),
+  }
+}
+
+export function serializeCurrentAccountSecuritySnapshot(snapshot: CurrentAccountSecuritySnapshot) {
+  return {
+    ...serializeAccountSecuritySnapshot(snapshot.account),
+    currentSessionId: snapshot.currentSessionId,
   }
 }
 
