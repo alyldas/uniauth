@@ -50,6 +50,8 @@ license, subscription, private contract, or other written permission.
   trusted account-security routes after transport resolution.
 - Exposes current-account inspection aggregate and audit-page helpers for self-service security
   routes that already trust a local session token.
+- Exposes token-based current-account write-side helpers for selected-session revoke, sign-in-method
+  unlink, and local password setup or change after transport resolution.
 - Exposes a trusted `getAccountInspectionSnapshot({ userId, audit? })` aggregate read-side
   API for backend support and admin inspection flows.
 - Supports bulk local session revocation for sign-out-all-devices style account-security flows.
@@ -359,6 +361,21 @@ If the surrounding tooling truly needs raw audit entities, custom filters, or me
 serialization, `getAuditEvents(...)` and `getAuditEventPage(...)` remain available as the narrower
 read-side primitives. Self-service current-account routes that need timeline pagination can stay on
 the trusted token boundary through `getCurrentAccountAuditEventPage(...)`.
+
+The same trusted token boundary can also own self-service account mutations:
+
+```ts
+await service.revokeOwnedSessionByToken({
+  sessionToken,
+  targetSessionId,
+})
+
+await service.unlinkCurrentIdentityByToken({
+  sessionToken,
+  identityId,
+  reAuthenticatedAt,
+})
+```
 
 Trusted resend and cooldown polling can use one read-side helper per verification:
 

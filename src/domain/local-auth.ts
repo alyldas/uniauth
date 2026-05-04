@@ -63,8 +63,25 @@ export interface SetPasswordInput {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface SetCurrentAccountPasswordByTokenInput {
+  readonly sessionToken: string
+  readonly password: string
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface ChangePasswordInput {
   readonly userId: UserId
+  readonly currentPassword: string
+  readonly newPassword: string
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface ChangeCurrentAccountPasswordByTokenInput {
+  readonly sessionToken: string
   readonly currentPassword: string
   readonly newPassword: string
   readonly reAuthenticatedAt?: Date
