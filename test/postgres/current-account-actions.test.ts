@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { AuthPolicyAction, UniAuthErrorCode, addSeconds, createDefaultAuthPolicy } from '../../src'
+import {
+  AuditEventType,
+  AuthPolicyAction,
+  SessionStatus,
+  UniAuthErrorCode,
+  addSeconds,
+  createDefaultAuthPolicy,
+} from '../../src'
 import { createPostgresTestKit, now } from './support.js'
 
 describe('Postgres current-account action helpers', () => {
@@ -128,6 +135,75 @@ describe('Postgres current-account action helpers', () => {
     )
   })
 
+  it('closes the current Postgres account by trusted session token and revokes sessions', async () => {
+    const { service, store } = await createPostgresTestKit({
+      policy: createDefaultAuthPolicy({
+        requireReAuthFor: [AuthPolicyAction.CloseAccount],
+      }),
+    })
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-close',
+        email: 'pg-current-account-close@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const secondSession = await service.createSession({
+      userId: signedIn.user.id,
+      now: addSeconds(now, 5),
+    })
+
+    await expect(
+      service.closeCurrentAccountByToken({
+        sessionToken: signedIn.sessionToken,
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.ReAuthRequired,
+    })
+
+    const closedAt = addSeconds(now, 20)
+    const result = await service.closeCurrentAccountByToken({
+      sessionToken: signedIn.sessionToken,
+      reAuthenticatedAt: closedAt,
+      now: closedAt,
+      metadata: { source: 'settings' },
+    })
+
+    expect(result.currentSessionId).toBe(signedIn.session.id)
+    expect(result.revokedSessionIds).toEqual([signedIn.session.id, secondSession.session.id])
+    expect(result.user).toMatchObject({
+      id: signedIn.user.id,
+      disabledAt: closedAt,
+      updatedAt: closedAt,
+    })
+    await expect(store.userRepo.findById(signedIn.user.id)).resolves.toMatchObject({
+      disabledAt: closedAt,
+    })
+    await expect(store.sessionRepo.findById(signedIn.session.id)).resolves.toMatchObject({
+      status: SessionStatus.Revoked,
+      revokedAt: closedAt,
+    })
+    await expect(store.sessionRepo.findById(secondSession.session.id)).resolves.toMatchObject({
+      status: SessionStatus.Revoked,
+      revokedAt: closedAt,
+    })
+    await expect(service.getAuditEvents({ userId: signedIn.user.id })).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.AccountClosed,
+          sessionId: signedIn.session.id,
+          metadata: {
+            revokedSessionIds: [signedIn.session.id, secondSession.session.id],
+            requestMetadata: { source: 'settings' },
+          },
+        }),
+      ]),
+    )
+  })
+
   it('keeps stale disabled-user Postgres current-account action helpers neutral', async () => {
     const { service, store } = await createPostgresTestKit()
     const signedIn = await service.signIn({
@@ -182,6 +258,15 @@ describe('Postgres current-account action helpers', () => {
         sessionToken: signedIn.sessionToken,
         currentPassword: 'password',
         newPassword: 'new-password',
+        reAuthenticatedAt: addSeconds(now, 20),
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.closeCurrentAccountByToken({
+        sessionToken: signedIn.sessionToken,
         reAuthenticatedAt: addSeconds(now, 20),
         now: addSeconds(now, 20),
       }),

@@ -14,6 +14,7 @@ import {
 } from './current-account-security.js'
 import {
   changeCurrentAccountPasswordByToken,
+  closeCurrentAccountByToken,
   linkCurrentIdentityByToken,
   revokeOwnedSessionByToken,
   setCurrentAccountPasswordByToken,
@@ -103,6 +104,8 @@ import type {
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
   CancelCurrentAccountOtpReAuthInput,
+  CloseCurrentAccountByTokenInput,
+  CloseCurrentAccountByTokenResult,
   GetCurrentAccountAuditEventPageInput,
   GetCurrentAccountInspectionSnapshotInput,
   GetCurrentAccountReAuthStatusInput,
@@ -334,6 +337,12 @@ export class DefaultAuthService implements AuthService {
 
   async unlinkCurrentIdentityByToken(input: UnlinkCurrentIdentityByTokenInput): Promise<void> {
     return unlinkCurrentIdentityByToken(this.runtime, input)
+  }
+
+  async closeCurrentAccountByToken(
+    input: CloseCurrentAccountByTokenInput,
+  ): Promise<CloseCurrentAccountByTokenResult> {
+    return closeCurrentAccountByToken(this.runtime, input)
   }
 
   async setCurrentAccountPasswordByToken(

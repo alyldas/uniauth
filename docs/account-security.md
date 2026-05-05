@@ -252,8 +252,8 @@ For sign-in method screens:
    or trusted admin/support;
 2. present provider ids, statuses, email or phone hints, and credential types;
 3. compose mutations through `linkCurrentIdentityByToken(...)`, `unlinkCurrentIdentityByToken(...)`,
-   `setCurrentAccountPasswordByToken(...)`, `changeCurrentAccountPasswordByToken(...)`, or new
-   provider link flows.
+   `setCurrentAccountPasswordByToken(...)`, `changeCurrentAccountPasswordByToken(...)`,
+   `closeCurrentAccountByToken(...)`, or new provider link flows.
 
 Keep the same public security rules:
 
@@ -464,6 +464,34 @@ await authService.changeCurrentAccountPasswordByToken({
 
 Keep incorrect current-password responses neutral and leave session refresh, cookie rotation, or
 "sign out other devices after password change" policy in the application layer.
+
+### Close Current Account
+
+Use `closeCurrentAccountByToken(...)` for self-service account closure from an authenticated
+settings route. Keep the recent-auth marker application-owned, then pass it into the helper on the
+same trusted current-account boundary:
+
+```ts
+const result = await authService.closeCurrentAccountByToken({
+  sessionToken: request.auth.sessionToken,
+  reAuthenticatedAt: request.auth.reAuthenticatedAt,
+})
+
+clearSessionCookie(response)
+
+return response.status(204).send({
+  currentSessionId: result.currentSessionId,
+  revokedSessionIds: result.revokedSessionIds,
+})
+```
+
+Core disables the current user record and revokes that user's active local sessions, including the
+current session. Stale, expired, revoked, or disabled current-account contexts collapse to the
+neutral `SessionNotFound` path before any account state changes happen.
+
+UniAuth still does not own browser cookie clearing, legal retention, data export, profile
+anonymization, billing cancellation, or downstream application data deletion. Run those as
+application-owned side effects after the helper succeeds.
 
 ### Password Recovery Handoff
 

@@ -15,7 +15,7 @@ Use this document for:
 Use [Session transport recipes](session-transport.md) for token extraction, cookie vs bearer
 transport, and request auth middleware/preHandler shape. Use
 [Account security recipes](account-security.md) for device lists, sign-in method screens, revoke
-flows, password-management handoff, and safe read-side projections.
+flows, account closure, password-management handoff, and safe read-side projections.
 Use [Support and admin inspection recipe](support-inspection.md) for trusted operator tooling that
 stays server-only.
 
@@ -116,8 +116,9 @@ Express ownership notes:
   account existence hints.
 - For account-security screens and mutations, use [Account security recipes](account-security.md)
   and prefer `getCurrentAccountInspectionSnapshot({ sessionToken, audit? })` plus the token-based
-  self-service link, revoke, unlink, password-action, and recent-auth helpers instead of reading
-  adapter internals or re-routing current-account writes through raw `userId` calls.
+  self-service link, revoke, unlink, password-action, account-closure, and recent-auth helpers
+  instead of reading adapter internals or re-routing current-account writes through raw `userId`
+  calls.
 
 ## Fastify
 
@@ -165,7 +166,7 @@ Fastify ownership notes:
 - If delivery goes through queues, keep that inside your `EmailSender` or `SmsSender` adapters
   rather than introducing a Fastify-specific auth dispatcher.
 - For a fuller copyable token/session recipe, see [Session transport recipes](session-transport.md).
-- For sign-in-method, device-management, revoke, and password-change routes, use
+- For sign-in-method, device-management, revoke, account-closure, and password-change routes, use
   [Account security recipes](account-security.md) and the current-account aggregate plus token-based
   action, linking, and recent-auth helpers instead of rebuilding session + user + snapshot
   composition by hand.
@@ -286,6 +287,32 @@ Minimum expectations:
 
 For bearer and mobile client transport choices around local sessions, see
 [Session transport recipes](session-transport.md).
+
+## Self-Service Account Closure
+
+Keep account closure on the same trusted `sessionToken` boundary as other account-security writes.
+The route should enforce recent-auth using your app-owned marker, call core once, and then clear
+browser transport state after the helper succeeds:
+
+```ts
+app.post('/auth/account/close', requireSession, async (req, res, next) => {
+  try {
+    await authService.closeCurrentAccountByToken({
+      sessionToken: req.auth.sessionToken,
+      reAuthenticatedAt: req.auth.reAuthenticatedAt,
+    })
+
+    clearSessionCookie(res)
+    res.status(204).send()
+  } catch (error) {
+    next(error)
+  }
+})
+```
+
+Core disables the current user and revokes active local sessions. Keep data export,
+legal-retention decisions, billing cancellation, and application-profile deletion in your own
+post-success workflow.
 
 ## Release And Maintenance Notes
 

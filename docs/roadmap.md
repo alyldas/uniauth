@@ -452,12 +452,21 @@ Tracking issues: #287, #288, #289, #290.
 
 ## Next Release
 
-### v0.43 - Backlog To Be Defined
+### v0.43 - Current-Account Account Closure
 
-- Define the next releasable feature set after current-account OTP re-auth management.
-- Keep `v0.43` scoped to product-facing additions rather than another maintenance-only batch.
+- Add a trusted `closeCurrentAccountByToken(...)` helper so self-service account closure routes can
+  stay on the same `sessionToken` boundary as current-account inspection, session revoke, identity
+  linking, password actions, and recent-auth helpers.
+- Disable the current user and revoke active local sessions inside the existing transaction
+  boundary while leaving cookies, legal retention, billing cancellation, and downstream data
+  deletion application-owned.
+- Add focused in-memory and Postgres parity coverage for successful closure, recent-auth
+  enforcement, revoked or expired sessions, disabled current-account neutrality, session revocation,
+  and closure audit metadata.
+- Add canonical account-security, backend, architecture, and README route recipes for trusted
+  current-account account closure.
 
-Tracking issues: none yet.
+Tracking issues: #294, #295, #296, #297.
 
 ## Versioning
 

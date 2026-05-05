@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AuditEventType,
   AuthPolicyAction,
   PASSWORD_PROVIDER_ID,
   UniAuthErrorCode,
@@ -303,6 +304,158 @@ describe('DefaultAuthService current-account action helpers', () => {
     })
   })
 
+  it('closes the current account by trusted session token after recent authentication', async () => {
+    const { service, store } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-close',
+        email: 'current-account-close@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const secondSession = await service.createSession({
+      userId: signedIn.user.id,
+      now: addSeconds(now, 5),
+    })
+
+    await expect(
+      service.closeCurrentAccountByToken({
+        sessionToken: signedIn.sessionToken,
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.ReAuthRequired,
+    })
+
+    const closedAt = addSeconds(now, 20)
+    const result = await service.closeCurrentAccountByToken({
+      sessionToken: signedIn.sessionToken,
+      reAuthenticatedAt: closedAt,
+      now: closedAt,
+      metadata: { source: 'settings' },
+    })
+
+    expect(result.currentSessionId).toBe(signedIn.session.id)
+    expect(result.revokedSessionIds).toEqual([signedIn.session.id, secondSession.session.id])
+    expect(result.user).toMatchObject({
+      id: signedIn.user.id,
+      disabledAt: closedAt,
+      updatedAt: closedAt,
+    })
+    await expect(store.userRepo.findById(signedIn.user.id)).resolves.toMatchObject({
+      disabledAt: closedAt,
+    })
+    await expect(
+      service.resolveSession({
+        sessionToken: signedIn.sessionToken,
+        now: addSeconds(closedAt, 1),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.resolveSession({
+        sessionToken: secondSession.sessionToken,
+        now: addSeconds(closedAt, 1),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+
+    await expect(service.getAuditEvents({ userId: signedIn.user.id })).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.AccountClosed,
+          userId: signedIn.user.id,
+          sessionId: signedIn.session.id,
+          metadata: {
+            revokedSessionIds: [signedIn.session.id, secondSession.session.id],
+            requestMetadata: { source: 'settings' },
+          },
+        }),
+        expect.objectContaining({
+          type: AuditEventType.SessionRevoked,
+          sessionId: signedIn.session.id,
+        }),
+        expect.objectContaining({
+          type: AuditEventType.SessionRevoked,
+          sessionId: secondSession.session.id,
+        }),
+      ]),
+    )
+  })
+
+  it('uses the runtime clock for current-account account closure when now is omitted', async () => {
+    const { service } = createInMemoryAuthKit({
+      clock: { now: () => now },
+    })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-close-no-now',
+        email: 'current-account-close-no-now@example.com',
+        emailVerified: true,
+      }),
+    })
+
+    const result = await service.closeCurrentAccountByToken({
+      sessionToken: signedIn.sessionToken,
+      reAuthenticatedAt: now,
+    })
+
+    expect(result.user).toMatchObject({
+      id: signedIn.user.id,
+      disabledAt: now,
+      updatedAt: now,
+    })
+    expect(result.revokedSessionIds).toEqual([signedIn.session.id])
+  })
+
+  it('keeps expired and revoked current-account account closure contexts neutral', async () => {
+    const { service } = createInMemoryAuthKit()
+    const revoked = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-close-revoked',
+        email: 'current-account-close-revoked@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const expired = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-close-expired',
+        email: 'current-account-close-expired@example.com',
+        emailVerified: true,
+      }),
+      sessionExpiresAt: addSeconds(now, 5),
+      now,
+    })
+
+    await service.revokeCurrentSessionByToken({
+      sessionToken: revoked.sessionToken,
+      now: addSeconds(now, 5),
+    })
+
+    await expect(
+      service.closeCurrentAccountByToken({
+        sessionToken: revoked.sessionToken,
+        reAuthenticatedAt: addSeconds(now, 10),
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.closeCurrentAccountByToken({
+        sessionToken: expired.sessionToken,
+        reAuthenticatedAt: addSeconds(now, 10),
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+  })
+
   it('uses the runtime clock and forwards metadata for current-account action helpers when now is omitted', async () => {
     const { service } = createInMemoryAuthKit({
       clock: { now: () => now },
@@ -419,6 +572,15 @@ describe('DefaultAuthService current-account action helpers', () => {
         sessionToken: signedIn.sessionToken,
         currentPassword: 'password',
         newPassword: 'new-password',
+        reAuthenticatedAt: addSeconds(now, 20),
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.closeCurrentAccountByToken({
+        sessionToken: signedIn.sessionToken,
         reAuthenticatedAt: addSeconds(now, 20),
         now: addSeconds(now, 20),
       }),
