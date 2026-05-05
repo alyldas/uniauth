@@ -12,9 +12,13 @@ permissions:
   packages: write
   pull-requests: write
 
+concurrency:
+  group: uniauth-release-deploy
+  cancel-in-progress: false
+
 jobs:
   release-please:
-    runs-on: [self-hosted, linux, x64, release-deploy]
+    runs-on: uniauth-release-deploy
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:

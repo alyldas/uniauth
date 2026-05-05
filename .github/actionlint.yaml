@@ -2,3 +2,5 @@ self-hosted-runner:
   labels:
     - ci
     - release-deploy
+    - uniauth-ci
+    - uniauth-release-deploy
