@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.45.0](https://github.com/alyldas/uniauth/compare/v0.44.0...v0.45.0) (2026-05-05)
+
+
+### Features
+
+* add current-account profile update helper ([73517f1](https://github.com/alyldas/uniauth/commit/73517f17e163a4f8b114c9ad265d9e9b58e508f8))
+
 ## [0.44.0](https://github.com/alyldas/uniauth/compare/v0.43.0...v0.44.0) (2026-05-05)
 
 
