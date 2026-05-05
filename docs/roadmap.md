@@ -466,21 +466,28 @@ Tracking issues: #287, #288, #289, #290.
 
 Tracking issues: #294, #295, #296, #297.
 
-## Next Release
-
 ### v0.44 - Current-Account Closure Export
 
-- Add a trusted `getCurrentAccountClosureExportSnapshot(...)` helper so self-service account
+- Added a trusted `getCurrentAccountClosureExportSnapshot(...)` helper so self-service account
   closure flows can offer a safe pre-closure auth snapshot without reading storage internals.
-- Keep the helper on the existing `sessionToken` boundary and reuse safe account, credential,
+- Kept the helper on the existing `sessionToken` boundary and reused safe account, credential,
   session, identity, and audit views without provider tokens, password hashes, session token hashes,
   verification hashes, or raw metadata.
-- Add parity and secret-boundary coverage across in-memory and Postgres-backed service setups,
+- Added parity and secret-boundary coverage across in-memory and Postgres-backed service setups,
   including stale disabled-account neutrality.
-- Add account-security and backend route recipes that keep file format, legal export policy,
+- Added account-security and backend route recipes that keep file format, legal export policy,
   billing state, profile data, and downstream application records application-owned.
 
 Tracking issues: #301, #302, #303, #304.
+
+## Next Release
+
+### v0.45 - Backlog To Be Defined
+
+- Define the next releasable feature set after current-account closure export.
+- Keep `v0.45` scoped to product-facing additions rather than a maintenance-only batch.
+
+Tracking issues: none yet.
 
 ## Versioning
 
