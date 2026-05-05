@@ -143,6 +143,14 @@ export interface GetCurrentAccountInspectionSnapshotInput {
   readonly audit?: CurrentAccountAuditWindow
 }
 
+export interface GetCurrentAccountClosureExportSnapshotInput {
+  readonly sessionToken: string
+  readonly touch?: boolean
+  readonly now?: Date
+  readonly auditLimit?: number
+  readonly audit?: CurrentAccountAuditWindow
+}
+
 export interface GetCurrentAccountAuditEventPageInput {
   readonly sessionToken: string
   readonly touch?: boolean

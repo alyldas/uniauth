@@ -349,6 +349,18 @@ const currentInspection = await service.getCurrentAccountInspectionSnapshot({
 })
 ```
 
+Before destructive account closure, a self-service route can also stay on the trusted token
+boundary and return a safe pre-closure auth snapshot:
+
+```ts
+const closureExport = await service.getCurrentAccountClosureExportSnapshot({
+  sessionToken,
+  audit: {
+    limit: 50,
+  },
+})
+```
+
 Trusted backend tooling can start from one trusted aggregate inspection helper:
 
 ```ts

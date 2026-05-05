@@ -291,8 +291,38 @@ For bearer and mobile client transport choices around local sessions, see
 ## Self-Service Account Closure
 
 Keep account closure on the same trusted `sessionToken` boundary as other account-security writes.
-The route should enforce recent-auth using your app-owned marker, call core once, and then clear
-browser transport state after the helper succeeds:
+If the product offers a pre-closure auth snapshot download, keep that as a read-only route before
+the destructive close route:
+
+```ts
+app.get('/auth/account/closure-export', requireSession, async (req, res, next) => {
+  try {
+    const snapshot = await authService.getCurrentAccountClosureExportSnapshot({
+      sessionToken: req.auth.sessionToken,
+      audit: {
+        limit: 50,
+      },
+    })
+
+    res.status(200).json({
+      generatedAt: snapshot.generatedAt.toISOString(),
+      account: snapshot.account,
+      currentSessionId: snapshot.currentSessionId,
+      auditEvents: snapshot.auditEvents,
+      nextAuditCursor: snapshot.nextAuditCursor ?? null,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+```
+
+The closure export helper returns only local auth safe views. The application still owns the file
+format, profile data outside local auth, billing records, legal retention, and downstream
+application-table export.
+
+The close route should enforce recent-auth using your app-owned marker, call core once, and then
+clear browser transport state after the helper succeeds:
 
 ```ts
 app.post('/auth/account/close', requireSession, async (req, res, next) => {

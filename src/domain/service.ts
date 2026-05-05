@@ -2,6 +2,7 @@ import type { AuthIdentity, Credential, Session, User, Verification } from './en
 import type {
   AccountInspectionSnapshot,
   AccountSecuritySnapshot,
+  CurrentAccountClosureExportSnapshot,
   CurrentAccountInspectionSnapshot,
   CurrentAccountSecuritySnapshot,
   VerificationResendWindow,
@@ -10,6 +11,7 @@ import type { AuditEvent, AuditEventPage, AuditEventQuery } from './audit.js'
 import type {
   AuthResult,
   AssertCurrentAccountReAuthInput,
+  GetCurrentAccountClosureExportSnapshotInput,
   GetCurrentAccountSecuritySnapshotInput,
   GetCurrentAccountReAuthStatusInput,
   GetCurrentAccountAuditEventPageInput,
@@ -126,6 +128,9 @@ export interface AuthService {
   getCurrentAccountInspectionSnapshot(
     input: GetCurrentAccountInspectionSnapshotInput,
   ): Promise<CurrentAccountInspectionSnapshot>
+  getCurrentAccountClosureExportSnapshot(
+    input: GetCurrentAccountClosureExportSnapshotInput,
+  ): Promise<CurrentAccountClosureExportSnapshot>
   getCurrentAccountAuditEventPage(
     input: GetCurrentAccountAuditEventPageInput,
   ): Promise<AuditEventPage>
