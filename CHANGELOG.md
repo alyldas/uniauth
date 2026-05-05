@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.43.0](https://github.com/alyldas/uniauth/compare/v0.42.0...v0.43.0) (2026-05-05)
+
+
+### Features
+
+* add current-account account closure helper ([bc6cd13](https://github.com/alyldas/uniauth/commit/bc6cd1377c18a891dcf09a70e70143aad90c14fd))
+
 ## [0.42.0](https://github.com/alyldas/uniauth/compare/v0.41.0...v0.42.0) (2026-05-04)
 
 
