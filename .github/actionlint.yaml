@@ -4,4 +4,5 @@ self-hosted-runner:
     - release-deploy
     - uniauth-ci
     - uniauth-codeql
+    - uniauth-dependabot
     - uniauth-release-deploy
