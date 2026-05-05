@@ -3,9 +3,12 @@ import { optionalProp } from './optional.js'
 import { changePassword, setPassword } from './passwords.js'
 import type { AuthServiceRuntime } from './runtime.js'
 import { resolveSessionContext } from './session-context.js'
-import { revokeStoredSession } from './sessions.js'
+import { revokeStoredSession, revokeUserSessions } from './sessions.js'
+import { audit, ensureReAuth } from './support.js'
 import type {
   ChangeCurrentAccountPasswordByTokenInput,
+  CloseCurrentAccountByTokenInput,
+  CloseCurrentAccountByTokenResult,
   Credential,
   LinkCurrentIdentityByTokenInput,
   LinkResult,
@@ -14,7 +17,7 @@ import type {
   SetCurrentAccountPasswordByTokenInput,
   UnlinkCurrentIdentityByTokenInput,
 } from '../domain/types.js'
-import { isActiveSession } from '../domain/types.js'
+import { AuditEventType, AuthPolicyAction, isActiveSession } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
 
 export async function revokeOwnedSessionByToken(
@@ -84,6 +87,51 @@ export async function unlinkCurrentIdentityByToken(
       now,
       ...(input.metadata ? { metadata: input.metadata } : {}),
     })
+  })
+}
+
+export async function closeCurrentAccountByToken(
+  runtime: AuthServiceRuntime,
+  input: CloseCurrentAccountByTokenInput,
+): Promise<CloseCurrentAccountByTokenResult> {
+  return runtime.transaction.run(async () => {
+    const now = input.now ?? runtime.clock.now()
+    const { session, user } = await resolveSessionContext(runtime, {
+      sessionToken: input.sessionToken,
+      now,
+    })
+
+    await ensureReAuth(
+      runtime,
+      AuthPolicyAction.CloseAccount,
+      user.id,
+      input.reAuthenticatedAt,
+      now,
+    )
+
+    const revoked = await revokeUserSessions(runtime, {
+      userId: user.id,
+      now,
+    })
+    const closedUser = await runtime.repos.userRepo.update(user.id, {
+      disabledAt: now,
+      updatedAt: now,
+    })
+
+    await audit(runtime, AuditEventType.AccountClosed, now, {
+      userId: user.id,
+      sessionId: session.id,
+      metadata: {
+        revokedSessionIds: [...revoked.revokedSessionIds],
+        ...optionalProp('requestMetadata', input.metadata),
+      },
+    })
+
+    return {
+      user: closedUser,
+      currentSessionId: session.id,
+      revokedSessionIds: revoked.revokedSessionIds,
+    }
   })
 }
 

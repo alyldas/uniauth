@@ -45,6 +45,7 @@ identities, and email/phone are optional identity attributes.
 - `confirmCurrentAccountPasswordByToken`
 - `setCurrentAccountPasswordByToken`
 - `changeCurrentAccountPasswordByToken`
+- `closeCurrentAccountByToken`
 - `touchSession`
 - `getUser`
 - `getUserCredentials`
@@ -90,7 +91,10 @@ identity or confirm the current password from `sessionToken`, then persist the r
 enforce whether recent auth is currently required for a specific sensitive current-account action
 before application-owned side effects continue. Resend and cancellation of those current-account
 OTP re-auth challenges can stay on that trusted token boundary as well instead of dropping back to
-generic verification ownership checks in route code.
+generic verification ownership checks in route code. Account closure follows the same shape:
+the current session token identifies the actor, core disables the current user, revokes active
+local sessions, and leaves cookie clearing, legal retention, and downstream data deletion to the
+application.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful

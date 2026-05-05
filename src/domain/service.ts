@@ -30,6 +30,8 @@ import type {
   StartCurrentAccountOtpReAuthInput,
   ResendCurrentAccountOtpReAuthInput,
   CancelCurrentAccountOtpReAuthInput,
+  CloseCurrentAccountByTokenInput,
+  CloseCurrentAccountByTokenResult,
   GetVerificationResendWindowInput,
   LinkInput,
   LinkResult,
@@ -136,6 +138,9 @@ export interface AuthService {
     input: RevokeOtherSessionsByTokenInput,
   ): Promise<RevokeOtherSessionsByTokenResult>
   unlinkCurrentIdentityByToken(input: UnlinkCurrentIdentityByTokenInput): Promise<void>
+  closeCurrentAccountByToken(
+    input: CloseCurrentAccountByTokenInput,
+  ): Promise<CloseCurrentAccountByTokenResult>
   setCurrentAccountPasswordByToken(
     input: SetCurrentAccountPasswordByTokenInput,
   ): Promise<Credential>

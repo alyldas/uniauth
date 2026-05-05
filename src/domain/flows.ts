@@ -238,6 +238,19 @@ export interface RevokeOtherSessionsByTokenResult extends RevokeUserSessionsResu
   readonly currentSessionId: SessionId
 }
 
+export interface CloseCurrentAccountByTokenInput {
+  readonly sessionToken: string
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface CloseCurrentAccountByTokenResult {
+  readonly user: User
+  readonly currentSessionId: SessionId
+  readonly revokedSessionIds: readonly SessionId[]
+}
+
 export interface RevokeUserSessionsInput {
   readonly userId: UserId
   readonly exceptSessionId?: SessionId

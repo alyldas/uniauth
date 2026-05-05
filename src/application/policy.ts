@@ -56,7 +56,7 @@ export interface DefaultAuthPolicyOptions {
 
 export function createDefaultAuthPolicy(options: DefaultAuthPolicyOptions = {}): AuthPolicy {
   const requireReAuthFor = new Set<AuthPolicyActionType>(
-    options.requireReAuthFor ?? [AuthPolicyAction.MergeAccounts],
+    options.requireReAuthFor ?? [AuthPolicyAction.MergeAccounts, AuthPolicyAction.CloseAccount],
   )
   const reAuthMaxAgeMs = (options.reAuthMaxAgeSeconds ?? 15 * 60) * 1000
 
