@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.44.0](https://github.com/alyldas/uniauth/compare/v0.43.0...v0.44.0) (2026-05-05)
+
+
+### Features
+
+* add current-account closure export snapshot ([d357159](https://github.com/alyldas/uniauth/commit/d357159ade71061106c9c567de72da36ead8024a))
+
 ## [0.43.0](https://github.com/alyldas/uniauth/compare/v0.42.0...v0.43.0) (2026-05-05)
 
 
