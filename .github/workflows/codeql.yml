@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   analyze:
-    runs-on: uniauth-ci
+    runs-on: uniauth-codeql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
