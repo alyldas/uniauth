@@ -5,6 +5,7 @@ export const AuthPolicyAction = {
   MergeAccounts: 'mergeAccounts',
   SetPassword: 'setPassword',
   ChangePassword: 'changePassword',
+  UpdateProfile: 'updateProfile',
   CloseAccount: 'closeAccount',
 } as const
 

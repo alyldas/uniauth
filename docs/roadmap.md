@@ -482,12 +482,19 @@ Tracking issues: #301, #302, #303, #304.
 
 ## Next Release
 
-### v0.45 - Backlog To Be Defined
+### v0.45 - Current-Account Profile Update
 
-- Define the next releasable feature set after current-account closure export.
-- Keep `v0.45` scoped to product-facing additions rather than a maintenance-only batch.
+- Add a trusted `updateCurrentAccountProfileByToken(...)` helper so self-service profile routes can
+  update local auth profile fields on the same `sessionToken` boundary as the rest of the
+  current-account helper layer.
+- Keep the helper scoped to local user profile fields such as display name, while email, phone,
+  identities, credentials, avatars, media storage, and product profile tables remain application or
+  identity-flow owned.
+- Add parity and neutrality coverage across in-memory and Postgres-backed service setups, including
+  stale-session, revoked-session, expired-session, and disabled-account paths.
+- Add account-security and backend route recipes for safe current-account profile update routes.
 
-Tracking issues: none yet.
+Tracking issues: #308, #309, #310, #311.
 
 ## Versioning
 

@@ -259,6 +259,14 @@ export interface CloseCurrentAccountByTokenResult {
   readonly revokedSessionIds: readonly SessionId[]
 }
 
+export interface UpdateCurrentAccountProfileByTokenInput {
+  readonly sessionToken: string
+  readonly displayName?: string
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface RevokeUserSessionsInput {
   readonly userId: UserId
   readonly exceptSessionId?: SessionId

@@ -56,6 +56,7 @@ import type {
   TouchSessionInput,
   UnlinkInput,
   UnlinkCurrentIdentityByTokenInput,
+  UpdateCurrentAccountProfileByTokenInput,
 } from './flows.js'
 import type { SessionId, UserId, VerificationId } from './ids.js'
 import type {
@@ -146,6 +147,7 @@ export interface AuthService {
   closeCurrentAccountByToken(
     input: CloseCurrentAccountByTokenInput,
   ): Promise<CloseCurrentAccountByTokenResult>
+  updateCurrentAccountProfileByToken(input: UpdateCurrentAccountProfileByTokenInput): Promise<User>
   setCurrentAccountPasswordByToken(
     input: SetCurrentAccountPasswordByTokenInput,
   ): Promise<Credential>

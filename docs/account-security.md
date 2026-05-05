@@ -263,6 +263,34 @@ to the neutral `SessionNotFound` path.
 
 ## Sign-In Method Action Recipes
 
+### Update Current Account Profile
+
+Use `updateCurrentAccountProfileByToken(...)` when an authenticated settings route needs to update
+local auth profile fields owned by the `User` record:
+
+```ts
+const user = await authService.updateCurrentAccountProfileByToken({
+  sessionToken: request.auth.sessionToken,
+  displayName: body.displayName,
+  reAuthenticatedAt: request.auth.reAuthenticatedAt,
+})
+
+return {
+  id: user.id,
+  displayName: user.displayName ?? null,
+  updatedAt: user.updatedAt.toISOString(),
+}
+```
+
+The helper trims display names and treats a blank display name as clearing the local display name.
+It does not update email, phone, identities, credentials, avatars, media storage, or product profile
+tables. Keep those flows application-owned or route them through identity linking, unlinking, and
+verification flows where ownership can be proven.
+
+Applications that consider profile changes sensitive can configure
+`AuthPolicyAction.UpdateProfile` in `requireReAuthFor` and pass the same app-owned
+`reAuthenticatedAt` marker used by password, unlink, and closure routes.
+
 For sign-in method screens:
 
 1. load the aggregate view through `authService.getCurrentAccountInspectionSnapshot(...)` or

@@ -117,6 +117,157 @@ describe('DefaultAuthService current-account action helpers', () => {
     })
   })
 
+  it('updates the current account profile by trusted session token', async () => {
+    const { service } = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({
+        requireReAuthFor: [AuthPolicyAction.UpdateProfile],
+      }),
+    })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-profile',
+        email: 'current-account-profile@example.com',
+        emailVerified: true,
+        phone: '+15550000001',
+        phoneVerified: true,
+        displayName: 'Before',
+        metadata: { externalProfileId: 'profile-1' },
+      }),
+      now,
+    })
+    const originalIdentities = await service.getUserIdentities(signedIn.user.id)
+    const originalSessions = await service.getUserSessions(signedIn.user.id)
+
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: signedIn.sessionToken,
+        displayName: 'Updated',
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.ReAuthRequired,
+    })
+
+    const updatedAt = addSeconds(now, 20)
+    const updated = await service.updateCurrentAccountProfileByToken({
+      sessionToken: signedIn.sessionToken,
+      displayName: '  Updated Name  ',
+      reAuthenticatedAt: updatedAt,
+      now: updatedAt,
+      metadata: { source: 'settings' },
+    })
+
+    expect(updated).toMatchObject({
+      id: signedIn.user.id,
+      displayName: 'Updated Name',
+      email: 'current-account-profile@example.com',
+      phone: '+15550000001',
+      updatedAt,
+    })
+    await expect(service.getUser(signedIn.user.id)).resolves.toMatchObject({
+      displayName: 'Updated Name',
+      email: 'current-account-profile@example.com',
+      phone: '+15550000001',
+    })
+    expect(await service.getUserIdentities(signedIn.user.id)).toEqual(originalIdentities)
+    expect(await service.getUserSessions(signedIn.user.id)).toEqual(originalSessions)
+    await expect(service.getAuditEvents({ userId: signedIn.user.id })).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.AccountProfileUpdated,
+          sessionId: signedIn.session.id,
+          metadata: {
+            changedFields: ['displayName'],
+            requestMetadata: { source: 'settings' },
+          },
+        }),
+      ]),
+    )
+  })
+
+  it('normalizes blank current-account profile display names and rejects empty updates', async () => {
+    const { service } = createInMemoryAuthKit({
+      clock: { now: () => now },
+    })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-profile-blank',
+        email: 'current-account-profile-blank@example.com',
+        emailVerified: true,
+        displayName: 'Before',
+      }),
+    })
+
+    const cleared = await service.updateCurrentAccountProfileByToken({
+      sessionToken: signedIn.sessionToken,
+      displayName: '   ',
+    })
+
+    expect(cleared).toMatchObject({
+      id: signedIn.user.id,
+      updatedAt: now,
+    })
+    expect(cleared.displayName).toBeUndefined()
+    const clearedFromUndefined = await service.updateCurrentAccountProfileByToken({
+      sessionToken: signedIn.sessionToken,
+      displayName: undefined as unknown as string,
+    })
+
+    expect(clearedFromUndefined.displayName).toBeUndefined()
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: signedIn.sessionToken,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+  })
+
+  it('keeps expired and revoked current-account profile update contexts neutral', async () => {
+    const { service } = createInMemoryAuthKit()
+    const revoked = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-profile-revoked',
+        email: 'current-account-profile-revoked@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const expired = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-profile-expired',
+        email: 'current-account-profile-expired@example.com',
+        emailVerified: true,
+      }),
+      sessionExpiresAt: addSeconds(now, 5),
+      now,
+    })
+
+    await service.revokeCurrentSessionByToken({
+      sessionToken: revoked.sessionToken,
+      now: addSeconds(now, 5),
+    })
+
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: revoked.sessionToken,
+        displayName: 'Updated',
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: expired.sessionToken,
+        displayName: 'Updated',
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+  })
+
   it('unlinks current-account identities by session token and preserves re-auth and last-identity rules', async () => {
     const { service } = createInMemoryAuthKit({
       policy: createDefaultAuthPolicy({
@@ -582,6 +733,15 @@ describe('DefaultAuthService current-account action helpers', () => {
       service.closeCurrentAccountByToken({
         sessionToken: signedIn.sessionToken,
         reAuthenticatedAt: addSeconds(now, 20),
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: signedIn.sessionToken,
+        displayName: 'Updated',
         now: addSeconds(now, 20),
       }),
     ).rejects.toMatchObject({

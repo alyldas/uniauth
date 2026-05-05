@@ -116,9 +116,9 @@ Express ownership notes:
   account existence hints.
 - For account-security screens and mutations, use [Account security recipes](account-security.md)
   and prefer `getCurrentAccountInspectionSnapshot({ sessionToken, audit? })` plus the token-based
-  self-service link, revoke, unlink, password-action, account-closure, and recent-auth helpers
-  instead of reading adapter internals or re-routing current-account writes through raw `userId`
-  calls.
+  self-service profile update, link, revoke, unlink, password-action, account-closure, and
+  recent-auth helpers instead of reading adapter internals or re-routing current-account writes
+  through raw `userId` calls.
 
 ## Fastify
 
@@ -287,6 +287,36 @@ Minimum expectations:
 
 For bearer and mobile client transport choices around local sessions, see
 [Session transport recipes](session-transport.md).
+
+## Self-Service Profile Update
+
+Keep local auth profile updates on the same trusted `sessionToken` boundary as other
+current-account routes:
+
+```ts
+app.patch('/auth/account/profile', requireSession, async (req, res, next) => {
+  try {
+    const user = await authService.updateCurrentAccountProfileByToken({
+      sessionToken: req.auth.sessionToken,
+      displayName: req.body.displayName,
+      reAuthenticatedAt: req.auth.reAuthenticatedAt,
+    })
+
+    res.status(200).json({
+      id: user.id,
+      displayName: user.displayName ?? null,
+      updatedAt: user.updatedAt.toISOString(),
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+```
+
+Validate request body shape in the framework layer before calling the helper. Core trims display
+names and treats blank values as clearing the local auth display name. Email, phone, avatars, media
+storage, billing profile, and application-specific profile tables remain application-owned or
+identity-flow-owned.
 
 ## Self-Service Account Closure
 
