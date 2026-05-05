@@ -48,6 +48,107 @@ describe('Postgres current-account inspection helpers', () => {
     expect(inspection.nextAuditCursor).toEqual(page.nextCursor)
   })
 
+  it('builds a closure export snapshot from the Postgres current-account inspection view', async () => {
+    const { service } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-closure-export',
+        email: 'pg-current-account-closure-export@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    await service.createVerification({
+      purpose: 'sign-in',
+      target: 'pg-current-account-closure-export@example.com',
+      secret: '654321',
+      now: addSeconds(now, 5),
+    })
+    await service.createSession({
+      userId: signedIn.user.id,
+      now: addSeconds(now, 10),
+    })
+
+    const generatedAt = addSeconds(now, 20)
+    const exportSnapshot = await service.getCurrentAccountClosureExportSnapshot({
+      sessionToken: signedIn.sessionToken,
+      touch: true,
+      now: generatedAt,
+      audit: { limit: 2 },
+    })
+    const inspection = await service.getCurrentAccountInspectionSnapshot({
+      sessionToken: signedIn.sessionToken,
+      touch: true,
+      now: generatedAt,
+      audit: { limit: 2 },
+    })
+
+    expect(exportSnapshot).toEqual({
+      ...inspection,
+      generatedAt,
+    })
+    expect(exportSnapshot.currentSessionId).toBe(signedIn.session.id)
+    expect(exportSnapshot.auditEvents).toHaveLength(2)
+  })
+
+  it('keeps Postgres closure export snapshots free of raw secrets and metadata', async () => {
+    const { service, store } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-closure-export-secrets',
+        email: 'pg-current-account-closure-export-secrets@example.com',
+        emailVerified: true,
+        metadata: {
+          providerAccessToken: 'pg-raw-provider-token',
+        },
+      },
+      now,
+    })
+    const credential = await service.setPassword({
+      userId: signedIn.user.id,
+      email: 'pg-current-account-closure-export-secrets@example.com',
+      password: 'plain-password',
+      now: addSeconds(now, 5),
+      metadata: {
+        passwordResetToken: 'pg-raw-password-metadata-token',
+      },
+    })
+    const verification = await service.createVerification({
+      purpose: 'sign-in',
+      target: 'pg-current-account-closure-export-secrets@example.com',
+      secret: 'pg-raw-verification-secret',
+      now: addSeconds(now, 10),
+      metadata: {
+        deliverySecret: 'pg-raw-verification-metadata-secret',
+      },
+    })
+    const rawCurrentSession = await store.sessionRepo.findById(signedIn.session.id)
+
+    const snapshot = await service.getCurrentAccountClosureExportSnapshot({
+      sessionToken: signedIn.sessionToken,
+      now: addSeconds(now, 20),
+      audit: { limit: 5 },
+    })
+    const serialized = JSON.stringify(snapshot)
+
+    expect(snapshot.account.credentials).toEqual([
+      expect.objectContaining({
+        id: credential.id,
+        subject: 'pg-current-account-closure-export-secrets@example.com',
+        type: 'password',
+      }),
+    ])
+    expect(serialized).not.toContain(credential.passwordHash)
+    expect(serialized).not.toContain(rawCurrentSession!.tokenHash)
+    expect(serialized).not.toContain(verification.verification.secretHash)
+    expect(serialized).not.toContain('pg-raw-provider-token')
+    expect(serialized).not.toContain('pg-raw-password-metadata-token')
+    expect(serialized).not.toContain('pg-raw-verification-metadata-secret')
+  })
+
   it('returns the same current-account audit page as the user-scoped audit helper on Postgres', async () => {
     const { service } = await createPostgresTestKit()
     const signedIn = await service.signIn({
@@ -155,6 +256,15 @@ describe('Postgres current-account inspection helpers', () => {
         sessionToken: signedIn.sessionToken,
         now: addSeconds(now, 20),
         limit: 1,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.getCurrentAccountClosureExportSnapshot({
+        sessionToken: signedIn.sessionToken,
+        now: addSeconds(now, 20),
+        audit: { limit: 1 },
       }),
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.SessionNotFound,

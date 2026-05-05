@@ -5,6 +5,7 @@ import { getUserIdentities, link, mergeAccounts, unlink } from './accounts.js'
 import { getUserCredentials } from './credentials.js'
 import {
   getCurrentAccountAuditEventPage,
+  getCurrentAccountClosureExportSnapshot,
   getCurrentAccountInspectionSnapshot,
 } from './current-account-inspection.js'
 import {
@@ -80,6 +81,7 @@ import type {
   AssertCurrentAccountReAuthInput,
   AuthResult,
   AuthService,
+  CurrentAccountClosureExportSnapshot,
   CurrentAccountInspectionSnapshot,
   CurrentAccountReAuthAssertion,
   CurrentAccountReAuthStatus,
@@ -107,6 +109,7 @@ import type {
   CloseCurrentAccountByTokenInput,
   CloseCurrentAccountByTokenResult,
   GetCurrentAccountAuditEventPageInput,
+  GetCurrentAccountClosureExportSnapshotInput,
   GetCurrentAccountInspectionSnapshotInput,
   GetCurrentAccountReAuthStatusInput,
   GetCurrentAccountSecuritySnapshotInput,
@@ -307,6 +310,12 @@ export class DefaultAuthService implements AuthService {
     input: GetCurrentAccountInspectionSnapshotInput,
   ): Promise<CurrentAccountInspectionSnapshot> {
     return getCurrentAccountInspectionSnapshot(this.runtime, input)
+  }
+
+  async getCurrentAccountClosureExportSnapshot(
+    input: GetCurrentAccountClosureExportSnapshotInput,
+  ): Promise<CurrentAccountClosureExportSnapshot> {
+    return getCurrentAccountClosureExportSnapshot(this.runtime, input)
   }
 
   async getCurrentAccountAuditEventPage(

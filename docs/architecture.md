@@ -35,6 +35,7 @@ identities, and email/phone are optional identity attributes.
 - `resolveSessionContext`
 - `getCurrentAccountSecuritySnapshot`
 - `getCurrentAccountInspectionSnapshot`
+- `getCurrentAccountClosureExportSnapshot`
 - `getCurrentAccountAuditEventPage`
 - `startCurrentAccountOtpReAuth`
 - `linkCurrentIdentityByToken`
@@ -94,7 +95,9 @@ OTP re-auth challenges can stay on that trusted token boundary as well instead o
 generic verification ownership checks in route code. Account closure follows the same shape:
 the current session token identifies the actor, core disables the current user, revokes active
 local sessions, and leaves cookie clearing, legal retention, and downstream data deletion to the
-application.
+application. Pre-closure export snapshots also stay on that boundary: core returns safe local auth
+views and a bounded audit window, while file generation, legal export policy, billing state, and
+application-profile data remain outside the package.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful

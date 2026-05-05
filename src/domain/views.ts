@@ -61,6 +61,10 @@ export interface CurrentAccountInspectionSnapshot extends CurrentAccountSecurity
   readonly nextAuditCursor?: AuditEventCursor
 }
 
+export interface CurrentAccountClosureExportSnapshot extends CurrentAccountInspectionSnapshot {
+  readonly generatedAt: Date
+}
+
 export interface AuditEventView {
   readonly id: AuditEvent['id']
   readonly type: AuditEvent['type']

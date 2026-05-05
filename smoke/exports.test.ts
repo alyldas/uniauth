@@ -89,6 +89,9 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.getCurrentAccountInspectionSnapshot).toBeTypeOf(
       'function',
     )
+    expect(core.DefaultAuthService.prototype.getCurrentAccountClosureExportSnapshot).toBeTypeOf(
+      'function',
+    )
     expect(core.DefaultAuthService.prototype.getCurrentAccountAuditEventPage).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getCurrentAccountReAuthStatus).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.assertCurrentAccountReAuth).toBeTypeOf('function')
@@ -202,8 +205,12 @@ describe('package exports', () => {
     expect(contractsDeclarations).toContain('AuthServiceInfrastructure')
     expect(viewDeclarations).toContain('export interface CurrentAccountSecuritySnapshot')
     expect(viewDeclarations).toContain('export interface CurrentAccountInspectionSnapshot')
+    expect(viewDeclarations).toContain('export interface CurrentAccountClosureExportSnapshot')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountSecuritySnapshotInput')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountInspectionSnapshotInput')
+    expect(flowDeclarations).toContain(
+      'export interface GetCurrentAccountClosureExportSnapshotInput',
+    )
     expect(flowDeclarations).toContain('export interface GetCurrentAccountAuditEventPageInput')
     expect(flowDeclarations).toContain('export interface GetCurrentAccountReAuthStatusInput')
     expect(flowDeclarations).toContain('export interface CurrentAccountReAuthStatus')
@@ -242,6 +249,9 @@ describe('package exports', () => {
     )
     expect(serviceDeclarations).toContain(
       'getCurrentAccountInspectionSnapshot(input: GetCurrentAccountInspectionSnapshotInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'getCurrentAccountClosureExportSnapshot(input: GetCurrentAccountClosureExportSnapshotInput)',
     )
     expect(serviceDeclarations).toContain(
       'getCurrentAccountAuditEventPage(input: GetCurrentAccountAuditEventPageInput)',

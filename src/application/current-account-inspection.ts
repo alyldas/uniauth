@@ -4,8 +4,10 @@ import type { AuthServiceRuntime } from './runtime.js'
 import { resolveSessionContext } from './session-context.js'
 import type {
   AuditEventPage,
+  CurrentAccountClosureExportSnapshot,
   CurrentAccountInspectionSnapshot,
   GetCurrentAccountAuditEventPageInput,
+  GetCurrentAccountClosureExportSnapshotInput,
   GetCurrentAccountInspectionSnapshotInput,
 } from '../domain/types.js'
 import { toCurrentAccountInspectionSnapshot } from '../domain/types.js'
@@ -34,6 +36,22 @@ export async function getCurrentAccountInspectionSnapshot(
     auditEvents: auditPage.events,
     ...(auditPage.nextCursor ? { nextAuditCursor: auditPage.nextCursor } : {}),
   })
+}
+
+export async function getCurrentAccountClosureExportSnapshot(
+  runtime: AuthServiceRuntime,
+  input: GetCurrentAccountClosureExportSnapshotInput,
+): Promise<CurrentAccountClosureExportSnapshot> {
+  const generatedAt = input.now ?? runtime.clock.now()
+  const inspection = await getCurrentAccountInspectionSnapshot(runtime, {
+    ...input,
+    now: generatedAt,
+  })
+
+  return {
+    ...inspection,
+    generatedAt,
+  }
 }
 
 export async function getCurrentAccountAuditEventPage(

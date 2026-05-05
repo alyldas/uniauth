@@ -38,6 +38,19 @@ const current = await authService.getCurrentAccountInspectionSnapshot({
 })
 ```
 
+For pre-closure export screens, use the dedicated closure export snapshot instead of serializing raw
+entities or calling storage repositories directly:
+
+```ts
+const exportSnapshot = await authService.getCurrentAccountClosureExportSnapshot({
+  sessionToken,
+  touch: true,
+  audit: {
+    limit: 50,
+  },
+})
+```
+
 ## Recommended Read-Side Shape
 
 The minimal current-account server-side composition usually looks like this:
@@ -100,6 +113,11 @@ Do not serialize:
 - `Credential.passwordHash`
 - `Session.tokenHash`
 - `Verification.secretHash`
+
+The closure export helper returns the same safe account, session, credential, identity, and audit
+views plus `generatedAt`. It is intentionally not a legal data-portability export engine. File
+format, retention policy, profile data outside local auth, billing state, and downstream
+application records remain application-owned.
 
 ## Security Timeline
 
@@ -466,6 +484,32 @@ Keep incorrect current-password responses neutral and leave session refresh, coo
 "sign out other devices after password change" policy in the application layer.
 
 ### Close Current Account
+
+If the account-closure flow offers a "download my auth security data" step, keep that route
+read-only and on the same trusted session boundary:
+
+```ts
+const exportSnapshot = await authService.getCurrentAccountClosureExportSnapshot({
+  sessionToken: request.auth.sessionToken,
+  audit: {
+    limit: 50,
+  },
+})
+
+return {
+  generatedAt: exportSnapshot.generatedAt.toISOString(),
+  user: exportSnapshot.account.user,
+  identities: exportSnapshot.account.identities,
+  credentials: exportSnapshot.account.credentials,
+  sessions: exportSnapshot.account.sessions,
+  auditEvents: exportSnapshot.auditEvents,
+  nextAuditCursor: exportSnapshot.nextAuditCursor ?? null,
+}
+```
+
+Keep the actual download format application-owned. The helper only returns local auth safe views;
+it does not collect product profile data, billing records, provider token records, or downstream
+application tables.
 
 Use `closeCurrentAccountByToken(...)` for self-service account closure from an authenticated
 settings route. Keep the recent-auth marker application-owned, then pass it into the helper on the
