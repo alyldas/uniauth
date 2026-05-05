@@ -16,9 +16,15 @@ import type {
   RevokeOwnedSessionByTokenResult,
   SetCurrentAccountPasswordByTokenInput,
   UnlinkCurrentIdentityByTokenInput,
+  UpdateCurrentAccountProfileByTokenInput,
+  User,
 } from '../domain/types.js'
 import { AuditEventType, AuthPolicyAction, isActiveSession } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
+
+const CurrentAccountProfileField = {
+  DisplayName: 'displayName',
+} as const
 
 export async function revokeOwnedSessionByToken(
   runtime: AuthServiceRuntime,
@@ -135,6 +141,41 @@ export async function closeCurrentAccountByToken(
   })
 }
 
+export async function updateCurrentAccountProfileByToken(
+  runtime: AuthServiceRuntime,
+  input: UpdateCurrentAccountProfileByTokenInput,
+): Promise<User> {
+  return runtime.transaction.run(async () => {
+    const now = input.now ?? runtime.clock.now()
+    const { session, user } = await resolveSessionContext(runtime, {
+      sessionToken: input.sessionToken,
+      now,
+    })
+
+    await ensureReAuth(
+      runtime,
+      AuthPolicyAction.UpdateProfile,
+      user.id,
+      input.reAuthenticatedAt,
+      now,
+    )
+
+    const patch = normalizeCurrentAccountProfilePatch(input, now)
+    const updated = await runtime.repos.userRepo.update(user.id, patch)
+
+    await audit(runtime, AuditEventType.AccountProfileUpdated, now, {
+      userId: user.id,
+      sessionId: session.id,
+      metadata: {
+        changedFields: [CurrentAccountProfileField.DisplayName],
+        ...optionalProp('requestMetadata', input.metadata),
+      },
+    })
+
+    return updated
+  })
+}
+
 export async function setCurrentAccountPasswordByToken(
   runtime: AuthServiceRuntime,
   input: SetCurrentAccountPasswordByTokenInput,
@@ -182,4 +223,21 @@ export async function changeCurrentAccountPasswordByToken(
       ...(input.metadata ? { metadata: input.metadata } : {}),
     })
   })
+}
+
+function normalizeCurrentAccountProfilePatch(
+  input: UpdateCurrentAccountProfileByTokenInput,
+  now: Date,
+): Pick<User, 'updatedAt'> & { readonly displayName?: User['displayName'] | undefined } {
+  if (!Object.hasOwn(input, CurrentAccountProfileField.DisplayName)) {
+    throw invalidInput('Current account profile update requires at least one profile field.')
+  }
+
+  const displayName =
+    typeof input.displayName === 'string' ? input.displayName.trim() || undefined : undefined
+
+  return {
+    displayName,
+    updatedAt: now,
+  }
 }

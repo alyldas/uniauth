@@ -20,6 +20,7 @@ import {
   revokeOwnedSessionByToken,
   setCurrentAccountPasswordByToken,
   unlinkCurrentIdentityByToken,
+  updateCurrentAccountProfileByToken,
 } from './current-account-actions.js'
 import {
   assertCurrentAccountReAuth,
@@ -149,6 +150,7 @@ import type {
   TouchSessionInput,
   UnlinkInput,
   UnlinkCurrentIdentityByTokenInput,
+  UpdateCurrentAccountProfileByTokenInput,
   User,
   UserId,
   Verification,
@@ -352,6 +354,12 @@ export class DefaultAuthService implements AuthService {
     input: CloseCurrentAccountByTokenInput,
   ): Promise<CloseCurrentAccountByTokenResult> {
     return closeCurrentAccountByToken(this.runtime, input)
+  }
+
+  async updateCurrentAccountProfileByToken(
+    input: UpdateCurrentAccountProfileByTokenInput,
+  ): Promise<User> {
+    return updateCurrentAccountProfileByToken(this.runtime, input)
   }
 
   async setCurrentAccountPasswordByToken(

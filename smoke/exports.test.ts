@@ -34,9 +34,11 @@ describe('package exports', () => {
     expect(bridges.mapAuthJsOAuthToAssertion).toBeTypeOf('function')
     expect(bridges.mapBetterAuthOAuthToAssertion).toBeTypeOf('function')
     expect(core.AuditEventType.SignIn).toBe('auth.sign_in')
+    expect(core.AuditEventType.AccountProfileUpdated).toBe('auth.account_profile_updated')
     expect(core.AuditEventType.VerificationCancelled).toBe('auth.verification_cancelled')
     expect(core.CredentialType.Password).toBe('password')
     expect(core.AuthPolicyAction.ChangePassword).toBe('changePassword')
+    expect(core.AuthPolicyAction.UpdateProfile).toBe('updateProfile')
     expect(core.DefaultAuthService).toBeTypeOf('function')
     expect(core.EMAIL_MAGIC_LINK_PROVIDER_ID).toBe('email-magic-link')
     expect(core.EMAIL_OTP_PROVIDER_ID).toBe('email-otp')
@@ -103,6 +105,9 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.revokeOwnedSessionByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.revokeOtherSessionsByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.unlinkCurrentIdentityByToken).toBeTypeOf('function')
+    expect(core.DefaultAuthService.prototype.updateCurrentAccountProfileByToken).toBeTypeOf(
+      'function',
+    )
     expect(core.DefaultAuthService.prototype.setCurrentAccountPasswordByToken).toBeTypeOf(
       'function',
     )
@@ -221,6 +226,7 @@ describe('package exports', () => {
     expect(flowDeclarations).toContain('export interface CancelCurrentAccountOtpReAuthInput')
     expect(flowDeclarations).toContain('export interface LinkCurrentIdentityByTokenInput')
     expect(flowDeclarations).toContain('export interface UnlinkCurrentIdentityByTokenInput')
+    expect(flowDeclarations).toContain('export interface UpdateCurrentAccountProfileByTokenInput')
     expect(flowDeclarations).toContain('export interface RevokeOwnedSessionByTokenResult')
     expect(flowDeclarations).toContain('export interface RevokeOtherSessionsByTokenResult')
     expect(serviceDeclarations).toContain(
@@ -273,6 +279,9 @@ describe('package exports', () => {
     )
     expect(serviceDeclarations).toContain(
       'unlinkCurrentIdentityByToken(input: UnlinkCurrentIdentityByTokenInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'updateCurrentAccountProfileByToken(input: UpdateCurrentAccountProfileByTokenInput)',
     )
     expect(serviceDeclarations).toContain(
       'setCurrentAccountPasswordByToken(input: SetCurrentAccountPasswordByTokenInput)',

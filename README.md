@@ -380,6 +380,12 @@ the trusted token boundary through `getCurrentAccountAuditEventPage(...)`.
 The same trusted token boundary can also own self-service account mutations:
 
 ```ts
+await service.updateCurrentAccountProfileByToken({
+  sessionToken,
+  displayName,
+  reAuthenticatedAt,
+})
+
 await service.revokeOwnedSessionByToken({
   sessionToken,
   targetSessionId,

@@ -135,6 +135,150 @@ describe('Postgres current-account action helpers', () => {
     )
   })
 
+  it('updates the current Postgres account profile by trusted session token', async () => {
+    const { service } = await createPostgresTestKit({
+      policy: createDefaultAuthPolicy({
+        requireReAuthFor: [AuthPolicyAction.UpdateProfile],
+      }),
+    })
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-profile',
+        email: 'pg-current-account-profile@example.com',
+        emailVerified: true,
+        phone: '+15550000002',
+        phoneVerified: true,
+        displayName: 'Before',
+        metadata: { externalProfileId: 'pg-profile-1' },
+      },
+      now,
+    })
+    const originalIdentities = await service.getUserIdentities(signedIn.user.id)
+    const originalSessions = await service.getUserSessions(signedIn.user.id)
+
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: signedIn.sessionToken,
+        displayName: 'Updated',
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.ReAuthRequired,
+    })
+
+    const updatedAt = addSeconds(now, 20)
+    const updated = await service.updateCurrentAccountProfileByToken({
+      sessionToken: signedIn.sessionToken,
+      displayName: '  Updated Name  ',
+      reAuthenticatedAt: updatedAt,
+      now: updatedAt,
+      metadata: { source: 'settings' },
+    })
+
+    expect(updated).toMatchObject({
+      id: signedIn.user.id,
+      displayName: 'Updated Name',
+      email: 'pg-current-account-profile@example.com',
+      phone: '+15550000002',
+      updatedAt,
+    })
+    expect(await service.getUserIdentities(signedIn.user.id)).toEqual(originalIdentities)
+    expect(await service.getUserSessions(signedIn.user.id)).toEqual(originalSessions)
+    await expect(service.getAuditEvents({ userId: signedIn.user.id })).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.AccountProfileUpdated,
+          sessionId: signedIn.session.id,
+          metadata: {
+            changedFields: ['displayName'],
+            requestMetadata: { source: 'settings' },
+          },
+        }),
+      ]),
+    )
+  })
+
+  it('normalizes blank Postgres profile display names and rejects empty updates', async () => {
+    const { service } = await createPostgresTestKit({
+      clock: { now: () => now },
+    })
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-profile-blank',
+        email: 'pg-current-account-profile-blank@example.com',
+        emailVerified: true,
+        displayName: 'Before',
+      },
+    })
+
+    const cleared = await service.updateCurrentAccountProfileByToken({
+      sessionToken: signedIn.sessionToken,
+      displayName: '   ',
+    })
+
+    expect(cleared).toMatchObject({
+      id: signedIn.user.id,
+      updatedAt: now,
+    })
+    expect(cleared.displayName).toBeUndefined()
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: signedIn.sessionToken,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+  })
+
+  it('keeps expired and revoked Postgres current-account profile update contexts neutral', async () => {
+    const { service } = await createPostgresTestKit()
+    const revoked = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-profile-revoked',
+        email: 'pg-current-account-profile-revoked@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const expired = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-profile-expired',
+        email: 'pg-current-account-profile-expired@example.com',
+        emailVerified: true,
+      },
+      sessionExpiresAt: addSeconds(now, 5),
+      now,
+    })
+
+    await service.revokeCurrentSessionByToken({
+      sessionToken: revoked.sessionToken,
+      now: addSeconds(now, 5),
+    })
+
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: revoked.sessionToken,
+        displayName: 'Updated',
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: expired.sessionToken,
+        displayName: 'Updated',
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+  })
+
   it('closes the current Postgres account by trusted session token and revokes sessions', async () => {
     const { service, store } = await createPostgresTestKit({
       policy: createDefaultAuthPolicy({
@@ -268,6 +412,15 @@ describe('Postgres current-account action helpers', () => {
       service.closeCurrentAccountByToken({
         sessionToken: signedIn.sessionToken,
         reAuthenticatedAt: addSeconds(now, 20),
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+    })
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: signedIn.sessionToken,
+        displayName: 'Updated',
         now: addSeconds(now, 20),
       }),
     ).rejects.toMatchObject({
