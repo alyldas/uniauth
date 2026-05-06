@@ -12,11 +12,14 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    container:
-      image: node:22-alpine
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
       - name: Install dependencies
         run: npm ci
       - name: Check package
