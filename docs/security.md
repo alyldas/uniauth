@@ -25,6 +25,8 @@ risks, see [Threat model](threat-model.md).
 - Password sign-in uses neutral invalid-credential errors for missing users, wrong passwords, and
   inconsistent credential state.
 - Password recovery uses hashed verification secrets and consume-once finish semantics.
+- Current-account contact changes update local email or phone only after OTP proof of the new
+  target.
 - OTP delivery failures do not expose account state; the app-owned sender adapter decides retry,
   dead-letter, and cleanup behavior.
 - Queue-backed delivery may wrap sender ports, but delivery attempts and exhausted-delivery state
@@ -46,6 +48,9 @@ risks, see [Threat model](threat-model.md).
 - Merge users: denied by default; extension point: `AuthPolicy.canMergeUsers`. The merge context now
   includes source and target active identities so policy can inspect provider trust and metadata.
 - Re-auth: required for merge by default; extension point: `AuthPolicy.requiresReAuth`.
+- Current-account contact change: allowed by default after trusted session resolution and OTP proof;
+  optional recent-auth enforcement uses `AuthPolicy.requiresReAuth` with
+  `AuthPolicyAction.UpdateContact`.
 
 ## Threats Covered in v0.1
 
@@ -104,6 +109,16 @@ risks, see [Threat model](threat-model.md).
   arbitrary error details by hand.
 - OTP, magic-link, and password-recovery abuse-control docs now use one canonical server-owned
   recipe for resend and 429 shaping.
+
+## Threats Covered in v0.46
+
+- Current-account email and phone updates prove the new target through the shared OTP verification
+  lifecycle before mutating local user contact fields.
+- Contact-change verifications are scoped to the current user and cannot be finished from another
+  trusted session.
+- Contact-change helpers update only `User.email` or `User.phone`; sign-in identities and password
+  credential subjects are not silently rewritten.
+- Recent-auth requirements for contact changes can be enforced through the existing policy hook.
 
 ## Threats Covered in v0.11
 

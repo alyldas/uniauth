@@ -194,6 +194,77 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
     },
   )
 
+  app.post(
+    '/account/contact/email/start',
+    sessionMiddleware,
+    requireExpressSession,
+    async (request, response, next) => {
+      try {
+        const auth = request.auth
+
+        if (!auth) {
+          response.status(401).json({ error: AUTHENTICATION_REQUIRED_MESSAGE })
+          return
+        }
+
+        const email = readRequiredString(request.body?.email, 'email')
+        const challenge = await authService.startCurrentAccountContactChange({
+          sessionToken: auth.sessionToken,
+          channel: OtpChannel.Email,
+          target: email,
+          metadata: { transport: 'express', route: 'contact-email-start' },
+        })
+
+        response.status(202).json({
+          verificationId: challenge.verificationId,
+          delivery: challenge.delivery,
+          expiresAt: challenge.expiresAt.toISOString(),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  app.post(
+    '/account/contact/email/finish',
+    sessionMiddleware,
+    requireExpressSession,
+    async (request, response, next) => {
+      try {
+        const auth = request.auth
+
+        if (!auth) {
+          response.status(401).json({ error: AUTHENTICATION_REQUIRED_MESSAGE })
+          return
+        }
+
+        const verificationId = parseVerificationId(
+          readRequiredString(request.body?.verificationId, 'verificationId'),
+        )
+        const code = readRequiredString(request.body?.code, 'code')
+        const user = await authService.finishCurrentAccountContactChange({
+          sessionToken: auth.sessionToken,
+          verificationId,
+          secret: code,
+          metadata: { transport: 'express', route: 'contact-email-finish' },
+        })
+
+        response.status(200).json({
+          user: {
+            id: user.id,
+            email: user.email ?? null,
+            phone: user.phone ?? null,
+            displayName: user.displayName ?? null,
+          },
+          updatedAt: user.updatedAt.toISOString(),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   app.use((error: unknown, _request: Request, response: Response, next: NextFunction): void => {
     if (response.headersSent) {
       next(error)
@@ -246,6 +317,8 @@ export async function runExpressAuthExample(): Promise<void> {
             'POST /auth/otp/finish',
             'GET /me',
             'GET /account/security',
+            'POST /account/contact/email/start',
+            'POST /account/contact/email/finish',
           ],
           note: 'OTP codes are printed by the application-owned email sender.',
         },

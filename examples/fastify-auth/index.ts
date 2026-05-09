@@ -188,6 +188,92 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
     },
   )
 
+  app.post<{
+    Body: {
+      email: string
+    }
+  }>(
+    '/account/contact/email/start',
+    {
+      preHandler: [sessionPreHandler, requireFastifySession],
+      schema: {
+        body: {
+          type: 'object',
+          required: ['email'],
+          properties: {
+            email: { type: 'string', minLength: 1 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const auth = request.auth
+
+      if (!auth) {
+        return reply.status(401).send({ error: AUTHENTICATION_REQUIRED_MESSAGE })
+      }
+
+      const challenge = await authService.startCurrentAccountContactChange({
+        sessionToken: auth.sessionToken,
+        channel: OtpChannel.Email,
+        target: request.body.email,
+        metadata: { transport: 'fastify', route: 'contact-email-start' },
+      })
+
+      return reply.status(202).send({
+        verificationId: challenge.verificationId,
+        delivery: challenge.delivery,
+        expiresAt: challenge.expiresAt.toISOString(),
+      })
+    },
+  )
+
+  app.post<{
+    Body: {
+      verificationId: string
+      code: string
+    }
+  }>(
+    '/account/contact/email/finish',
+    {
+      preHandler: [sessionPreHandler, requireFastifySession],
+      schema: {
+        body: {
+          type: 'object',
+          required: ['verificationId', 'code'],
+          properties: {
+            verificationId: { type: 'string', minLength: 1 },
+            code: { type: 'string', minLength: 1 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const auth = request.auth
+
+      if (!auth) {
+        return reply.status(401).send({ error: AUTHENTICATION_REQUIRED_MESSAGE })
+      }
+
+      const user = await authService.finishCurrentAccountContactChange({
+        sessionToken: auth.sessionToken,
+        verificationId: parseVerificationId(request.body.verificationId),
+        secret: request.body.code,
+        metadata: { transport: 'fastify', route: 'contact-email-finish' },
+      })
+
+      return reply.status(200).send({
+        user: {
+          id: user.id,
+          email: user.email ?? null,
+          phone: user.phone ?? null,
+          displayName: user.displayName ?? null,
+        },
+        updatedAt: user.updatedAt.toISOString(),
+      })
+    },
+  )
+
   app.setErrorHandler((error, _request, reply) => {
     if (isFastifyPublicRequestError(error)) {
       reply.status(400).send({ error: REQUEST_CANNOT_BE_COMPLETED_MESSAGE })
@@ -233,6 +319,8 @@ export async function runFastifyAuthExample(): Promise<void> {
           'POST /auth/otp/finish',
           'GET /me',
           'GET /account/security',
+          'POST /account/contact/email/start',
+          'POST /account/contact/email/finish',
         ],
         note: 'OTP codes are printed by the application-owned email sender.',
       },

@@ -45,6 +45,8 @@ UniAuth response:
 
 - exact `(provider, providerUserId)` match wins before any email or phone hint;
 - default policy does not auto-link by email or phone;
+- current-account contact changes prove the new target through an owned session and OTP challenge
+  without treating that target as a provider-linking shortcut;
 - merge is explicit and denied by default;
 - trust context can tighten auto-link, explicit link, and merge decisions.
 

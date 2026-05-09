@@ -23,6 +23,12 @@ import {
   updateCurrentAccountProfileByToken,
 } from './current-account-actions.js'
 import {
+  cancelCurrentAccountContactChange,
+  finishCurrentAccountContactChange,
+  resendCurrentAccountContactChange,
+  startCurrentAccountContactChange,
+} from './current-account-contact-change.js'
+import {
   assertCurrentAccountReAuth,
   cancelCurrentAccountOtpReAuth,
   getCurrentAccountReAuthStatus,
@@ -82,6 +88,7 @@ import type {
   AssertCurrentAccountReAuthInput,
   AuthResult,
   AuthService,
+  CancelCurrentAccountContactChangeInput,
   CurrentAccountClosureExportSnapshot,
   CurrentAccountInspectionSnapshot,
   CurrentAccountReAuthAssertion,
@@ -101,6 +108,7 @@ import type {
   CreateSessionResult,
   CreateVerificationInput,
   CreateVerificationResult,
+  FinishCurrentAccountContactChangeInput,
   FinishEmailMagicLinkSignInInput,
   FinishEmailPasswordRecoveryInput,
   FinishOtpChallengeInput,
@@ -127,6 +135,7 @@ import type {
   RevokeOtherSessionsByTokenResult,
   RevokeUserSessionsInput,
   RevokeUserSessionsResult,
+  ResendCurrentAccountContactChangeInput,
   ResendCurrentAccountOtpReAuthInput,
   ResendOtpChallengeInput,
   ResolveSessionContextInput,
@@ -138,6 +147,7 @@ import type {
   SetCurrentAccountPasswordByTokenInput,
   SignInInput,
   SignInWithPasswordInput,
+  StartCurrentAccountContactChangeInput,
   StartCurrentAccountOtpReAuthInput,
   StartEmailMagicLinkSignInInput,
   StartEmailMagicLinkSignInResult,
@@ -360,6 +370,30 @@ export class DefaultAuthService implements AuthService {
     input: UpdateCurrentAccountProfileByTokenInput,
   ): Promise<User> {
     return updateCurrentAccountProfileByToken(this.runtime, input)
+  }
+
+  async startCurrentAccountContactChange(
+    input: StartCurrentAccountContactChangeInput,
+  ): Promise<StartOtpChallengeResult> {
+    return startCurrentAccountContactChange(this.runtime, input)
+  }
+
+  async resendCurrentAccountContactChange(
+    input: ResendCurrentAccountContactChangeInput,
+  ): Promise<StartOtpChallengeResult> {
+    return resendCurrentAccountContactChange(this.runtime, input)
+  }
+
+  async cancelCurrentAccountContactChange(
+    input: CancelCurrentAccountContactChangeInput,
+  ): Promise<Verification> {
+    return cancelCurrentAccountContactChange(this.runtime, input)
+  }
+
+  async finishCurrentAccountContactChange(
+    input: FinishCurrentAccountContactChangeInput,
+  ): Promise<User> {
+    return finishCurrentAccountContactChange(this.runtime, input)
   }
 
   async setCurrentAccountPasswordByToken(

@@ -51,8 +51,8 @@ license, subscription, private contract, or other written permission.
 - Exposes current-account inspection aggregate and audit-page helpers for self-service security
   routes that already trust a local session token.
 - Exposes token-based current-account write-side helpers for sign-in-method link/unlink,
-  selected-session revoke, account closure, and local password setup or change after transport
-  resolution.
+  selected-session revoke, verified contact changes, account closure, and local password setup or
+  change after transport resolution.
 - Exposes current-account OTP and password re-auth helpers for self-service recent-auth bootstrapping
   on the trusted local session-token boundary.
 - Exposes a trusted `getAccountInspectionSnapshot({ userId, audit? })` aggregate read-side
@@ -386,6 +386,19 @@ await service.updateCurrentAccountProfileByToken({
   reAuthenticatedAt,
 })
 
+const contactChange = await service.startCurrentAccountContactChange({
+  sessionToken,
+  channel: OtpChannel.Email,
+  target: newEmail,
+  reAuthenticatedAt,
+})
+
+await service.finishCurrentAccountContactChange({
+  sessionToken,
+  verificationId: contactChange.verificationId,
+  secret: code,
+})
+
 await service.revokeOwnedSessionByToken({
   sessionToken,
   targetSessionId,
@@ -684,6 +697,7 @@ contact `alyldas@ya.ru`.
 - [Basic Node example](examples/basic-node/index.ts)
 - [Express auth module example](examples/express-auth/index.ts)
 - [Fastify auth module example](examples/fastify-auth/index.ts)
+- [Current-account contact change example](examples/current-account-contact-change/index.ts)
 - [Link and unlink example](examples/link-unlink/index.ts)
 - [OTP backend wiring example](examples/otp-backend/index.ts)
 - [OAuth / OIDC wiring example](examples/oauth-oidc/index.ts)

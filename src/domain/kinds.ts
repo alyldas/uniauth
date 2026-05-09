@@ -11,6 +11,7 @@ export const VerificationPurpose = {
   SignIn: 'sign-in',
   Link: 'link',
   ReAuth: 're-auth',
+  ContactChange: 'contact-change',
   Recovery: 'recovery',
 } as const
 

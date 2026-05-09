@@ -11,6 +11,7 @@ import type { AuditEvent, AuditEventPage, AuditEventQuery } from './audit.js'
 import type {
   AuthResult,
   AssertCurrentAccountReAuthInput,
+  CancelCurrentAccountContactChangeInput,
   GetCurrentAccountClosureExportSnapshotInput,
   GetCurrentAccountSecuritySnapshotInput,
   GetCurrentAccountReAuthStatusInput,
@@ -23,6 +24,7 @@ import type {
   CreateSessionResult,
   CreateVerificationInput,
   CreateVerificationResult,
+  FinishCurrentAccountContactChangeInput,
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
@@ -46,11 +48,13 @@ import type {
   RevokeOtherSessionsByTokenResult,
   RevokeUserSessionsInput,
   RevokeUserSessionsResult,
+  ResendCurrentAccountContactChangeInput,
   ResendOtpChallengeInput,
   ResolveSessionContextInput,
   ResolveSessionInput,
   ResolvedSessionContext,
   SignInInput,
+  StartCurrentAccountContactChangeInput,
   StartOtpChallengeInput,
   StartOtpChallengeResult,
   TouchSessionInput,
@@ -148,6 +152,16 @@ export interface AuthService {
     input: CloseCurrentAccountByTokenInput,
   ): Promise<CloseCurrentAccountByTokenResult>
   updateCurrentAccountProfileByToken(input: UpdateCurrentAccountProfileByTokenInput): Promise<User>
+  startCurrentAccountContactChange(
+    input: StartCurrentAccountContactChangeInput,
+  ): Promise<StartOtpChallengeResult>
+  resendCurrentAccountContactChange(
+    input: ResendCurrentAccountContactChangeInput,
+  ): Promise<StartOtpChallengeResult>
+  cancelCurrentAccountContactChange(
+    input: CancelCurrentAccountContactChangeInput,
+  ): Promise<Verification>
+  finishCurrentAccountContactChange(input: FinishCurrentAccountContactChangeInput): Promise<User>
   setCurrentAccountPasswordByToken(
     input: SetCurrentAccountPasswordByTokenInput,
   ): Promise<Credential>

@@ -7,6 +7,7 @@ export const AuditEventType = {
   AccountsMerged: 'auth.accounts_merged',
   AccountClosed: 'auth.account_closed',
   AccountProfileUpdated: 'auth.account_profile_updated',
+  AccountContactUpdated: 'auth.account_contact_updated',
   SessionCreated: 'auth.session_created',
   SessionRevoked: 'auth.session_revoked',
   VerificationCreated: 'auth.verification_created',

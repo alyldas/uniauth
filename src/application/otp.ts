@@ -255,7 +255,7 @@ export async function findOtpChallengeRecord(
   return { verification, channel }
 }
 
-async function enforceOtpFinishRateLimit(
+export async function enforceOtpFinishRateLimit(
   runtime: AuthServiceRuntime,
   challenge: { readonly verification: Verification; readonly channel: SupportedOtpChannel },
   now: Date,

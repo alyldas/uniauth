@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   AuditEventType,
   AuthPolicyAction,
+  OtpChannel,
   SessionStatus,
   UniAuthErrorCode,
+  VerificationPurpose,
   addSeconds,
   createDefaultAuthPolicy,
 } from '../../src'
@@ -230,6 +232,86 @@ describe('Postgres current-account action helpers', () => {
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.InvalidInput,
     })
+  })
+
+  it('finishes Postgres current-account phone changes by trusted session token', async () => {
+    const { service, smsSender } = await createPostgresTestKit({
+      policy: createDefaultAuthPolicy({
+        requireReAuthFor: [AuthPolicyAction.UpdateContact],
+      }),
+    })
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-contact-change',
+        email: 'pg-current-account-contact-change@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+    const originalIdentities = await service.getUserIdentities(signedIn.user.id)
+
+    await expect(
+      service.startCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        channel: OtpChannel.Phone,
+        target: '+1 (555) 000-0005',
+        secret: '444444',
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.ReAuthRequired,
+    })
+
+    const started = await service.startCurrentAccountContactChange({
+      sessionToken: signedIn.sessionToken,
+      channel: OtpChannel.Phone,
+      target: '+1 (555) 000-0005',
+      secret: '444444',
+      reAuthenticatedAt: addSeconds(now, 20),
+      now: addSeconds(now, 20),
+      metadata: { source: 'settings' },
+    })
+
+    expect(smsSender.listMessages()).toEqual([
+      expect.objectContaining({
+        to: '+15550000005',
+        metadata: expect.objectContaining({
+          purpose: VerificationPurpose.ContactChange,
+          delivery: OtpChannel.Phone,
+        }),
+      }),
+    ])
+
+    const updated = await service.finishCurrentAccountContactChange({
+      sessionToken: signedIn.sessionToken,
+      verificationId: started.verificationId,
+      secret: '444444',
+      now: addSeconds(now, 30),
+      metadata: { source: 'settings-finish' },
+    })
+
+    expect(updated).toMatchObject({
+      id: signedIn.user.id,
+      email: 'pg-current-account-contact-change@example.com',
+      phone: '+15550000005',
+      updatedAt: addSeconds(now, 30),
+    })
+    expect(await service.getUserIdentities(signedIn.user.id)).toEqual(originalIdentities)
+    await expect(service.getAuditEvents({ userId: signedIn.user.id })).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.AccountContactUpdated,
+          sessionId: signedIn.session.id,
+          metadata: {
+            verificationId: started.verificationId,
+            channel: OtpChannel.Phone,
+            changedFields: ['phone'],
+            requestMetadata: { source: 'settings-finish' },
+          },
+        }),
+      ]),
+    )
   })
 
   it('keeps expired and revoked Postgres current-account profile update contexts neutral', async () => {

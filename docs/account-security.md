@@ -291,6 +291,52 @@ Applications that consider profile changes sensitive can configure
 `AuthPolicyAction.UpdateProfile` in `requireReAuthFor` and pass the same app-owned
 `reAuthenticatedAt` marker used by password, unlink, and closure routes.
 
+### Update Current Account Contact
+
+Use `startCurrentAccountContactChange(...)` and `finishCurrentAccountContactChange(...)` when an
+authenticated settings route needs to update the local `User.email` or `User.phone` field after OTP
+proof on the new target:
+
+```ts
+const started = await authService.startCurrentAccountContactChange({
+  sessionToken: request.auth.sessionToken,
+  channel: body.channel,
+  target: body.target,
+  reAuthenticatedAt: request.auth.reAuthenticatedAt,
+})
+
+return {
+  verificationId: started.verificationId,
+  expiresAt: started.expiresAt.toISOString(),
+  delivery: started.delivery,
+}
+```
+
+```ts
+const user = await authService.finishCurrentAccountContactChange({
+  sessionToken: request.auth.sessionToken,
+  verificationId: body.verificationId,
+  secret: body.code,
+})
+
+return {
+  id: user.id,
+  email: user.email ?? null,
+  phone: user.phone ?? null,
+  updatedAt: user.updatedAt.toISOString(),
+}
+```
+
+`resendCurrentAccountContactChange(...)` and `cancelCurrentAccountContactChange(...)` keep the
+challenge on the same trusted `sessionToken` boundary. The helpers normalize email and phone
+targets, reject unchanged targets, and update only the local `User` contact field after successful
+verification. They do not rewrite sign-in identities, password credential subjects, OAuth provider
+profiles, notification preferences, or product profile tables.
+
+Applications that consider contact changes sensitive can configure `AuthPolicyAction.UpdateContact`
+in `requireReAuthFor` and pass the same app-owned `reAuthenticatedAt` marker used by password,
+unlink, profile, and closure routes.
+
 For sign-in method screens:
 
 1. load the aggregate view through `authService.getCurrentAccountInspectionSnapshot(...)` or
@@ -299,6 +345,7 @@ For sign-in method screens:
 2. present provider ids, statuses, email or phone hints, and credential types;
 3. compose mutations through `linkCurrentIdentityByToken(...)`, `unlinkCurrentIdentityByToken(...)`,
    `setCurrentAccountPasswordByToken(...)`, `changeCurrentAccountPasswordByToken(...)`,
+   `startCurrentAccountContactChange(...)`, `finishCurrentAccountContactChange(...)`,
    `closeCurrentAccountByToken(...)`, or new provider link flows.
 
 Keep the same public security rules:
@@ -627,6 +674,7 @@ Do not send `secretHash` to browsers, mobile clients, or untrusted callers.
 
 - [Express auth module example](../examples/express-auth/index.ts)
 - [Fastify auth module example](../examples/fastify-auth/index.ts)
+- [Current-account contact change example](../examples/current-account-contact-change/index.ts)
 - [OTP backend wiring example](../examples/otp-backend/index.ts)
 - [Session transport recipes](session-transport.md)
 - [Backend integration recipes](backend-recipes.md)
