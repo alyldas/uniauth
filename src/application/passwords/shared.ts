@@ -138,8 +138,11 @@ export async function findUsableCredentialUser(
 export async function findPasswordRecoveryVerification(
   runtime: AuthServiceRuntime,
   verificationId: Verification['id'],
+  options: { readonly lock?: boolean } = {},
 ): Promise<Verification> {
-  const verification = await runtime.repos.verificationRepo.findById(verificationId)
+  const verification = await (options.lock
+    ? runtime.repos.verificationRepo.findByIdForUpdate(verificationId)
+    : runtime.repos.verificationRepo.findById(verificationId))
 
   if (!verification) {
     throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')

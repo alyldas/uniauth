@@ -73,7 +73,7 @@
     "check": "npm run audit:deps && npm run format:check && npm run lint && npm run typecheck && npm run coverage && npm run test:exports && npm run lint:package && npm run test:types-package && npm run pack:dry",
     "check:compose": "docker compose run --rm --build check",
     "check:docker": "docker build --target check -t alyldas-uniauth-check .",
-    "coverage": "vitest run test/*.test.ts --coverage",
+    "coverage": "vitest run --dir test --exclude core.test.ts --exclude postgres.test.ts --exclude provider-policy.test.ts --exclude service-edges.test.ts --coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "hooks:install": "node scripts/install-husky.cjs",
@@ -82,7 +82,7 @@
     "pack:dry": "npm pack --dry-run",
     "prepack": "npm run build",
     "prepare": "npm run hooks:install",
-    "test": "vitest run test/*.test.ts",
+    "test": "vitest run --dir test --exclude core.test.ts --exclude postgres.test.ts --exclude provider-policy.test.ts --exclude service-edges.test.ts",
     "test:exports": "npm run build && vitest run smoke/exports.test.ts",
     "test:types-package": "attw --pack . --profile esm-only --quiet",
     "typecheck": "tsc -p tsconfig.typecheck.json && tsc -p examples/tsconfig.json"

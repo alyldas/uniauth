@@ -104,6 +104,45 @@ describe('verification resend execution flows', () => {
     expect(signedIn.session.status).toBe(SessionStatus.Active)
   })
 
+  it('allows only one concurrent resend replacement for the same OTP challenge', async () => {
+    const { service, emailSender, store } = createInMemoryAuthKit({
+      verificationResendCooldownSeconds: 0,
+    })
+    const started = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: 'race@example.com',
+      secret: '111111',
+      now,
+    })
+
+    const results = await Promise.allSettled([
+      service.resendOtpChallenge({
+        verificationId: started.verificationId,
+        secret: '222222',
+        now,
+      }),
+      service.resendOtpChallenge({
+        verificationId: started.verificationId,
+        secret: '333333',
+        now,
+      }),
+    ])
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1)
+    expect(emailSender.listMessages()).toHaveLength(2)
+    expect(store.listVerifications()).toEqual([
+      expect.objectContaining({
+        id: started.verificationId,
+        expiresAt: now,
+      }),
+      expect.objectContaining({
+        status: VerificationStatus.Pending,
+      }),
+    ])
+  })
+
   it('keeps phone OTP resend behavior aligned with email replacement semantics', async () => {
     const resendNow = addSeconds(now, 61)
     const { service, smsSender } = createInMemoryAuthKit({
@@ -193,7 +232,7 @@ describe('verification resend execution flows', () => {
     })
   })
 
-  it('keeps the previous OTP verification usable when resend delivery fails before replacement', async () => {
+  it('keeps resend replacement state when OTP delivery fails after storage replacement', async () => {
     const store = new InMemoryAuthStore()
     const messages: Array<{ to: string; text: string }> = []
     let sendAttempts = 0
@@ -235,23 +274,26 @@ describe('verification resend execution flows', () => {
       expect.objectContaining({
         id: started.verificationId,
         status: VerificationStatus.Pending,
+        expiresAt: now,
       }),
       expect.objectContaining({
         status: VerificationStatus.Pending,
       }),
     ])
 
-    const signedIn = await service.finishOtpSignIn({
-      verificationId: started.verificationId,
-      secret: '111111',
-      channel: OtpChannel.Email,
-      now,
+    await expect(
+      service.finishOtpSignIn({
+        verificationId: started.verificationId,
+        secret: '111111',
+        channel: OtpChannel.Email,
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationExpired,
     })
-
-    expect(signedIn.session.status).toBe(SessionStatus.Active)
   })
 
-  it('resends magic links with fresh secrets and leaves the previous link valid when replacement fails early', async () => {
+  it('resends magic links with fresh secrets and keeps replacement state when link creation fails', async () => {
     const { service, emailSender } = createInMemoryAuthKit({
       clock: { now: () => now },
       verificationResendCooldownSeconds: 0,
@@ -319,14 +361,24 @@ describe('verification resend execution flows', () => {
 
     expect(resendError).toBeInstanceOf(Error)
     expect(secondKit.emailSender.listMessages()).toHaveLength(1)
-
-    const fallbackSignIn = await secondKit.service.finishEmailMagicLinkSignIn({
-      verificationId: initial.verificationId,
-      secret: 'magic-1',
-      now,
+    expect(secondKit.store.listVerifications()).toEqual([
+      expect.objectContaining({
+        id: initial.verificationId,
+        expiresAt: now,
+      }),
+      expect.objectContaining({
+        status: VerificationStatus.Pending,
+      }),
+    ])
+    await expect(
+      secondKit.service.finishEmailMagicLinkSignIn({
+        verificationId: initial.verificationId,
+        secret: 'magic-1',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationExpired,
     })
-
-    expect(fallbackSignIn.session.status).toBe(SessionStatus.Active)
     expect(emailSender.listMessages()).toHaveLength(2)
   })
 

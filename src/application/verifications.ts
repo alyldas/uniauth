@@ -177,7 +177,7 @@ export async function consumeVerificationRecord(
   input: ConsumeVerificationInput,
 ): Promise<Verification> {
   const now = input.now ?? runtime.clock.now()
-  const verification = await runtime.repos.verificationRepo.findById(input.verificationId)
+  const verification = await runtime.repos.verificationRepo.findByIdForUpdate(input.verificationId)
 
   if (!verification) {
     throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')

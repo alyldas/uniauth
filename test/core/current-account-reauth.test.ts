@@ -348,6 +348,9 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
           findById: async () => {
             throw lookupFailure
           },
+          findByIdForUpdate: async () => {
+            throw lookupFailure
+          },
         },
         sessionRepo: store.sessionRepo,
         auditLogRepo: store.auditLogRepo,

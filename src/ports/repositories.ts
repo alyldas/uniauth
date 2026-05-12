@@ -97,6 +97,7 @@ export interface CredentialRepo {
 
 export interface VerificationRepo {
   findById(id: VerificationId): Promise<Verification | undefined>
+  findByIdForUpdate(id: VerificationId): Promise<Verification | undefined>
   create(verification: Verification): Promise<Verification>
   update(id: VerificationId, patch: VerificationUpdatePatch): Promise<Verification>
 }

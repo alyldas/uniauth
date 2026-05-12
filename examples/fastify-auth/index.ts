@@ -8,6 +8,7 @@ import {
   UniAuthErrorCode,
   VerificationPurpose,
   createDefaultAuthPolicy,
+  invalidInput,
   isUniAuthError,
   type Session,
   type User,
@@ -331,7 +332,13 @@ export async function runFastifyAuthExample(): Promise<void> {
 }
 
 function parseVerificationId(value: string): VerificationId {
-  return value.trim() as VerificationId
+  const verificationId = value.trim()
+
+  if (!verificationId) {
+    throw invalidInput('verificationId is required.')
+  }
+
+  return verificationId as VerificationId
 }
 
 function createFastifySessionPreHandler(

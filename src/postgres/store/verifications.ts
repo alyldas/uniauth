@@ -19,6 +19,17 @@ export function createVerificationRepo(context: PostgresStoreContext): Verificat
         [id],
         mapVerificationRow,
       ),
+    findByIdForUpdate: async (id) =>
+      context.queryOptionalRow<VerificationRow, ReturnType<typeof mapVerificationRow>>(
+        `select
+           id, purpose, target, provider, channel, secret_hash, status, created_at, expires_at,
+           consumed_at, metadata
+         from uniauth_verifications
+         where id = $1
+         for update`,
+        [id],
+        mapVerificationRow,
+      ),
     create: async (verification) =>
       context.queryRequiredRow<VerificationRow, ReturnType<typeof mapVerificationRow>>(
         `insert into uniauth_verifications (

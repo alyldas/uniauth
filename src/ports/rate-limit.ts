@@ -49,7 +49,7 @@ export interface OtpSecretGeneratorInput {
 export type OtpSecretGenerator = (input: OtpSecretGeneratorInput) => string | Promise<string>
 
 export function rateLimitKey(...parts: readonly string[]): string {
-  return parts.join('\u0000')
+  return JSON.stringify(parts)
 }
 
 export function isRateLimitedErrorDetails(input: unknown): input is RateLimitedErrorDetails {

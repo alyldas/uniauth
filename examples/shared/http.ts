@@ -9,8 +9,15 @@ export function readBearerToken(header: string | undefined): string | undefined 
     return undefined
   }
 
-  const [scheme, value] = header.split(/\s+/, 2)
-  return scheme?.toLowerCase() === 'bearer' && value?.trim() ? value.trim() : undefined
+  const parts = header.trim().split(/\s+/)
+
+  if (parts.length !== 2) {
+    return undefined
+  }
+
+  const scheme = parts[0]!
+  const value = parts[1]!
+  return scheme.toLowerCase() === 'bearer' && value ? value : undefined
 }
 
 export function readCookieHeaderToken(
@@ -29,7 +36,16 @@ export function readCookieHeaderToken(
     }
 
     const value = rest.join('=').trim()
-    return value ? decodeURIComponent(value) : undefined
+
+    if (!value) {
+      return undefined
+    }
+
+    try {
+      return decodeURIComponent(value)
+    } catch {
+      return undefined
+    }
   }
 
   return undefined

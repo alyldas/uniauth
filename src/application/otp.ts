@@ -116,33 +116,35 @@ export async function resendOtpChallenge(
   input: ResendOtpChallengeInput,
 ): Promise<StartOtpChallengeResult> {
   const now = input.now ?? runtime.clock.now()
-  const challenge = await findOtpChallengeRecord(runtime, {
-    verificationId: input.verificationId,
-    context: 'OTP resend',
-  })
-  const target = challenge.verification.target
 
-  await requireVerificationResendAllowed(runtime, challenge.verification, {
-    action: RateLimitAction.OtpResend,
-    now,
-  })
-  await enforceRateLimit(runtime, {
-    action: RateLimitAction.OtpResend,
-    key: rateLimitKey(challenge.channel, target),
-    now,
-    metadata: { channel: challenge.channel, purpose: challenge.verification.purpose },
-  })
+  const { challenge, created, delivery } = await runtime.transaction.run(async () => {
+    const challenge = await findOtpChallengeRecord(runtime, {
+      verificationId: input.verificationId,
+      context: 'OTP resend',
+      lock: true,
+    })
+    const target = challenge.verification.target
 
-  const delivery = getOtpDelivery(runtime, challenge.channel)
-  const secret = await resolveOtpSecret(runtime, {
-    purpose: challenge.verification.purpose,
-    channel: challenge.channel,
-    target,
-    now,
-    ...optionalProp('secret', input.secret),
-  })
-  const created = await runtime.transaction.run(async () => {
-    return createVerificationRecord(runtime, {
+    await requireVerificationResendAllowed(runtime, challenge.verification, {
+      action: RateLimitAction.OtpResend,
+      now,
+    })
+    await enforceRateLimit(runtime, {
+      action: RateLimitAction.OtpResend,
+      key: rateLimitKey(challenge.channel, target),
+      now,
+      metadata: { channel: challenge.channel, purpose: challenge.verification.purpose },
+    })
+
+    const delivery = getOtpDelivery(runtime, challenge.channel)
+    const secret = await resolveOtpSecret(runtime, {
+      purpose: challenge.verification.purpose,
+      channel: challenge.channel,
+      target,
+      now,
+      ...optionalProp('secret', input.secret),
+    })
+    const created = await createVerificationRecord(runtime, {
       purpose: challenge.verification.purpose,
       target,
       provider: delivery.provider,
@@ -155,10 +157,17 @@ export async function resendOtpChallenge(
         mergeVerificationMetadata(challenge.verification.metadata, input.metadata),
       ),
     })
+
+    await expireVerificationForResend(runtime, challenge.verification.id, now)
+
+    return {
+      challenge,
+      created,
+      delivery,
+    }
   })
 
   await delivery.send(created)
-  await expireVerificationForResend(runtime, challenge.verification.id, now)
 
   return {
     verificationId: created.verification.id,
@@ -230,9 +239,12 @@ export async function findOtpChallengeRecord(
     readonly purpose?: VerificationPurpose
     readonly channel?: OtpChannelType
     readonly context: string
+    readonly lock?: boolean
   },
 ): Promise<{ readonly verification: Verification; readonly channel: SupportedOtpChannel }> {
-  const verification = await runtime.repos.verificationRepo.findById(input.verificationId)
+  const verification = await (input.lock
+    ? runtime.repos.verificationRepo.findByIdForUpdate(input.verificationId)
+    : runtime.repos.verificationRepo.findById(input.verificationId))
 
   if (!verification) {
     throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')

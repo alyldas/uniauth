@@ -48,6 +48,10 @@ export function normalizeAssertion(
     throw invalidInput('Provider and provider user id are required.')
   }
 
+  if (hasControlCharacter(provider) || hasControlCharacter(providerUserId)) {
+    throw invalidInput('Provider and provider user id cannot contain control characters.')
+  }
+
   const email = normalizeOptionalClaim(assertion.email, runtime.normalizer.normalizeEmail)
   const phone = normalizeOptionalClaim(assertion.phone, runtime.normalizer.normalizePhone)
   const displayName = assertion.displayName?.trim() || undefined
@@ -71,6 +75,10 @@ export function normalizeAssertion(
     ...optionalProp('trust', normalizeProviderTrust(assertion.trust)),
     ...optionalProp('metadata', assertion.metadata),
   }
+}
+
+function hasControlCharacter(value: string): boolean {
+  return /[\u0000-\u001f\u007f]/u.test(value)
 }
 
 function normalizeOptionalClaim(

@@ -2,17 +2,50 @@ import { readFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 import packageJson from '../package.json'
+import tsconfigBuild from '../tsconfig.build.json'
+import tsupConfig from '../tsup.config'
 
 interface PackageMetadata {
   readonly name: string
   readonly author: {
     readonly email: string
   }
+  readonly exports: Record<string, { readonly types: string; readonly import: string }>
 }
 
 const packageMetadata = packageJson as PackageMetadata
 
+const expectedEntrypoints = {
+  '.': 'src/index.ts',
+  './bridges': 'src/bridges.ts',
+  './contracts': 'src/contracts.ts',
+  './providers/messenger': 'src/providers/messenger.ts',
+  './providers/oauth-oidc': 'src/providers/oauth-oidc.ts',
+  './postgres': 'src/postgres.ts',
+  './testing': 'src/testing/index.ts',
+} as const
+
 describe('package exports', () => {
+  it('keeps package exports, tsup entries, and declaration entry files aligned', () => {
+    const tsupEntries = tsupConfig.entry as Record<string, string>
+    const tsconfigFiles = new Set(tsconfigBuild.files)
+
+    expect(Object.keys(packageMetadata.exports).sort()).toEqual(
+      Object.keys(expectedEntrypoints).sort(),
+    )
+
+    for (const [exportPath, sourcePath] of Object.entries(expectedEntrypoints)) {
+      const exportTarget = packageMetadata.exports[exportPath]
+      const distEntry = exportTarget.import
+        .replace('./dist/', '')
+        .replace(/\/index\.js$/u, '/index')
+        .replace(/\.js$/u, '')
+
+      expect(tsupEntries[distEntry]).toBe(sourcePath)
+      expect(tsconfigFiles.has(sourcePath)).toBe(true)
+    }
+  })
+
   it('loads the root entry point without mutating process environment', async () => {
     const before = { ...process.env }
 

@@ -54,9 +54,9 @@ function normalizeAuditEventQuery(input: AuditEventQuery): NormalizedAuditEventQ
     throw invalidInput('Audit event limit must be a positive integer.')
   }
 
-  if (input.type !== undefined) {
-    const type = input.type.trim()
+  const type = input.type?.trim() as AuditEventQuery['type'] | undefined
 
+  if (input.type !== undefined) {
     if (!type) {
       throw invalidInput('Audit event type is invalid.')
     }
@@ -64,6 +64,7 @@ function normalizeAuditEventQuery(input: AuditEventQuery): NormalizedAuditEventQ
 
   return {
     ...input,
+    ...(type ? { type } : {}),
     ...(before ? { before } : {}),
     ...(after ? { after } : {}),
     limit,

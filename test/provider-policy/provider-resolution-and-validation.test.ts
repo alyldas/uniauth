@@ -30,6 +30,14 @@ describe('provider resolution and assertion validation failures', () => {
     expect(
       await noRegistryService
         .signIn({
+          assertion: assertion({ provider: 'oauth', providerUserId: 'user\u0000a' }),
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(
+      await noRegistryService
+        .signIn({
           assertion: {
             providerUserId: 'user',
           } as Partial<ProviderIdentityAssertion> as ProviderIdentityAssertion,
