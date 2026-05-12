@@ -74,7 +74,7 @@ export default [
     'Application orchestration must not depend on provider adapters, bridges, persistence adapters, or testing modules.',
   ),
   restrictImports(
-    ['src/bridges/**/*.ts'],
+    ['src/bridges.ts', 'src/bridges/**/*.ts'],
     [
       '**/application/**',
       '**/postgres.js',
@@ -86,7 +86,7 @@ export default [
     'Bridge helpers must stay independent from application, persistence, provider adapter, and testing internals.',
   ),
   restrictImports(
-    ['src/providers/messenger.ts', 'src/providers/messenger/**/*.ts'],
+    ['src/messenger.ts', 'src/providers/messenger.ts', 'src/providers/messenger/**/*.ts'],
     [
       '**/application/**',
       '**/bridges.js',
@@ -102,7 +102,7 @@ export default [
     'Messenger provider adapters must not depend on application, persistence, bridge, testing, or OAuth/OIDC adapter internals.',
   ),
   restrictImports(
-    ['src/providers/oauth-oidc.ts', 'src/providers/oauth-oidc/**/*.ts'],
+    ['src/oauth-oidc.ts', 'src/providers/oauth-oidc.ts', 'src/providers/oauth-oidc/**/*.ts'],
     [
       '**/application/**',
       '**/bridges.js',
@@ -118,7 +118,7 @@ export default [
     'OAuth/OIDC provider adapters must not depend on application, persistence, bridge, testing, or messenger adapter internals.',
   ),
   restrictImports(
-    ['src/postgres/**/*.ts'],
+    ['src/postgres.ts', 'src/postgres/**/*.ts'],
     [
       '**/application/**',
       '**/bridges.js',
