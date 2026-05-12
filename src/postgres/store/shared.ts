@@ -25,6 +25,7 @@ import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
 import { optionalProp } from '../../utils/optional.js'
 
 const UniqueViolationCode = '23505'
+const ForeignKeyViolationCode = '23503'
 
 export interface UserRow {
   readonly id: string
@@ -240,6 +241,10 @@ export function buildUpdateQuery<Patch extends object, Key extends Extract<keyof
 }
 
 export function mapIdentityWriteError(error: unknown): Error {
+  if (isForeignKeyViolation(error)) {
+    return new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
+  }
+
   if (isUniqueViolation(error)) {
     return new UniAuthError(UniAuthErrorCode.IdentityAlreadyLinked, 'Identity cannot be linked.')
   }
@@ -248,8 +253,24 @@ export function mapIdentityWriteError(error: unknown): Error {
 }
 
 export function mapCredentialWriteError(error: unknown): Error {
+  if (isForeignKeyViolation(error)) {
+    return new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
+  }
+
   if (isUniqueViolation(error)) {
     return new UniAuthError(UniAuthErrorCode.CredentialAlreadyExists, 'Credential already exists.')
+  }
+
+  return toError(error)
+}
+
+export function mapSessionWriteError(error: unknown): Error {
+  if (isForeignKeyViolation(error)) {
+    return new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
+  }
+
+  if (isUniqueViolation(error)) {
+    return new UniAuthError(UniAuthErrorCode.InvalidInput, 'Session token already exists.')
   }
 
   return toError(error)
@@ -258,6 +279,12 @@ export function mapCredentialWriteError(error: unknown): Error {
 function isUniqueViolation(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error
     ? (error as { code?: unknown }).code === UniqueViolationCode
+    : false
+}
+
+function isForeignKeyViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? (error as { code?: unknown }).code === ForeignKeyViolationCode
     : false
 }
 

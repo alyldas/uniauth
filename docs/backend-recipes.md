@@ -171,6 +171,35 @@ Fastify ownership notes:
   action, linking, and recent-auth helpers instead of rebuilding session + user + snapshot
   composition by hand.
 
+## Current-Account Recent Auth
+
+Sensitive self-service routes should keep recent-auth proof on the same trusted `sessionToken`
+boundary as account-security reads and writes. Start and finish OTP re-auth through the
+current-account helpers, then persist the resulting marker in app-owned session state:
+
+```ts
+app.post('/auth/account/reauth/otp/finish', requireSession, async (req, res, next) => {
+  try {
+    const confirmation = await authService.finishCurrentAccountOtpReAuth({
+      sessionToken: req.auth.sessionToken,
+      verificationId: req.body.verificationId,
+      secret: req.body.code,
+    })
+
+    req.auth.reAuthenticatedAt = confirmation.reAuthenticatedAt
+    res.status(204).send()
+  } catch (error) {
+    next(error)
+  }
+})
+```
+
+Use `startCurrentAccountOtpReAuth(...)`, `resendCurrentAccountOtpReAuth(...)`, and
+`cancelCurrentAccountOtpReAuth(...)` for the rest of that challenge lifecycle. For password-based
+recent-auth, use `confirmCurrentAccountPasswordByToken(...)` and store the returned
+`reAuthenticatedAt` marker the same way. The framework still owns request validation, browser UI,
+recent-auth marker TTL, cookies, and redirects.
+
 ## Nest
 
 Use Nest when you want DI, modules, guards, and controller/service separation.

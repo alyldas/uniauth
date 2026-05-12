@@ -113,5 +113,55 @@ describe('provider resolution and assertion validation failures', () => {
         })
         .catch((caught: unknown) => caught),
     ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(
+      await noRegistryService
+        .signIn({
+          assertion: {
+            provider: 'oauth',
+            providerUserId: 'invalid-assertion-metadata',
+            metadata: ['not-a-record'],
+          } as unknown as ProviderIdentityAssertion,
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(
+      await noRegistryService
+        .signIn({
+          assertion: {
+            provider: 'oauth',
+            providerUserId: 'invalid-trust-metadata',
+            trust: {
+              level: 'trusted',
+              metadata: ['not-a-record'],
+            },
+          } as unknown as ProviderIdentityAssertion,
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+
+    const nullPrototypeMetadata = Object.assign(Object.create(null) as Record<string, unknown>, {
+      source: 'provider',
+    })
+
+    await expect(
+      noRegistryService.signIn({
+        assertion: assertion({
+          provider: 'oauth',
+          providerUserId: 'plain-metadata',
+          metadata: { source: 'assertion' },
+          trust: {
+            level: 'trusted',
+            metadata: nullPrototypeMetadata,
+          },
+        }),
+        now,
+      }),
+    ).resolves.toMatchObject({
+      identity: {
+        metadata: { source: 'assertion' },
+      },
+    })
   })
 })

@@ -2,6 +2,7 @@ import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
 import type { SessionRepo } from '../../contracts.js'
 import {
   buildUpdateQuery,
+  mapSessionWriteError,
   mapSessionRow,
   type PostgresStoreContext,
   type SessionRow,
@@ -40,28 +41,33 @@ export function createSessionRepo(context: PostgresStoreContext): SessionRepo {
         [userId],
         mapSessionRow,
       ),
-    create: async (session) =>
-      context.queryRequiredRow<SessionRow, ReturnType<typeof mapSessionRow>>(
-        `insert into uniauth_sessions (
-           id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
-           metadata
-         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         returning
-           id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
-           metadata`,
-        [
-          session.id,
-          session.userId,
-          session.tokenHash,
-          session.status,
-          session.createdAt,
-          session.expiresAt,
-          session.revokedAt ?? null,
-          session.lastSeenAt ?? null,
-          session.metadata ?? null,
-        ],
-        mapSessionRow,
-      ),
+    create: async (session) => {
+      try {
+        return await context.queryRequiredRow<SessionRow, ReturnType<typeof mapSessionRow>>(
+          `insert into uniauth_sessions (
+             id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
+             metadata
+           ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           returning
+             id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
+             metadata`,
+          [
+            session.id,
+            session.userId,
+            session.tokenHash,
+            session.status,
+            session.createdAt,
+            session.expiresAt,
+            session.revokedAt ?? null,
+            session.lastSeenAt ?? null,
+            session.metadata ?? null,
+          ],
+          mapSessionRow,
+        )
+      } catch (error) {
+        throw mapSessionWriteError(error)
+      }
+    },
     update: async (id, patch) => {
       const existing = await repo.findById(id)
 
@@ -83,16 +89,20 @@ export function createSessionRepo(context: PostgresStoreContext): SessionRepo {
         return existing
       }
 
-      return context.queryRequiredRow<SessionRow, ReturnType<typeof mapSessionRow>>(
-        `update uniauth_sessions
-         set ${update.setClause}
-         where id = $${update.values.length + 1}
-         returning
-           id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
-           metadata`,
-        [...update.values, id],
-        mapSessionRow,
-      )
+      try {
+        return await context.queryRequiredRow<SessionRow, ReturnType<typeof mapSessionRow>>(
+          `update uniauth_sessions
+           set ${update.setClause}
+           where id = $${update.values.length + 1}
+           returning
+             id, user_id, token_hash, status, created_at, expires_at, revoked_at, last_seen_at,
+             metadata`,
+          [...update.values, id],
+          mapSessionRow,
+        )
+      } catch (error) {
+        throw mapSessionWriteError(error)
+      }
     },
   }
 
