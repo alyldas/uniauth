@@ -49,10 +49,12 @@ describe('Postgres reference persistence repository coverage and merge', () => {
     }
 
     await store.credentialRepo.create(credential)
+    const sessionTokenHash = hashSecret('pg-session-token')
+
     await store.sessionRepo.create({
       id: createSequentialIdGenerator('pg-session').sessionId(),
       userId: createdUser.id,
-      tokenHash: hashSecret('pg-session-token'),
+      tokenHash: sessionTokenHash,
       status: 'active',
       createdAt: now,
       expiresAt: new Date('2026-01-31T00:00:00.000Z'),
@@ -119,6 +121,18 @@ describe('Postgres reference persistence repository coverage and merge', () => {
         })
         .catch((caught: unknown) => caught),
     ).toMatchObject({ code: UniAuthErrorCode.CredentialAlreadyExists })
+    expect(
+      await store.sessionRepo
+        .create({
+          id: asSessionId('pg-session-duplicate'),
+          userId: createdUser.id,
+          tokenHash: sessionTokenHash,
+          status: SessionStatus.Active,
+          createdAt: now,
+          expiresAt: new Date('2026-01-31T00:00:00.000Z'),
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
   })
 
   it('runs core auth flows on top of the Postgres store', async () => {

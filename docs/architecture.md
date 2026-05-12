@@ -38,6 +38,11 @@ identities, and email/phone are optional identity attributes.
 - `getCurrentAccountClosureExportSnapshot`
 - `getCurrentAccountAuditEventPage`
 - `startCurrentAccountOtpReAuth`
+- `resendCurrentAccountOtpReAuth`
+- `cancelCurrentAccountOtpReAuth`
+- `finishCurrentAccountOtpReAuth`
+- `getCurrentAccountReAuthStatus`
+- `assertCurrentAccountReAuth`
 - `linkCurrentIdentityByToken`
 - `revokeCurrentSessionByToken`
 - `revokeOwnedSessionByToken`
@@ -91,13 +96,13 @@ audit page reads, so self-service security routes do not have to mix admin inspe
 manual session ownership resolution. Selected-device revoke, sign-in-method link or unlink, and
 local password setup or change can now stay on that same token-based boundary instead of bouncing
 back to raw `userId` mutation calls after middleware resolution. Recent-auth bootstrapping can now
-stay on the same trusted boundary too: applications can start current-account OTP re-auth by owned
-identity or confirm the current password from `sessionToken`, then persist the resulting
-`reAuthenticatedAt` marker in app-owned session state. The same layer can now also answer or
-enforce whether recent auth is currently required for a specific sensitive current-account action
-before application-owned side effects continue. Resend and cancellation of those current-account
-OTP re-auth challenges can stay on that trusted token boundary as well instead of dropping back to
-generic verification ownership checks in route code. Account closure follows the same shape:
+stay on the same trusted boundary too: applications can start, resend, finish, or cancel
+current-account OTP re-auth by owned identity and `sessionToken`, or confirm the current password
+from `sessionToken`, then persist the resulting `reAuthenticatedAt` marker in app-owned session
+state. The same layer can now also answer or enforce whether recent auth is currently required for
+a specific sensitive current-account action before application-owned side effects continue, without
+dropping back to generic verification ownership checks in route code. Account closure follows the
+same shape:
 the current session token identifies the actor, core disables the current user, revokes active
 local sessions, and leaves cookie clearing, legal retention, and downstream data deletion to the
 application. Pre-closure export snapshots also stay on that boundary: core returns safe local auth

@@ -73,7 +73,10 @@ export function normalizeAssertion(
       : {}),
     ...optionalProp('displayName', displayName),
     ...optionalProp('trust', normalizeProviderTrust(assertion.trust)),
-    ...optionalProp('metadata', assertion.metadata),
+    ...optionalProp(
+      'metadata',
+      normalizeMetadata(assertion.metadata, 'Provider assertion metadata'),
+    ),
   }
 }
 
@@ -136,6 +139,30 @@ function normalizeProviderTrust(
   return {
     level,
     ...(signals && signals.length > 0 ? { signals: [...new Set(signals)] } : {}),
-    ...optionalProp('metadata', trust.metadata),
+    ...optionalProp('metadata', normalizeMetadata(trust.metadata, 'Provider trust metadata')),
   }
+}
+
+function normalizeMetadata(
+  metadata: Record<string, unknown> | undefined,
+  name: string,
+): Record<string, unknown> | undefined {
+  if (metadata === undefined) {
+    return undefined
+  }
+
+  if (!isPlainObject(metadata)) {
+    throw invalidInput(`${name} must be a plain object.`)
+  }
+
+  return metadata
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value) as unknown
+  return prototype === Object.prototype || prototype === null
 }

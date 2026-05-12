@@ -367,15 +367,23 @@ describe('PostgresAuthStore unit coverage', () => {
   it('maps write failures into domain and generic errors', async () => {
     const identityWriteError = new Error('identity write failed')
     const credentialWriteError = new Error('credential write failed')
+    const sessionWriteError = new Error('session write failed')
     const harness = createStubPool([
       failure({ code: '23505' }),
+      failure({ code: '23503' }),
       failure('identity-unknown'),
       result([identityRow()]),
       failure(identityWriteError),
       failure({ code: '23505' }),
+      failure({ code: '23503' }),
       failure('credential-unknown'),
       result([credentialRow()]),
       failure(credentialWriteError),
+      failure({ code: '23505' }),
+      failure({ code: '23503' }),
+      failure('session-unknown'),
+      result([sessionRow()]),
+      failure(sessionWriteError),
     ])
     const store = createPostgresAuthStore({ pool: harness.pool })
 
@@ -391,6 +399,19 @@ describe('PostgresAuthStore unit coverage', () => {
       }),
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.IdentityAlreadyLinked,
+    })
+    await expect(
+      store.identityRepo.create({
+        id: asIdentityId('identity-create-fk'),
+        userId: asUserId('missing-user'),
+        provider: 'oidc',
+        providerUserId: 'provider-user-create-fk',
+        status: 'active',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
     })
     await expect(
       store.identityRepo.create({
@@ -424,6 +445,19 @@ describe('PostgresAuthStore unit coverage', () => {
     })
     await expect(
       store.credentialRepo.create({
+        id: asCredentialId('credential-create-fk'),
+        userId: asUserId('missing-user'),
+        type: 'password',
+        subject: 'missing-user@example.com',
+        passwordHash: 'hash',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
+    await expect(
+      store.credentialRepo.create({
         id: asCredentialId('credential-create-2'),
         userId: asUserId('user-1'),
         type: 'password',
@@ -436,6 +470,44 @@ describe('PostgresAuthStore unit coverage', () => {
     await expect(
       store.credentialRepo.update(asCredentialId('credential-1'), { passwordHash: 'new-hash' }),
     ).rejects.toBe(credentialWriteError)
+
+    await expect(
+      store.sessionRepo.create({
+        id: asSessionId('session-create-1'),
+        userId: asUserId('user-1'),
+        tokenHash: 'duplicate-token-hash',
+        status: 'active',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        expiresAt: new Date('2026-02-01T00:00:00.000Z'),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      store.sessionRepo.create({
+        id: asSessionId('session-create-fk'),
+        userId: asUserId('missing-user'),
+        tokenHash: 'missing-user-token-hash',
+        status: 'active',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        expiresAt: new Date('2026-02-01T00:00:00.000Z'),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
+    await expect(
+      store.sessionRepo.create({
+        id: asSessionId('session-create-2'),
+        userId: asUserId('user-1'),
+        tokenHash: 'unknown-error-token-hash',
+        status: 'active',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        expiresAt: new Date('2026-02-01T00:00:00.000Z'),
+      }),
+    ).rejects.toThrow('Unknown Postgres error.')
+    await expect(
+      store.sessionRepo.update(asSessionId('session-1'), { tokenHash: 'new-token-hash' }),
+    ).rejects.toBe(sessionWriteError)
 
     expect(harness.remainingSteps).toBe(0)
   })
