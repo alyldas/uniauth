@@ -212,14 +212,22 @@ describe('package exports', () => {
     expect(testing.StaticAuthProvider).toBeTypeOf('function')
   })
 
-  it('loads provider family package subpaths through self-reference exports', async () => {
-    const messengerProviders = await import(`${packageMetadata.name}/providers/messenger`)
-    const oauthOidcProviders = await import(`${packageMetadata.name}/providers/oauth-oidc`)
+  it('loads every public package subpath through self-reference exports', async () => {
+    for (const exportPath of Object.keys(expectedEntrypoints)) {
+      const importPath =
+        exportPath === '.' ? packageMetadata.name : `${packageMetadata.name}${exportPath.slice(1)}`
+      const result = spawnSync(
+        process.execPath,
+        ['--input-type=module', '--eval', `await import(${JSON.stringify(importPath)})`],
+        {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+        },
+      )
 
-    expect(messengerProviders.MAX_WEBAPP_PROVIDER_ID).toBe('max-webapp')
-    expect(messengerProviders.createMaxWebAppProvider).toBeTypeOf('function')
-    expect(oauthOidcProviders.createOAuthOidcProvider).toBeTypeOf('function')
-    expect(oauthOidcProviders.createOAuthOidcTokenRecord).toBeTypeOf('function')
+      expect(result.stderr).toBe('')
+      expect(result.status).toBe(0)
+    }
   })
 
   it('keeps testing package declarations aligned with the stable public surface', async () => {
