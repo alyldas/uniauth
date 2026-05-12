@@ -24,3 +24,27 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 export function readFinishPayload(input: FinishInput): Record<string, unknown> {
   return isRecord(input.payload) ? input.payload : {}
 }
+
+export function normalizeMetadataRecord(
+  value: unknown,
+  message: string,
+): Record<string, unknown> | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!isPlainRecord(value)) {
+    throw invalidInput(message)
+  }
+
+  return value
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}

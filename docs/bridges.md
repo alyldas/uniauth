@@ -82,6 +82,9 @@ with it, the helper rejects the input instead of silently picking one.
 If you want a UniAuth provider namespace that differs from the framework provider id, pass
 `providerId`. The original framework id is then kept as `metadata.frameworkProviderId`.
 
+`metadata` must be a reduced plain object with application-owned values. Do not pass raw framework
+account, profile, token, request, or session objects into the bridge helper.
+
 ## Better Auth
 
 Use the bridge helper after your Better Auth integration has already completed provider validation.
@@ -127,6 +130,9 @@ The helper accepts either:
 - `profile.id` from the validated OAuth profile.
 
 If both are present and disagree, the helper rejects the input.
+
+`metadata` follows the same boundary as Auth.js metadata: pass only a plain object with explicit
+application-owned fields, not raw framework or provider SDK objects.
 
 ## Security Notes
 

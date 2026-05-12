@@ -54,11 +54,13 @@ export function buildMetadata(
   const metadata: Record<string, unknown> = {}
 
   for (const record of records) {
-    if (!record) {
+    if (record === undefined) {
       continue
     }
 
-    for (const [key, value] of Object.entries(record)) {
+    const normalizedRecord = requirePlainRecord(record, 'Bridge metadata must be a plain object.')
+
+    for (const [key, value] of Object.entries(normalizedRecord)) {
       if (value !== undefined) {
         metadata[key] = value
       }
@@ -66,4 +68,21 @@ export function buildMetadata(
   }
 
   return Object.keys(metadata).length > 0 ? metadata : undefined
+}
+
+function requirePlainRecord(value: unknown, message: string): Record<string, unknown> {
+  if (!isPlainRecord(value)) {
+    throw invalidInput(message)
+  }
+
+  return value
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
 }

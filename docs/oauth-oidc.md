@@ -65,6 +65,10 @@ keep only the local UniAuth session token in UniAuth-facing flows.
 Use `createOAuthOidcTokenRecord(...)` when you want one normalized shape for access, refresh, and
 ID tokens before persisting them. See [Provider token persistence](provider-token-persistence.md).
 
+Callback, profile, and token-record `metadata` values must be reduced plain objects. Keep raw SDK
+responses, framework request objects, provider profiles, and token payloads in application-owned
+code, then pass only the fields UniAuth should retain or forward.
+
 ## Registration
 
 ```ts
