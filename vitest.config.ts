@@ -1,6 +1,25 @@
 import { defineConfig } from 'vitest/config'
 import packageJson from './package.json'
 
+const sourceAliases = [
+  {
+    find: '@alyldas/uniauth/providers/messenger',
+    replacement: new URL('./src/providers/messenger.ts', import.meta.url).pathname,
+  },
+  {
+    find: '@alyldas/uniauth/providers/oauth-oidc',
+    replacement: new URL('./src/providers/oauth-oidc.ts', import.meta.url).pathname,
+  },
+  {
+    find: '@alyldas/uniauth/testing',
+    replacement: new URL('./src/testing/index.ts', import.meta.url).pathname,
+  },
+  {
+    find: '@alyldas/uniauth',
+    replacement: new URL('./src/index.ts', import.meta.url).pathname,
+  },
+]
+
 const attributionDefines = {
   __UNIAUTH_PACKAGE_AUTHOR_EMAIL__: JSON.stringify(packageJson.author.email),
   __UNIAUTH_PACKAGE_AUTHOR_NAME__: JSON.stringify(packageJson.author.name),
@@ -11,6 +30,9 @@ const attributionDefines = {
 
 export default defineConfig({
   define: attributionDefines,
+  resolve: {
+    alias: sourceAliases,
+  },
   test: {
     coverage: {
       provider: 'v8',

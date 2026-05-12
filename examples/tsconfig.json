@@ -1,15 +1,8 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "ignoreDeprecations": "6.0",
-    "noEmit": true,
-    "paths": {
-      "@alyldas/uniauth": ["../src/index.ts"],
-      "@alyldas/uniauth/providers/messenger": ["../src/providers/messenger.ts"],
-      "@alyldas/uniauth/providers/oauth-oidc": ["../src/providers/oauth-oidc.ts"],
-      "@alyldas/uniauth/testing": ["../src/testing/index.ts"]
-    }
+    "noEmit": true
   },
   "include": ["**/*.ts"]
 }
