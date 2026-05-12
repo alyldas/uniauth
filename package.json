@@ -70,10 +70,11 @@
   "scripts": {
     "audit:deps": "npm audit --audit-level=moderate",
     "build": "tsup && tsc -p tsconfig.build.json",
-    "check": "npm run audit:deps && npm run format:check && npm run lint && npm run typecheck && npm run coverage && npm run test:exports && npm run lint:package && npm run test:types-package && npm run pack:dry",
+    "check": "npm run audit:deps && npm run format:check && npm run docs:links && npm run lint && npm run typecheck && npm run coverage && npm run test:exports && npm run lint:package && npm run test:types-package && npm run pack:dry",
     "check:compose": "docker compose run --rm --build check",
     "check:docker": "docker build --target check -t alyldas-uniauth-check .",
     "coverage": "vitest run --dir test --exclude core.test.ts --exclude postgres.test.ts --exclude provider-policy.test.ts --exclude service-edges.test.ts --coverage",
+    "docs:links": "node scripts/check-md-links.cjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "hooks:install": "node scripts/install-husky.cjs",

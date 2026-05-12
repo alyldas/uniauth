@@ -782,8 +782,8 @@ npm run check
 ```
 
 The gate runs formatting, ESLint, typecheck, 100% coverage, export smoke tests, package lint,
-package type-resolution checks, dependency audit with `npm audit --audit-level=moderate`, and
-`npm pack --dry-run`.
+package type-resolution checks, local Markdown link checks, dependency audit with
+`npm audit --audit-level=moderate`, and `npm pack --dry-run`.
 
 The release workflow uses Release Please: pushes to `main` update a release PR, and merging that PR
 creates the `v*` tag, GitHub release notes, and GitHub Packages publish. This repository uses the
