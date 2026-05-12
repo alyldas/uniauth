@@ -3,6 +3,14 @@ import packageJson from './package.json'
 
 const sourceAliases = [
   {
+    find: '@alyldas/uniauth/bridges',
+    replacement: new URL('./src/bridges.ts', import.meta.url).pathname,
+  },
+  {
+    find: '@alyldas/uniauth/contracts',
+    replacement: new URL('./src/contracts.ts', import.meta.url).pathname,
+  },
+  {
     find: '@alyldas/uniauth/providers/messenger',
     replacement: new URL('./src/providers/messenger.ts', import.meta.url).pathname,
   },
@@ -13,6 +21,10 @@ const sourceAliases = [
   {
     find: '@alyldas/uniauth/testing',
     replacement: new URL('./src/testing/index.ts', import.meta.url).pathname,
+  },
+  {
+    find: '@alyldas/uniauth/postgres',
+    replacement: new URL('./src/postgres.ts', import.meta.url).pathname,
   },
   {
     find: '@alyldas/uniauth',
