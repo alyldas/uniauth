@@ -197,8 +197,8 @@ app.post('/auth/account/reauth/otp/finish', requireSession, async (req, res, nex
 Use `startCurrentAccountOtpReAuth(...)`, `resendCurrentAccountOtpReAuth(...)`, and
 `cancelCurrentAccountOtpReAuth(...)` for the rest of that challenge lifecycle. For password-based
 recent-auth, use `confirmCurrentAccountPasswordByToken(...)` and store the returned
-`reAuthenticatedAt` marker the same way. The framework still owns request validation, browser UI,
-recent-auth marker TTL, cookies, and redirects.
+`currentSessionId` and `reAuthenticatedAt` marker the same way. The framework still owns request
+validation, browser UI, recent-auth marker TTL, cookies, and redirects.
 
 ## Nest
 

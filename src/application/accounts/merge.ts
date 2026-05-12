@@ -15,6 +15,7 @@ import {
   type MergeState,
 } from './merge-support.js'
 import { audit } from '../support.js'
+import { normalizeMetadataRecord } from '../metadata.js'
 import type { MergeAccountsInput, MergeResult } from '../../domain/types.js'
 import { AuditEventType, isActiveUser } from '../../domain/types.js'
 import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
@@ -24,17 +25,13 @@ export async function mergeAccounts(
   input: MergeAccountsInput,
 ): Promise<MergeResult> {
   const now = input.now ?? runtime.clock.now()
+  const metadata = normalizeMergeMetadata(input.metadata)
   let deniedAudit: MergeDeniedAudit | undefined
 
   try {
     return await runtime.transaction.run(async () => {
       const state = await loadMergeState(runtime, input, now)
-      const alreadyMergedResult = await resolveAlreadyMergedResult(
-        runtime,
-        state,
-        now,
-        input.metadata,
-      )
+      const alreadyMergedResult = await resolveAlreadyMergedResult(runtime, state, now, metadata)
 
       if (alreadyMergedResult) {
         return alreadyMergedResult
@@ -67,7 +64,7 @@ export async function mergeAccounts(
           reason: PolicyDenialReason.MergeCredentialConflict,
           targetUserId: state.targetUser.id,
           sourceUserId: state.sourceUser.id,
-          requestMetadata: input.metadata,
+          requestMetadata: metadata,
           metadata: { credentialTypes: conflictingCredentialTypes },
         })
         throw new UniAuthError(
@@ -104,7 +101,7 @@ export async function mergeAccounts(
           decision: 'merged',
           sourceUserId: state.sourceUser.id,
           result,
-          requestMetadata: input.metadata,
+          requestMetadata: metadata,
         }),
       })
 
@@ -117,6 +114,12 @@ export async function mergeAccounts(
 
     throw error
   }
+}
+
+function normalizeMergeMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Merge metadata')
 }
 
 async function resolveAlreadyMergedResult(

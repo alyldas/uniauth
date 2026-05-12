@@ -1,4 +1,5 @@
 import type { AuthServiceRuntime } from './runtime.js'
+import { normalizeMetadataRecord } from './metadata.js'
 import { optionalProp } from './optional.js'
 import { audit, getActiveUser } from './support.js'
 import type {
@@ -131,6 +132,7 @@ export async function createSessionRecord(
   input: CreateSessionInput & { readonly now: Date },
 ): Promise<CreateSessionResult> {
   const sessionToken = generateSecret()
+  const metadata = normalizeSessionMetadata(input.metadata)
   const expiresAt = resolveSessionExpiresAt(runtime, input)
   const session: Session = {
     id: runtime.idGenerator.sessionId(),
@@ -139,7 +141,7 @@ export async function createSessionRecord(
     status: SessionStatus.Active,
     createdAt: input.now,
     expiresAt,
-    ...optionalProp('metadata', input.metadata),
+    ...optionalProp('metadata', metadata),
   }
 
   const created = await runtime.repos.sessionRepo.create(session)
@@ -149,6 +151,12 @@ export async function createSessionRecord(
   })
 
   return { session: created, sessionToken }
+}
+
+function normalizeSessionMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Session metadata')
 }
 
 function resolveSessionExpiresAt(

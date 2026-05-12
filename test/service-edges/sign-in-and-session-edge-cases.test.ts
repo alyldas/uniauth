@@ -12,7 +12,7 @@ import {
   type AuthIdentity,
   type IdentityId,
 } from '../../src'
-import { InMemoryAuthStore, createInMemoryAuthKit } from '../../src/testing'
+import { InMemoryAuthStore, InMemoryPasswordHasher, createInMemoryAuthKit } from '../../src/testing'
 import { assertion, now } from '../helpers.js'
 
 describe('DefaultAuthService sign-in and session edge cases', () => {
@@ -53,7 +53,10 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
 
   it('covers uncommon sign-in, session, link, unlink, and read-side branches', async () => {
     const defaultStore = new InMemoryAuthStore()
-    const defaultService = new DefaultAuthService({ repos: defaultStore })
+    const defaultService = new DefaultAuthService({
+      repos: defaultStore,
+      passwordHasher: new InMemoryPasswordHasher(),
+    })
     const first = await defaultService.signIn({
       assertion: assertion({
         provider: '  email  ',
@@ -131,6 +134,30 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
     expect(
       await defaultService.resolveSession({ sessionToken: explicitSession.sessionToken, now }),
     ).toBe(explicitSession.session)
+    await expect(
+      defaultService.createSession({
+        userId: first.user.id,
+        metadata: ['not-a-record'],
+        now,
+      } as unknown as Parameters<typeof defaultService.createSession>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    const nullPrototypeSessionMetadata = Object.assign(
+      Object.create(null) as Record<string, unknown>,
+      { mode: 'manual' },
+    )
+    await expect(
+      defaultService.createSession({
+        userId: first.user.id,
+        metadata: nullPrototypeSessionMetadata,
+        now,
+      }),
+    ).resolves.toMatchObject({
+      session: {
+        metadata: { mode: 'manual' },
+      },
+    })
     expect(
       await defaultService.touchSession({
         sessionId: explicitSession.session.id,
@@ -172,6 +199,19 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
         })
         .then((result) => result.linked),
     ).toBe(false)
+    await expect(
+      defaultService.link({
+        userId: first.user.id,
+        assertion: assertion({
+          provider: 'invalid-metadata-link',
+          providerUserId: 'invalid-metadata-link',
+        }),
+        metadata: ['not-a-record'],
+        now,
+      } as unknown as Parameters<typeof defaultService.link>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
 
     const linked = await defaultService.link({
       userId: first.user.id,
@@ -203,6 +243,16 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
       identityId: linked.identity.id,
       metadata: { action: 'unlink' },
       now,
+    })
+    await expect(
+      defaultService.unlink({
+        userId: first.user.id,
+        identityId: first.identity.id,
+        metadata: 'not-a-record',
+        now,
+      } as unknown as Parameters<typeof defaultService.unlink>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
     })
     expect(
       await defaultService
@@ -238,6 +288,45 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
         })
         .catch((caught: unknown) => caught),
     ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      defaultService.mergeAccounts({
+        sourceUserId: second.user.id,
+        targetUserId: first.user.id,
+        metadata: ['not-a-record'],
+        now,
+      } as unknown as Parameters<typeof defaultService.mergeAccounts>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      defaultService.setPassword({
+        userId: first.user.id,
+        email: 'alice@example.com',
+        password: 'first-password',
+        metadata: ['not-a-record'],
+        now,
+      } as unknown as Parameters<typeof defaultService.setPassword>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await defaultService.setPassword({
+      userId: first.user.id,
+      email: 'alice@example.com',
+      password: 'first-password',
+      metadata: { mode: 'set' },
+      now,
+    })
+    await expect(
+      defaultService.changePassword({
+        userId: first.user.id,
+        currentPassword: 'first-password',
+        newPassword: 'second-password',
+        metadata: null,
+        now,
+      } as unknown as Parameters<typeof defaultService.changePassword>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
 
     await defaultStore.userRepo.update(second.user.id, { disabledAt: now })
     expect(

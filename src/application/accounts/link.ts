@@ -1,4 +1,5 @@
 import { optionalProp } from '../optional.js'
+import { normalizeMetadataRecord } from '../metadata.js'
 import { AuthPolicyAction } from '../policy.js'
 import type { AuthServiceRuntime } from '../runtime.js'
 import { createIdentityFromAssertion, resolveAssertion } from '../sign-in.js'
@@ -11,6 +12,7 @@ import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
 export async function link(runtime: AuthServiceRuntime, input: LinkInput): Promise<LinkResult> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizeLinkMetadata(input.metadata)
     const user = await getActiveUser(runtime, input.userId)
     await ensureReAuth(runtime, AuthPolicyAction.Link, user.id, input.reAuthenticatedAt, now)
 
@@ -51,9 +53,15 @@ export async function link(runtime: AuthServiceRuntime, input: LinkInput): Promi
     await audit(runtime, AuditEventType.IdentityLinked, now, {
       userId: user.id,
       identityId: identity.id,
-      ...optionalProp('metadata', input.metadata),
+      ...optionalProp('metadata', metadata),
     })
 
     return { user, identity, linked: true }
   })
+}
+
+function normalizeLinkMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Link metadata')
 }

@@ -1,4 +1,5 @@
 import { optionalProp } from '../optional.js'
+import { normalizeMetadataRecord } from '../metadata.js'
 import { AuthPolicyAction } from '../policy.js'
 import type { AuthServiceRuntime } from '../runtime.js'
 import { listActiveIdentitiesForUser, PolicyDenialReason } from './shared.js'
@@ -10,6 +11,7 @@ import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
 export async function unlink(runtime: AuthServiceRuntime, input: UnlinkInput): Promise<void> {
   await runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizeUnlinkMetadata(input.metadata)
     const user = await getActiveUser(runtime, input.userId)
     await ensureReAuth(runtime, AuthPolicyAction.Unlink, user.id, input.reAuthenticatedAt, now)
 
@@ -49,7 +51,13 @@ export async function unlink(runtime: AuthServiceRuntime, input: UnlinkInput): P
     await audit(runtime, AuditEventType.IdentityUnlinked, now, {
       userId: user.id,
       identityId: identity.id,
-      ...optionalProp('metadata', input.metadata),
+      ...optionalProp('metadata', metadata),
     })
   })
+}
+
+function normalizeUnlinkMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Unlink metadata')
 }

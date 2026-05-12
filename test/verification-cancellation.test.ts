@@ -55,6 +55,15 @@ describe('verification cancellation flows', () => {
         }),
       ]),
     )
+    await expect(
+      service.cancelVerification({
+        verificationId: created.verification.id,
+        metadata: ['not-a-record'],
+        now: addSeconds(now, 1),
+      } as unknown as Parameters<typeof service.cancelVerification>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
   })
 
   it('keeps cancellation idempotent for consumed and already expired verifications', async () => {
