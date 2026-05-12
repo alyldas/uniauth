@@ -8,8 +8,11 @@
     "ignoreDeprecations": "6.0",
     "paths": {
       "@alyldas/uniauth": ["src/index.ts"],
+      "@alyldas/uniauth/bridges": ["src/bridges.ts"],
+      "@alyldas/uniauth/contracts": ["src/contracts.ts"],
       "@alyldas/uniauth/providers/messenger": ["src/providers/messenger.ts"],
       "@alyldas/uniauth/providers/oauth-oidc": ["src/providers/oauth-oidc.ts"],
+      "@alyldas/uniauth/postgres": ["src/postgres.ts"],
       "@alyldas/uniauth/testing": ["src/testing/index.ts"]
     },
     "strict": true,
