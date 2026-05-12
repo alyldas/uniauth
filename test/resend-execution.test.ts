@@ -104,6 +104,45 @@ describe('verification resend execution flows', () => {
     expect(signedIn.session.status).toBe(SessionStatus.Active)
   })
 
+  it('allows only one concurrent resend replacement for the same OTP challenge', async () => {
+    const { service, emailSender, store } = createInMemoryAuthKit({
+      verificationResendCooldownSeconds: 0,
+    })
+    const started = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: 'race@example.com',
+      secret: '111111',
+      now,
+    })
+
+    const results = await Promise.allSettled([
+      service.resendOtpChallenge({
+        verificationId: started.verificationId,
+        secret: '222222',
+        now,
+      }),
+      service.resendOtpChallenge({
+        verificationId: started.verificationId,
+        secret: '333333',
+        now,
+      }),
+    ])
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1)
+    expect(emailSender.listMessages()).toHaveLength(2)
+    expect(store.listVerifications()).toEqual([
+      expect.objectContaining({
+        id: started.verificationId,
+        expiresAt: now,
+      }),
+      expect.objectContaining({
+        status: VerificationStatus.Pending,
+      }),
+    ])
+  })
+
   it('keeps phone OTP resend behavior aligned with email replacement semantics', async () => {
     const resendNow = addSeconds(now, 61)
     const { service, smsSender } = createInMemoryAuthKit({
@@ -234,9 +273,6 @@ describe('verification resend execution flows', () => {
     expect(store.listVerifications()).toEqual([
       expect.objectContaining({
         id: started.verificationId,
-        status: VerificationStatus.Pending,
-      }),
-      expect.objectContaining({
         status: VerificationStatus.Pending,
       }),
     ])

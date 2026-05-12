@@ -22,6 +22,7 @@ interface StorageKit {
     }
     readonly verificationRepo: {
       findById(verificationId: VerificationId): Promise<Verification | undefined>
+      findByIdForUpdate(verificationId: VerificationId): Promise<Verification | undefined>
     }
     readonly sessionRepo: {
       findByTokenHash(tokenHash: string): Promise<Session | undefined>

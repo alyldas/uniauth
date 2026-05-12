@@ -216,6 +216,40 @@ describe('DefaultAuthService OTP and verification flows', () => {
     expect(generatedFinished.session.expiresAt).toEqual(addSeconds(now, 60))
   })
 
+  it('allows only one concurrent OTP sign-in to consume a verification', async () => {
+    const { service, store } = createInMemoryAuthKit()
+    const started = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: 'race@example.com',
+      secret: '123456',
+      now,
+    })
+
+    const results = await Promise.allSettled([
+      service.finishOtpSignIn({
+        verificationId: started.verificationId,
+        secret: '123456',
+        channel: OtpChannel.Email,
+        now,
+      }),
+      service.finishOtpSignIn({
+        verificationId: started.verificationId,
+        secret: '123456',
+        channel: OtpChannel.Email,
+        now,
+      }),
+    ])
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1)
+    expect(store.listSessions()).toHaveLength(1)
+    expect(store.listVerifications()[0]).toMatchObject({
+      id: started.verificationId,
+      status: VerificationStatus.Consumed,
+    })
+  })
+
   it('keeps a pending OTP verification when app-owned delivery fails', async () => {
     const store = new InMemoryAuthStore()
     const failingEmailSender: EmailSender = {

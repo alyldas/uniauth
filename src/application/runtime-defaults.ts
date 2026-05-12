@@ -49,7 +49,8 @@ export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): Au
     ...optionalProp('passwordHasher', options.passwordHasher),
     policy: options.policy ?? defaultAuthPolicy,
     providerRegistry: options.providerRegistry,
-    transaction: options.transaction ?? immediateUnitOfWork,
+    transaction:
+      options.transaction ?? getRepositoryUnitOfWork(options.repos) ?? immediateUnitOfWork,
     idGenerator: options.idGenerator ?? createRandomIdGenerator(),
     normalizer: options.normalizer ?? compatibilityAuthNormalizer,
     secretHasher: options.secretHasher ?? scryptSecretHasher,
@@ -57,4 +58,11 @@ export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): Au
     sessionTtlSeconds: options.sessionTtlSeconds ?? DEFAULT_SESSION_TTL_SECONDS,
     verificationTtlSeconds: options.verificationTtlSeconds ?? DEFAULT_VERIFICATION_TTL_SECONDS,
   }
+}
+
+function getRepositoryUnitOfWork(repos: AuthServiceRepositories): UnitOfWork | undefined {
+  const candidate = repos as Partial<UnitOfWork>
+  return typeof candidate.run === 'function'
+    ? { run: (operation) => candidate.run!(operation) }
+    : undefined
 }

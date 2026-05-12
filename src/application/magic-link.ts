@@ -138,25 +138,29 @@ export async function resendEmailMagicLinkSignIn(
   input: ResendEmailMagicLinkSignInInput,
 ): Promise<StartEmailMagicLinkSignInResult> {
   const now = input.now ?? runtime.clock.now()
-  const verification = await findEmailMagicLinkVerification(runtime, input.verificationId)
 
   if (!runtime.emailSender) {
     throw invalidInput('Email sender is required for email magic links.')
   }
+  const emailSender = runtime.emailSender
 
-  await requireVerificationResendAllowed(runtime, verification, {
-    action: RateLimitAction.MagicLinkResend,
-    now,
-  })
-  await enforceRateLimit(runtime, {
-    action: RateLimitAction.MagicLinkResend,
-    key: rateLimitKey(OtpChannel.Email, verification.target),
-    now,
-    metadata: { delivery: OtpChannel.Email, purpose: verification.purpose },
-  })
+  return runtime.transaction.run(async () => {
+    const verification = await findEmailMagicLinkVerification(runtime, input.verificationId, {
+      lock: true,
+    })
 
-  const created = await runtime.transaction.run(async () => {
-    return createVerificationRecord(runtime, {
+    await requireVerificationResendAllowed(runtime, verification, {
+      action: RateLimitAction.MagicLinkResend,
+      now,
+    })
+    await enforceRateLimit(runtime, {
+      action: RateLimitAction.MagicLinkResend,
+      key: rateLimitKey(OtpChannel.Email, verification.target),
+      now,
+      metadata: { delivery: OtpChannel.Email, purpose: verification.purpose },
+    })
+
+    const created = await createVerificationRecord(runtime, {
       purpose: verification.purpose,
       target: verification.target,
       provider: EMAIL_MAGIC_LINK_PROVIDER_ID,
@@ -166,32 +170,32 @@ export async function resendEmailMagicLinkSignIn(
       now,
       ...optionalProp('metadata', mergeVerificationMetadata(verification.metadata, input.metadata)),
     })
-  })
-  const link = await input.createLink({
-    verificationId: created.verification.id,
-    secret: created.secret,
-    email: verification.target,
-    expiresAt: created.verification.expiresAt,
-  })
-
-  await runtime.emailSender.sendEmail({
-    to: verification.target,
-    subject: DEFAULT_EMAIL_MAGIC_LINK_SUBJECT,
-    text: `Sign in using this link: ${link}`,
-    metadata: {
+    const link = await input.createLink({
       verificationId: created.verification.id,
-      purpose: created.verification.purpose,
-      delivery: OtpChannel.Email,
-      provider: EMAIL_MAGIC_LINK_PROVIDER_ID,
-    },
-  })
-  await expireVerificationForResend(runtime, verification.id, now)
+      secret: created.secret,
+      email: verification.target,
+      expiresAt: created.verification.expiresAt,
+    })
 
-  return {
-    verificationId: created.verification.id,
-    expiresAt: created.verification.expiresAt,
-    delivery: OtpChannel.Email,
-  }
+    await emailSender.sendEmail({
+      to: verification.target,
+      subject: DEFAULT_EMAIL_MAGIC_LINK_SUBJECT,
+      text: `Sign in using this link: ${link}`,
+      metadata: {
+        verificationId: created.verification.id,
+        purpose: created.verification.purpose,
+        delivery: OtpChannel.Email,
+        provider: EMAIL_MAGIC_LINK_PROVIDER_ID,
+      },
+    })
+    await expireVerificationForResend(runtime, verification.id, now)
+
+    return {
+      verificationId: created.verification.id,
+      expiresAt: created.verification.expiresAt,
+      delivery: OtpChannel.Email,
+    }
+  })
 }
 
 export async function cancelEmailMagicLinkSignIn(
@@ -209,8 +213,11 @@ export async function cancelEmailMagicLinkSignIn(
 async function findEmailMagicLinkVerification(
   runtime: AuthServiceRuntime,
   verificationId: Verification['id'],
+  options: { readonly lock?: boolean } = {},
 ): Promise<Verification> {
-  const verification = await runtime.repos.verificationRepo.findById(verificationId)
+  const verification = await (options.lock
+    ? runtime.repos.verificationRepo.findByIdForUpdate(verificationId)
+    : runtime.repos.verificationRepo.findById(verificationId))
 
   if (!verification) {
     throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')

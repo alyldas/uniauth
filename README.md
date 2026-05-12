@@ -147,11 +147,7 @@ flowchart TB
 
 Install from GitHub Packages:
 
-```sh
-npm install @alyldas/uniauth
-```
-
-Configure the GitHub Packages registry for the package scope:
+Configure the GitHub Packages registry for the package scope before installing:
 
 ```text
 @alyldas:registry=https://npm.pkg.github.com
@@ -159,6 +155,10 @@ Configure the GitHub Packages registry for the package scope:
 
 GitHub Packages can require authentication for package reads. Use a token with `read:packages` in
 local npm config or CI secrets; do not commit tokens.
+
+```sh
+npm install @alyldas/uniauth
+```
 
 ## Runtime Contract
 
@@ -670,6 +670,9 @@ storage, or framework callback routing.
 
 - `@alyldas/uniauth`: public domain types, service implementation, policy API, ports, errors, and utilities.
 - `@alyldas/uniauth/bridges`: optional Better Auth and Auth.js assertion mapping helpers.
+- `@alyldas/uniauth/providers/messenger`: Telegram Mini App and MAX WebApp provider helpers.
+- `@alyldas/uniauth/providers/oauth-oidc`: SDK-free OAuth/OIDC provider helpers and token
+  persistence helpers.
 - `@alyldas/uniauth/postgres`: reference Postgres repositories, schema helper, and transaction wiring.
 - `@alyldas/uniauth/testing`: in-memory store, provider registry, static provider, in-memory email
   and SMS senders, and test kit.
@@ -773,10 +776,9 @@ The gate runs formatting, ESLint, typecheck, 100% coverage, export smoke tests, 
 package type-resolution checks, dependency audit with `npm audit --audit-level=moderate`, and
 `npm pack --dry-run`.
 
-The release workflow follows the same Release Please model as `theme-mode`: pushes to `main` update
-a release PR, and merging that PR creates the `v*` tag, GitHub release notes, and GitHub Packages
-publish. This repository uses the `RELEASE_PLEASE_TOKEN` secret for release PR automation and
-`GITHUB_TOKEN` for package publishing.
+The release workflow uses Release Please: pushes to `main` update a release PR, and merging that PR
+creates the `v*` tag, GitHub release notes, and GitHub Packages publish. This repository uses the
+`RELEASE_PLEASE_TOKEN` secret for release PR automation and `GITHUB_TOKEN` for package publishing.
 
 Normal feature, fix, refactor, docs, and test commits do not manually change release metadata.
 Release Please owns these files in its release PR:

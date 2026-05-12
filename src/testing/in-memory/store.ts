@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import {
   AuthIdentityStatus,
   CredentialType,
@@ -51,7 +52,8 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   private readonly sessions = new Map<Session['id'], Session>()
   private readonly sessionKeys = new Map<string, Session['id']>()
   private readonly auditEvents: AuditEvent[] = []
-  private transactionDepth = 0
+  private readonly transactionScope = new AsyncLocalStorage<boolean>()
+  private transactionQueue: Promise<void> = Promise.resolve()
 
   constructor(private readonly options: InMemoryAuthStoreOptions = {}) {}
 
@@ -201,6 +203,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
 
   readonly verificationRepo: VerificationRepo = {
     findById: async (id) => this.verifications.get(id),
+    findByIdForUpdate: async (id) => this.verifications.get(id),
     create: async (verification) => {
       this.verifications.set(verification.id, verification)
       return verification
@@ -275,20 +278,27 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   }
 
   async run<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.transactionDepth > 0) {
+    if (this.transactionScope.getStore()) {
       return operation()
     }
 
+    const previousTransaction = this.transactionQueue
+    let releaseTransaction!: () => void
+    this.transactionQueue = new Promise((resolve) => {
+      releaseTransaction = resolve
+    })
+
+    await previousTransaction
+
     const snapshot = this.snapshot()
-    this.transactionDepth += 1
 
     try {
-      return await operation()
+      return await this.transactionScope.run(true, operation)
     } catch (error) {
       this.restore(snapshot)
       throw error
     } finally {
-      this.transactionDepth -= 1
+      releaseTransaction()
     }
   }
 
@@ -317,7 +327,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   }
 
   private identityKey(provider: AuthIdentityProvider, providerUserId: string): string {
-    return `${provider}\u0000${providerUserId}`
+    return compositeKey(provider, providerUserId)
   }
 
   private get normalizer(): AuthNormalizer {
@@ -325,11 +335,11 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
   }
 
   private credentialKey(type: Credential['type'], subject: string): string {
-    return `${type}\u0000${subject}`
+    return compositeKey(type, subject)
   }
 
   private credentialUserKey(type: Credential['type'], userId: User['id']): string {
-    return `${type}\u0000${userId}`
+    return compositeKey(type, userId)
   }
 
   private snapshot(): StoreSnapshot {
@@ -425,6 +435,10 @@ function applyPatch<Entity extends { readonly id: unknown }, Patch extends objec
   }
 
   return updated as Entity
+}
+
+function compositeKey(...parts: readonly string[]): string {
+  return JSON.stringify(parts)
 }
 
 function isOlderThanAuditCursor(

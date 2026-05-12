@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { DefaultAuthService } from '@alyldas/uniauth'
+import { DefaultAuthService, invalidInput } from '@alyldas/uniauth'
 import {
   OAuthOidcTokenBindingKind,
   createOAuthOidcTokenRecord,
@@ -22,15 +22,8 @@ import {
 } from '../shared/session-cookie.js'
 
 interface CallbackRequest {
-  readonly query: {
-    readonly code: string
-    readonly state: string
-  }
-  readonly cookies: {
-    readonly oidcState: string
-    readonly oidcCodeVerifier: string
-    readonly oidcRedirectUri: string
-  }
+  readonly query: Record<string, unknown>
+  readonly cookies: Record<string, unknown>
 }
 
 interface SessionCookie {
@@ -175,9 +168,25 @@ const authService = new DefaultAuthService({
   rateLimiter: new InMemoryRateLimiter(),
 })
 
+function readRequiredString(input: Record<string, unknown>, key: string): string {
+  const value = input[key]
+
+  if (typeof value !== 'string') {
+    throw invalidInput(`${key} is required.`)
+  }
+
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    throw invalidInput(`${key} is required.`)
+  }
+
+  return trimmed
+}
+
 function assertStateMatches(expected: string, received: string): void {
   if (expected !== received) {
-    throw new Error('OAuth state mismatch.')
+    throw invalidInput('OAuth state mismatch.')
   }
 }
 
@@ -201,25 +210,33 @@ function clearCookie(name: string): ClearedCookie {
   }
 }
 
-async function finishOidcCallback(request: CallbackRequest): Promise<RedirectResponse> {
+export async function finishOidcCallbackForExample(
+  request: CallbackRequest,
+): Promise<RedirectResponse> {
   // State, PKCE, and redirect URI storage stay application-owned.
-  assertStateMatches(request.cookies.oidcState, request.query.state)
+  const code = readRequiredString(request.query, 'code')
+  const state = readRequiredString(request.query, 'state')
+  const oidcState = readRequiredString(request.cookies, 'oidcState')
+  const oidcCodeVerifier = readRequiredString(request.cookies, 'oidcCodeVerifier')
+  const oidcRedirectUri = readRequiredString(request.cookies, 'oidcRedirectUri')
+
+  assertStateMatches(oidcState, state)
 
   const result = await authService.signIn({
     provider: 'demo-oidc',
     finishInput: {
-      code: request.query.code,
-      state: request.query.state,
+      code,
+      state,
       payload: {
-        redirectUri: request.cookies.oidcRedirectUri,
-        codeVerifier: request.cookies.oidcCodeVerifier,
+        redirectUri: oidcRedirectUri,
+        codeVerifier: oidcCodeVerifier,
       },
     },
   })
   const tokenBinding = tokenStore.rebind(
     {
       kind: OAuthOidcTokenBindingKind.CallbackState,
-      value: request.query.state,
+      value: state,
     },
     {
       kind: OAuthOidcTokenBindingKind.Session,
@@ -248,7 +265,7 @@ async function finishOidcCallback(request: CallbackRequest): Promise<RedirectRes
 export async function runOAuthOidcExample(): Promise<void> {
   assertSessionCookieSealingConfigured()
 
-  const response = await finishOidcCallback({
+  const response = await finishOidcCallbackForExample({
     query: {
       code: 'demo-authorization-code',
       state: 'state-123',

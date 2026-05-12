@@ -29,6 +29,8 @@ import {
   systemClock,
   verifySecret,
 } from '../src'
+import { createAuthServiceRuntime } from '../src/application/runtime-defaults.js'
+import { InMemoryAuthStore } from '../src/testing'
 import { assertion, identity, now, user } from './helpers.js'
 
 describe('public utility coverage', () => {
@@ -144,6 +146,20 @@ describe('public utility coverage', () => {
     )
     expect(addSeconds(now, 5)).toEqual(new Date('2026-01-01T00:00:05.000Z'))
     expect(systemClock.now()).toBeInstanceOf(Date)
+
+    const store = new InMemoryAuthStore()
+    const runtime = createAuthServiceRuntime({
+      repos: {
+        userRepo: store.userRepo,
+        identityRepo: store.identityRepo,
+        credentialRepo: store.credentialRepo,
+        verificationRepo: store.verificationRepo,
+        sessionRepo: store.sessionRepo,
+        auditLogRepo: store.auditLogRepo,
+      },
+    })
+
+    await expect(runtime.transaction.run(async () => 'immediate')).resolves.toBe('immediate')
   })
 
   it('covers default policy and error helper branches', () => {
