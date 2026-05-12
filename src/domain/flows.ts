@@ -189,6 +189,19 @@ export interface CancelCurrentAccountOtpReAuthInput {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface FinishCurrentAccountOtpReAuthInput {
+  readonly sessionToken: string
+  readonly verificationId: VerificationId
+  readonly secret: string
+  readonly now?: Date
+}
+
+export interface CurrentAccountOtpReAuthConfirmation {
+  readonly currentSessionId: SessionId
+  readonly userId: UserId
+  readonly reAuthenticatedAt: Date
+}
+
 export interface GetCurrentAccountReAuthStatusInput {
   readonly sessionToken: string
   readonly action: AuthPolicyAction

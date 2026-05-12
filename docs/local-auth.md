@@ -49,15 +49,14 @@ const resent = await service.resendCurrentAccountOtpReAuth({
   verificationId: challenge.verificationId,
 })
 
-const verification = await service.finishOtpChallenge({
+const confirmation = await service.finishCurrentAccountOtpReAuth({
+  sessionToken,
   verificationId: resent.verificationId,
   secret: 'code from user input',
-  purpose: VerificationPurpose.ReAuth,
-  channel: OtpChannel.Email,
 })
 ```
 
-The application still owns how `verification.consumedAt` becomes a recent-auth marker in its own
+The application still owns how `confirmation.reAuthenticatedAt` becomes a recent-auth marker in its own
 session, cookie, or server-side request context.
 
 If the user abandons that step instead of finishing it, the route can cancel the current-account

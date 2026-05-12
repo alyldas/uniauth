@@ -31,6 +31,7 @@ import {
 import {
   assertCurrentAccountReAuth,
   cancelCurrentAccountOtpReAuth,
+  finishCurrentAccountOtpReAuth,
   getCurrentAccountReAuthStatus,
   confirmCurrentAccountPasswordByToken,
   resendCurrentAccountOtpReAuth,
@@ -91,6 +92,7 @@ import type {
   CancelCurrentAccountContactChangeInput,
   CurrentAccountClosureExportSnapshot,
   CurrentAccountInspectionSnapshot,
+  CurrentAccountOtpReAuthConfirmation,
   CurrentAccountReAuthAssertion,
   CurrentAccountReAuthStatus,
   CurrentAccountSecuritySnapshot,
@@ -109,6 +111,7 @@ import type {
   CreateVerificationInput,
   CreateVerificationResult,
   FinishCurrentAccountContactChangeInput,
+  FinishCurrentAccountOtpReAuthInput,
   FinishEmailMagicLinkSignInInput,
   FinishEmailPasswordRecoveryInput,
   FinishOtpChallengeInput,
@@ -204,6 +207,12 @@ export class DefaultAuthService implements AuthService {
     input: CancelCurrentAccountOtpReAuthInput,
   ): Promise<Verification> {
     return cancelCurrentAccountOtpReAuth(this.runtime, input)
+  }
+
+  async finishCurrentAccountOtpReAuth(
+    input: FinishCurrentAccountOtpReAuthInput,
+  ): Promise<CurrentAccountOtpReAuthConfirmation> {
+    return finishCurrentAccountOtpReAuth(this.runtime, input)
   }
 
   async resendOtpChallenge(input: ResendOtpChallengeInput): Promise<StartOtpChallengeResult> {

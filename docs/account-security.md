@@ -372,18 +372,17 @@ const challenge = await authService.startCurrentAccountOtpReAuth({
 })
 ```
 
-Then finish the challenge through the existing generic verification consumer and persist the recent
-auth marker in app-owned request or session state:
+Then finish the challenge on the same current-account session boundary and persist the recent-auth
+marker in app-owned request or session state:
 
 ```ts
-const verification = await authService.finishOtpChallenge({
+const confirmation = await authService.finishCurrentAccountOtpReAuth({
+  sessionToken: request.auth.sessionToken,
   verificationId: body.verificationId,
   secret: body.secret,
-  purpose: VerificationPurpose.ReAuth,
-  channel: body.channel,
 })
 
-request.auth.reAuthenticatedAt = verification.consumedAt ?? new Date()
+request.auth.reAuthenticatedAt = confirmation.reAuthenticatedAt
 ```
 
 If the UI prefers password confirmation instead of OTP, keep that proof on the same trusted local

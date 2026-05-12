@@ -55,21 +55,23 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
       text: 'Your sign-in code is 654321.',
     })
 
-    const verification = await service.finishOtpChallenge({
+    const confirmation = await service.finishCurrentAccountOtpReAuth({
+      sessionToken: signedIn.sessionToken,
       verificationId: challenge.verificationId,
       secret: '654321',
-      purpose: VerificationPurpose.ReAuth,
-      channel: OtpChannel.Email,
       now: addSeconds(now, 11),
     })
 
-    expect(verification.consumedAt).toEqual(addSeconds(now, 11))
-    const reAuthenticatedAt = verification.consumedAt ?? addSeconds(now, 11)
+    expect(confirmation).toEqual({
+      currentSessionId: signedIn.session.id,
+      userId: signedIn.user.id,
+      reAuthenticatedAt: addSeconds(now, 11),
+    })
 
     await service.unlinkCurrentIdentityByToken({
       sessionToken: signedIn.sessionToken,
       identityId: linked.identity.id,
-      reAuthenticatedAt,
+      reAuthenticatedAt: confirmation.reAuthenticatedAt,
       now: addSeconds(now, 11),
     })
 
@@ -214,9 +216,9 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
           id: resent.verificationId,
           purpose: VerificationPurpose.ReAuth,
           target: 'current-account-reauth-resend@example.com',
-          metadata: {
-            source: 'current-account-reauth-resend',
-          },
+          metadata: expect.objectContaining({
+            requestMetadata: { source: 'current-account-reauth-resend' },
+          }),
         }),
       ]),
     )
@@ -239,18 +241,22 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
           metadata: {
             verificationId: resent.verificationId,
             purpose: VerificationPurpose.ReAuth,
-            source: 'current-account-reauth-cancel',
+            currentAccountOtpReAuth: {
+              userId: signedIn.user.id,
+              sessionId: signedIn.session.id,
+              channel: OtpChannel.Email,
+            },
+            requestMetadata: { source: 'current-account-reauth-cancel' },
           },
         }),
       ]),
     )
 
     await expect(
-      service.finishOtpChallenge({
+      service.finishCurrentAccountOtpReAuth({
+        sessionToken: signedIn.sessionToken,
         verificationId: resent.verificationId,
         secret: '222222',
-        purpose: VerificationPurpose.ReAuth,
-        channel: OtpChannel.Email,
         now: addSeconds(now, 22),
       }),
     ).rejects.toMatchObject({
@@ -276,6 +282,14 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
       }),
       now: addSeconds(now, 1),
     })
+    const aliceSecondSession = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-reauth-neutral-owner',
+        email: 'current-account-reauth-neutral-owner@example.com',
+        emailVerified: true,
+      }),
+      now: addSeconds(now, 2),
+    })
 
     const ownedChallenge = await service.startCurrentAccountOtpReAuth({
       sessionToken: alice.sessionToken,
@@ -283,6 +297,27 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
       channel: OtpChannel.Email,
       secret: '333333',
       now: addSeconds(now, 10),
+    })
+    const missingMetadataChallenge = await service.startOtpChallenge({
+      purpose: VerificationPurpose.ReAuth,
+      channel: OtpChannel.Email,
+      target: 'current-account-reauth-neutral-owner@example.com',
+      secret: '555555',
+      now: addSeconds(now, 11),
+    })
+    const malformedMetadataChallenge = await service.startOtpChallenge({
+      purpose: VerificationPurpose.ReAuth,
+      channel: OtpChannel.Email,
+      target: 'current-account-reauth-neutral-owner@example.com',
+      secret: '666666',
+      now: addSeconds(now, 11),
+      metadata: {
+        currentAccountOtpReAuth: {
+          userId: 1,
+          sessionId: alice.session.id,
+          channel: OtpChannel.Email,
+        },
+      },
     })
     const signInChallenge = await service.startOtpChallenge({
       purpose: VerificationPurpose.SignIn,
@@ -293,7 +328,56 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
     })
 
     await expect(
+      service.finishOtpChallenge({
+        verificationId: ownedChallenge.verificationId,
+        secret: '333333',
+        purpose: VerificationPurpose.ReAuth,
+        channel: OtpChannel.Email,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+
+    for (const verificationId of [
+      missingMetadataChallenge.verificationId,
+      malformedMetadataChallenge.verificationId,
+    ]) {
+      await expect(
+        service.finishCurrentAccountOtpReAuth({
+          sessionToken: alice.sessionToken,
+          verificationId,
+          secret: '555555',
+          now: addSeconds(now, 20),
+        }),
+      ).rejects.toMatchObject({
+        code: UniAuthErrorCode.VerificationNotFound,
+      })
+    }
+
+    await expect(
       service.resendCurrentAccountOtpReAuth({
+        sessionToken: aliceSecondSession.sessionToken,
+        verificationId: ownedChallenge.verificationId,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
+    })
+
+    await expect(
+      service.finishCurrentAccountOtpReAuth({
+        sessionToken: aliceSecondSession.sessionToken,
+        verificationId: ownedChallenge.verificationId,
+        secret: '333333',
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
+    })
+
+    await expect(
+      service.cancelCurrentAccountOtpReAuth({
         sessionToken: bob.sessionToken,
         verificationId: ownedChallenge.verificationId,
         now: addSeconds(now, 20),

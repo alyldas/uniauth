@@ -1,12 +1,18 @@
 import { listActiveIdentitiesForUser } from './accounts/shared.js'
+import {
+  buildCurrentAccountOtpReAuthMetadata,
+  readCurrentAccountOtpReAuthMetadata,
+} from './current-account-re-auth-metadata.js'
 import { optionalProp } from './optional.js'
 import { normalizeOtpTarget, type SupportedOtpChannel } from './otp-delivery.js'
 import {
   cancelOtpChallenge,
+  enforceOtpFinishRateLimit,
   findOtpChallengeRecord,
   resendOtpChallenge,
   startOtpChallenge,
 } from './otp.js'
+import { consumeVerificationRecord } from './verifications.js'
 import {
   getPasswordHasher,
   findUsablePasswordIdentity,
@@ -20,8 +26,10 @@ import type {
   AuthIdentity,
   CancelCurrentAccountOtpReAuthInput,
   ConfirmCurrentAccountPasswordByTokenInput,
+  CurrentAccountOtpReAuthConfirmation,
   CurrentAccountReAuthAssertion,
   CurrentAccountReAuthStatus,
+  FinishCurrentAccountOtpReAuthInput,
   CurrentAccountPasswordReAuthConfirmation,
   GetCurrentAccountReAuthStatusInput,
   OtpChannel as OtpChannelType,
@@ -109,7 +117,12 @@ export async function startCurrentAccountOtpReAuth(
     ...optionalProp('secret', input.secret),
     ...optionalProp('ttlSeconds', input.ttlSeconds),
     now: actor.now,
-    ...(input.metadata ? { metadata: input.metadata } : {}),
+    metadata: buildCurrentAccountOtpReAuthMetadata(
+      actor.userId,
+      actor.sessionId,
+      input.channel,
+      input.metadata,
+    ),
   })
 }
 
@@ -129,7 +142,12 @@ export async function resendCurrentAccountOtpReAuth(
     ...optionalProp('secret', input.secret),
     ...optionalProp('ttlSeconds', input.ttlSeconds),
     now: actor.now,
-    ...(input.metadata ? { metadata: input.metadata } : {}),
+    metadata: buildCurrentAccountOtpReAuthMetadata(
+      actor.userId,
+      actor.sessionId,
+      challenge.channel,
+      input.metadata,
+    ),
   })
 }
 
@@ -149,7 +167,45 @@ export async function cancelCurrentAccountOtpReAuth(
     purpose: VerificationPurpose.ReAuth,
     channel: challenge.channel,
     now: actor.now,
-    ...(input.metadata ? { metadata: input.metadata } : {}),
+    metadata: buildCurrentAccountOtpReAuthMetadata(
+      actor.userId,
+      actor.sessionId,
+      challenge.channel,
+      input.metadata,
+    ),
+  })
+}
+
+export async function finishCurrentAccountOtpReAuth(
+  runtime: AuthServiceRuntime,
+  input: FinishCurrentAccountOtpReAuthInput,
+): Promise<CurrentAccountOtpReAuthConfirmation> {
+  const resolved = await resolveCurrentAccountOwnedOtpReAuthChallenge(
+    runtime,
+    input.sessionToken,
+    input.verificationId,
+    input.now,
+  )
+  await enforceOtpFinishRateLimit(runtime, resolved.challenge, resolved.actor.now)
+
+  return runtime.transaction.run(async () => {
+    const { actor, challenge } = await resolveCurrentAccountOwnedOtpReAuthChallenge(
+      runtime,
+      input.sessionToken,
+      input.verificationId,
+      resolved.actor.now,
+    )
+    await consumeVerificationRecord(runtime, {
+      verificationId: challenge.verification.id,
+      secret: input.secret,
+      now: actor.now,
+    })
+
+    return {
+      currentSessionId: actor.sessionId,
+      userId: actor.userId,
+      reAuthenticatedAt: actor.now,
+    }
   })
 }
 
@@ -231,6 +287,7 @@ async function resolveCurrentAccountOwnedOtpReAuthChallenge(
 }> {
   const actor = await resolveCurrentAccountActor(runtime, sessionToken, now)
   const challenge = await getCurrentAccountOwnedOtpReAuthChallenge(runtime, verificationId)
+  const metadata = readCurrentAccountOtpReAuthMetadata(challenge.verification.metadata)
   const identities = await listActiveIdentitiesForUser(runtime, actor.userId)
   const owned = identities.some((identity) =>
     currentAccountOwnsOtpReAuthTarget(
@@ -241,7 +298,13 @@ async function resolveCurrentAccountOwnedOtpReAuthChallenge(
     ),
   )
 
-  if (!owned) {
+  if (
+    !metadata ||
+    metadata.userId !== actor.userId ||
+    metadata.sessionId !== actor.sessionId ||
+    metadata.channel !== challenge.channel ||
+    !owned
+  ) {
     throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
   }
 

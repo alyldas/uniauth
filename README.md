@@ -437,6 +437,12 @@ const resent = await service.resendCurrentAccountOtpReAuth({
   verificationId: challenge.verificationId,
 })
 
+const otpConfirmation = await service.finishCurrentAccountOtpReAuth({
+  sessionToken,
+  verificationId: resent.verificationId,
+  secret: codeFromUserInput,
+})
+
 const passwordConfirmation = await service.confirmCurrentAccountPasswordByToken({
   sessionToken,
   currentPassword,
@@ -445,7 +451,7 @@ const passwordConfirmation = await service.confirmCurrentAccountPasswordByToken(
 const reAuthStatus = await service.getCurrentAccountReAuthStatus({
   sessionToken,
   action: AuthPolicyAction.ChangePassword,
-  reAuthenticatedAt,
+  reAuthenticatedAt: otpConfirmation.reAuthenticatedAt,
 })
 ```
 

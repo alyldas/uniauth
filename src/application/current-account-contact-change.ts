@@ -231,6 +231,10 @@ async function resolveCurrentAccountOwnedContactChangeChallenge(
     throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
   }
 
+  if (metadata.sessionId !== session.id) {
+    throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
+  }
+
   return {
     actor: { now: resolvedNow, sessionId: session.id, userId: user.id },
     challenge,

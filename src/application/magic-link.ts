@@ -209,7 +209,9 @@ export async function cancelEmailMagicLinkSignIn(
 ): Promise<Verification> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
-    const verification = await findEmailMagicLinkVerification(runtime, input.verificationId)
+    const verification = await findEmailMagicLinkVerification(runtime, input.verificationId, {
+      lock: true,
+    })
 
     return cancelVerificationRecord(runtime, verification, now, input.metadata)
   })
