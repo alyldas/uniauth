@@ -25,10 +25,12 @@ import type {
   CreateVerificationInput,
   CreateVerificationResult,
   FinishCurrentAccountContactChangeInput,
+  FinishCurrentAccountOtpReAuthInput,
   FinishOtpChallengeInput,
   FinishOtpSignInInput,
   GetAccountInspectionSnapshotInput,
   LinkCurrentIdentityByTokenInput,
+  CurrentAccountOtpReAuthConfirmation,
   CurrentAccountReAuthAssertion,
   CurrentAccountReAuthStatus,
   StartCurrentAccountOtpReAuthInput,
@@ -95,6 +97,9 @@ export interface AuthService {
     input: ResendCurrentAccountOtpReAuthInput,
   ): Promise<StartOtpChallengeResult>
   cancelCurrentAccountOtpReAuth(input: CancelCurrentAccountOtpReAuthInput): Promise<Verification>
+  finishCurrentAccountOtpReAuth(
+    input: FinishCurrentAccountOtpReAuthInput,
+  ): Promise<CurrentAccountOtpReAuthConfirmation>
   resendOtpChallenge(input: ResendOtpChallengeInput): Promise<StartOtpChallengeResult>
   finishOtpChallenge(input: FinishOtpChallengeInput): Promise<Verification>
   finishOtpSignIn(input: FinishOtpSignInInput): Promise<AuthResult>

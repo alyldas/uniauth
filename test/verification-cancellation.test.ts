@@ -6,6 +6,7 @@ import {
   VerificationPurpose,
   VerificationStatus,
   addSeconds,
+  asVerificationId,
 } from '../src'
 import { createInMemoryAuthKit } from '../src/testing'
 import { now } from './helpers.js'
@@ -219,6 +220,84 @@ describe('verification cancellation flows', () => {
       }),
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.InvalidInput,
+    })
+  })
+
+  it('uses locked verification reads for cancellation helpers', async () => {
+    const { service, store } = createInMemoryAuthKit({
+      clock: { now: () => addSeconds(now, 90) },
+    })
+    const generic = await service.createVerification({
+      purpose: VerificationPurpose.SignIn,
+      target: 'locked-generic@example.com',
+      secret: '111111',
+      now,
+    })
+    const otp = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: 'locked-otp@example.com',
+      secret: '222222',
+      now,
+    })
+    const magic = await service.startEmailMagicLinkSignIn({
+      email: 'locked-magic@example.com',
+      secret: 'magic-secret',
+      createLink: ({ verificationId, secret }) =>
+        `https://example.com/magic?verificationId=${verificationId}&secret=${secret}`,
+      now,
+    })
+    const recovery = await service.startEmailPasswordRecovery({
+      email: 'locked-recovery@example.com',
+      secret: 'recovery-secret',
+      createLink: ({ verificationId, secret }) =>
+        `https://example.com/recovery?verificationId=${verificationId}&secret=${secret}`,
+      now,
+    })
+    const originalFindById = store.verificationRepo.findById
+    const originalFindByIdForUpdate = store.verificationRepo.findByIdForUpdate
+    let lockedReads = 0
+
+    store.verificationRepo.findById = async () => {
+      throw new Error('unlocked verification read')
+    }
+    store.verificationRepo.findByIdForUpdate = async (id) => {
+      lockedReads += 1
+      return originalFindByIdForUpdate(id)
+    }
+
+    await expect(
+      service.cancelVerification({ verificationId: generic.verification.id }),
+    ).resolves.toMatchObject({ id: generic.verification.id })
+    await expect(
+      service.cancelOtpChallenge({
+        verificationId: otp.verificationId,
+        channel: OtpChannel.Email,
+      }),
+    ).resolves.toMatchObject({ id: otp.verificationId })
+    await expect(
+      service.cancelEmailMagicLinkSignIn({ verificationId: magic.verificationId }),
+    ).resolves.toMatchObject({ id: magic.verificationId })
+    await expect(
+      service.cancelEmailPasswordRecovery({ verificationId: recovery.verificationId }),
+    ).resolves.toMatchObject({ id: recovery.verificationId })
+
+    expect(lockedReads).toBe(4)
+
+    store.verificationRepo.findById = originalFindById
+    store.verificationRepo.findByIdForUpdate = originalFindByIdForUpdate
+  })
+
+  it('returns not found when locked cancellation lookup misses', async () => {
+    const { service } = createInMemoryAuthKit()
+
+    await expect(
+      service.cancelVerification({
+        verificationId: asVerificationId('missing-locked-verification'),
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
     })
   })
 

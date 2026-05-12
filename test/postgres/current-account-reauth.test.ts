@@ -50,19 +50,17 @@ describe('Postgres current-account re-auth helpers', () => {
       text: 'Your sign-in code is 654321.',
     })
 
-    const verification = await service.finishOtpChallenge({
+    const confirmation = await service.finishCurrentAccountOtpReAuth({
+      sessionToken: signedIn.sessionToken,
       verificationId: challenge.verificationId,
       secret: '654321',
-      purpose: VerificationPurpose.ReAuth,
-      channel: OtpChannel.Email,
       now: addSeconds(now, 11),
     })
-    const reAuthenticatedAt = verification.consumedAt ?? addSeconds(now, 11)
 
     await service.unlinkCurrentIdentityByToken({
       sessionToken: signedIn.sessionToken,
       identityId: linked.identity.id,
-      reAuthenticatedAt,
+      reAuthenticatedAt: confirmation.reAuthenticatedAt,
       now: addSeconds(now, 11),
     })
 
@@ -124,9 +122,9 @@ describe('Postgres current-account re-auth helpers', () => {
       id: resent.verificationId,
       purpose: VerificationPurpose.ReAuth,
       target: 'pg-current-account-reauth-resend@example.com',
-      metadata: {
-        source: 'pg-current-account-reauth-resend',
-      },
+      metadata: expect.objectContaining({
+        requestMetadata: { source: 'pg-current-account-reauth-resend' },
+      }),
     })
 
     const cancelled = await service.cancelCurrentAccountOtpReAuth({
@@ -147,18 +145,22 @@ describe('Postgres current-account re-auth helpers', () => {
           metadata: {
             verificationId: resent.verificationId,
             purpose: VerificationPurpose.ReAuth,
-            source: 'pg-current-account-reauth-cancel',
+            currentAccountOtpReAuth: {
+              userId: signedIn.user.id,
+              sessionId: signedIn.session.id,
+              channel: OtpChannel.Email,
+            },
+            requestMetadata: { source: 'pg-current-account-reauth-cancel' },
           },
         }),
       ]),
     )
 
     await expect(
-      service.finishOtpChallenge({
+      service.finishCurrentAccountOtpReAuth({
+        sessionToken: signedIn.sessionToken,
         verificationId: resent.verificationId,
         secret: '222222',
-        purpose: VerificationPurpose.ReAuth,
-        channel: OtpChannel.Email,
         now: addSeconds(now, 22),
       }),
     ).rejects.toMatchObject({

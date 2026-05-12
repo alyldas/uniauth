@@ -1,4 +1,5 @@
 import type { AuthServiceRuntime } from './runtime.js'
+import { readCurrentAccountOtpReAuthMetadata } from './current-account-re-auth-metadata.js'
 import { getOtpDelivery, normalizeOtpTarget, type SupportedOtpChannel } from './otp-delivery.js'
 import { optionalProp } from './optional.js'
 import { normalizeAssertion, signInWithAssertion } from './sign-in.js'
@@ -93,15 +94,18 @@ export async function finishOtpChallenge(
     context: 'OTP challenge',
   })
 
+  rejectCurrentAccountOtpReAuthChallenge(challenge.verification)
+
   await enforceOtpFinishRateLimit(runtime, challenge, now)
 
   return runtime.transaction.run(async () => {
-    await findOtpChallengeRecord(runtime, {
+    const currentChallenge = await findOtpChallengeRecord(runtime, {
       verificationId: input.verificationId,
       ...optionalProp('purpose', input.purpose),
       ...optionalProp('channel', input.channel),
       context: 'OTP challenge',
     })
+    rejectCurrentAccountOtpReAuthChallenge(currentChallenge.verification)
 
     return consumeVerificationRecord(runtime, {
       verificationId: input.verificationId,
@@ -187,6 +191,7 @@ export async function cancelOtpChallenge(
       ...optionalProp('purpose', input.purpose),
       ...optionalProp('channel', input.channel),
       context: 'OTP cancellation',
+      lock: true,
     })
 
     return cancelVerificationRecord(runtime, challenge.verification, now, input.metadata)
@@ -319,6 +324,15 @@ function otpChannelFromVerification(verification: Verification): SupportedOtpCha
   }
 
   return undefined
+}
+
+function rejectCurrentAccountOtpReAuthChallenge(verification: Verification): void {
+  if (
+    verification.purpose === VerificationPurpose.ReAuth &&
+    readCurrentAccountOtpReAuthMetadata(verification.metadata)
+  ) {
+    throw invalidInput('Current-account OTP re-auth must be finished on the session boundary.')
+  }
 }
 
 function assertionFromOtpVerification(

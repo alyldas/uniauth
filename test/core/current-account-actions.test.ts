@@ -348,6 +348,14 @@ describe('DefaultAuthService current-account action helpers', () => {
       }),
       now: addSeconds(now, 1),
     })
+    const aliceSecondSession = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-contact-change-owner',
+        email: 'current-account-contact-change-owner@example.com',
+        emailVerified: true,
+      }),
+      now: addSeconds(now, 2),
+    })
     const started = await service.startCurrentAccountContactChange({
       sessionToken: alice.sessionToken,
       channel: OtpChannel.Phone,
@@ -361,6 +369,16 @@ describe('DefaultAuthService current-account action helpers', () => {
         sessionToken: bob.sessionToken,
         verificationId: started.verificationId,
         secret: '333333',
+        now: addSeconds(now, 6),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
+    })
+
+    await expect(
+      service.cancelCurrentAccountContactChange({
+        sessionToken: aliceSecondSession.sessionToken,
+        verificationId: started.verificationId,
         now: addSeconds(now, 6),
       }),
     ).rejects.toMatchObject({

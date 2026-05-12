@@ -58,7 +58,7 @@ export async function cancelVerification(
 ): Promise<Verification> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
-    const verification = await getVerification(runtime, input.verificationId)
+    const verification = await getVerificationForUpdate(runtime, input.verificationId)
 
     return cancelVerificationRecord(runtime, verification, now, input.metadata)
   })
@@ -87,6 +87,19 @@ export async function consumeVerification(
   return runtime.transaction.run(async () => {
     return consumeVerificationRecord(runtime, input)
   })
+}
+
+export async function getVerificationForUpdate(
+  runtime: AuthServiceRuntime,
+  verificationId: Verification['id'],
+): Promise<Verification> {
+  const verification = await runtime.repos.verificationRepo.findByIdForUpdate(verificationId)
+
+  if (!verification) {
+    throw new UniAuthError(UniAuthErrorCode.VerificationNotFound, 'Verification was not found.')
+  }
+
+  return verification
 }
 
 export async function requireVerificationResendAllowed(
