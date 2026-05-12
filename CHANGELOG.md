@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.46.0](https://github.com/alyldas/uniauth/compare/v0.45.0...v0.46.0) (2026-05-12)
+
+
+### Features
+
+* add current-account verified contact changes ([a966b1d](https://github.com/alyldas/uniauth/commit/a966b1de1ddbea6addc9eb12706072f876773dcd))
+
 ## [0.45.0](https://github.com/alyldas/uniauth/compare/v0.44.0...v0.45.0) (2026-05-05)
 
 
