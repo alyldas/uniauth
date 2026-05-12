@@ -1,3 +1,4 @@
+import { normalizeMetadataRecord } from '../metadata.js'
 import { optionalProp } from '../optional.js'
 import { AuthPolicyAction } from '../policy.js'
 import type { AuthServiceRuntime } from '../runtime.js'
@@ -155,13 +156,15 @@ export function createMergeDeniedAudit(input: {
   readonly metadata?: Record<string, unknown> | undefined
   readonly requestMetadata?: Record<string, unknown> | undefined
 }): MergeDeniedAudit {
+  const requestMetadata = normalizeMergeRequestMetadata(input.requestMetadata)
+
   return {
     userId: input.targetUserId,
     metadata: {
       ...input.metadata,
       reason: input.reason,
       sourceUserId: input.sourceUserId,
-      ...optionalProp('requestMetadata', input.requestMetadata),
+      ...optionalProp('requestMetadata', requestMetadata),
     },
   }
 }
@@ -216,12 +219,20 @@ export function buildMergeAuditMetadata(input: {
   readonly result: MergeResult
   readonly requestMetadata: Record<string, unknown> | undefined
 }): Record<string, unknown> {
+  const requestMetadata = normalizeMergeRequestMetadata(input.requestMetadata)
+
   return {
     decision: input.decision,
     sourceUserId: input.sourceUserId,
     movedIdentityIds: [...input.result.movedIdentityIds],
     movedCredentialIds: [...input.result.movedCredentialIds],
     revokedSessionIds: [...input.result.revokedSessionIds],
-    ...optionalProp('requestMetadata', input.requestMetadata),
+    ...optionalProp('requestMetadata', requestMetadata),
   }
+}
+
+function normalizeMergeRequestMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Merge request metadata')
 }

@@ -394,6 +394,7 @@ const confirmation = await authService.confirmCurrentAccountPasswordByToken({
   currentPassword: body.currentPassword,
 })
 
+request.auth.currentSessionId = confirmation.currentSessionId
 request.auth.reAuthenticatedAt = confirmation.reAuthenticatedAt
 ```
 

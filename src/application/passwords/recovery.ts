@@ -1,4 +1,5 @@
 import { optionalProp } from '../optional.js'
+import { normalizeMetadataRecord } from '../metadata.js'
 import type { AuthServiceRuntime } from '../runtime.js'
 import { enforceRateLimit } from '../support.js'
 import {
@@ -96,6 +97,7 @@ export async function finishEmailPasswordRecovery(
   input: FinishEmailPasswordRecoveryInput,
 ): Promise<Credential> {
   const now = input.now ?? runtime.clock.now()
+  const metadata = normalizePasswordRecoveryMetadata(input.metadata)
   assertPassword(input.newPassword)
   const passwordHasher = getPasswordHasher(runtime)
   const verification = await findPasswordRecoveryVerification(runtime, input.verificationId)
@@ -122,7 +124,7 @@ export async function finishEmailPasswordRecovery(
     return runtime.repos.credentialRepo.update(credential.id, {
       passwordHash: await passwordHasher.hash(input.newPassword),
       updatedAt: now,
-      ...optionalProp('metadata', input.metadata),
+      ...optionalProp('metadata', metadata),
     })
   })
 }
@@ -209,4 +211,10 @@ export async function cancelEmailPasswordRecovery(
 
     return cancelVerificationRecord(runtime, verification, now, input.metadata)
   })
+}
+
+function normalizePasswordRecoveryMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Password recovery metadata')
 }

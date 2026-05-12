@@ -1,4 +1,5 @@
 import { optionalProp } from '../optional.js'
+import { normalizeMetadataRecord } from '../metadata.js'
 import { AuthPolicyAction } from '../policy.js'
 import type { AuthServiceRuntime } from '../runtime.js'
 import { ensureReAuth, getActiveUser } from '../support.js'
@@ -23,6 +24,7 @@ export async function setPassword(
 ): Promise<Credential> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizePasswordMetadata(input.metadata)
     const user = await getActiveUser(runtime, input.userId)
     await ensureReAuth(runtime, AuthPolicyAction.SetPassword, user.id, input.reAuthenticatedAt, now)
 
@@ -48,7 +50,7 @@ export async function setPassword(
       return runtime.repos.credentialRepo.update(existingForUser.id, {
         passwordHash,
         updatedAt: now,
-        ...optionalProp('metadata', input.metadata),
+        ...optionalProp('metadata', metadata),
       })
     }
 
@@ -60,7 +62,7 @@ export async function setPassword(
       passwordHash,
       createdAt: now,
       updatedAt: now,
-      ...optionalProp('metadata', input.metadata),
+      ...optionalProp('metadata', metadata),
     })
   })
 }
@@ -71,6 +73,7 @@ export async function changePassword(
 ): Promise<Credential> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizePasswordMetadata(input.metadata)
     const user = await getActiveUser(runtime, input.userId)
     await ensureReAuth(
       runtime,
@@ -96,7 +99,13 @@ export async function changePassword(
     return runtime.repos.credentialRepo.update(credential.id, {
       passwordHash: await passwordHasher.hash(input.newPassword),
       updatedAt: now,
-      ...optionalProp('metadata', input.metadata),
+      ...optionalProp('metadata', metadata),
     })
   })
+}
+
+function normalizePasswordMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Password metadata')
 }

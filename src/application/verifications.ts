@@ -1,4 +1,5 @@
 import type { AuthServiceRuntime } from './runtime.js'
+import { normalizeMetadataRecord } from './metadata.js'
 import { optionalProp } from './optional.js'
 import { audit } from './support.js'
 import {
@@ -150,6 +151,7 @@ export async function createVerificationRecord(
   input: CreateVerificationRecordInput,
 ): Promise<CreateVerificationResult> {
   const secret = input.secret ?? generateSecret()
+  const metadata = normalizeVerificationMetadata(input.metadata)
   const trimmedTarget = input.target.trim()
 
   if (!trimmedTarget) {
@@ -174,7 +176,7 @@ export async function createVerificationRecord(
     status: VerificationStatus.Pending,
     createdAt: input.now,
     expiresAt,
-    ...optionalProp('metadata', input.metadata),
+    ...optionalProp('metadata', metadata),
   }
 
   const created = await runtime.repos.verificationRepo.create(verification)
@@ -244,6 +246,7 @@ export async function cancelVerificationRecord(
   metadata?: Record<string, unknown>,
 ): Promise<Verification> {
   assertValidDate(now, 'Verification cancellation time is invalid.')
+  const cancellationMetadata = normalizeVerificationMetadata(metadata)
 
   if (!isUsableVerification(verification, now)) {
     return verification
@@ -257,7 +260,7 @@ export async function cancelVerificationRecord(
     metadata: {
       verificationId: cancelled.id,
       purpose: cancelled.purpose,
-      ...(metadata ?? {}),
+      ...(cancellationMetadata ?? {}),
     },
   })
 
@@ -296,12 +299,21 @@ export function mergeVerificationMetadata(
   current: Record<string, unknown> | undefined,
   next: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
-  if (!current && !next) {
+  const currentMetadata = normalizeVerificationMetadata(current)
+  const nextMetadata = normalizeVerificationMetadata(next)
+
+  if (!currentMetadata && !nextMetadata) {
     return undefined
   }
 
   return {
-    ...(current ?? {}),
-    ...(next ?? {}),
+    ...(currentMetadata ?? {}),
+    ...(nextMetadata ?? {}),
   }
+}
+
+function normalizeVerificationMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Verification metadata')
 }

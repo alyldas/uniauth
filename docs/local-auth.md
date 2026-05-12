@@ -181,8 +181,9 @@ const confirmation = await service.confirmCurrentAccountPasswordByToken({
 })
 ```
 
-The application still owns how `confirmation.reAuthenticatedAt` is stored, forwarded, or expired
-before it is passed back into token-based current-account mutation helpers.
+The confirmation includes the trusted `currentSessionId` plus `reAuthenticatedAt`. The application
+still owns how that recent-auth marker is stored, forwarded, or expired before it is passed back
+into token-based current-account mutation helpers.
 
 If the route must actively enforce the same recent-auth policy before app-owned follow-up work,
 keep that on the trusted token boundary too:

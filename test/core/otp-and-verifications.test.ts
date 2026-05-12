@@ -75,6 +75,35 @@ describe('DefaultAuthService OTP and verification flows', () => {
 
     expect(blankTargetError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(store.listVerifications()).toHaveLength(1)
+
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: 'metadata-array@example.com',
+        secret: '123456',
+        metadata: ['not-a-record'],
+        now,
+      } as unknown as Parameters<typeof service.createVerification>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+
+    const nullPrototypeMetadata = Object.assign(Object.create(null) as Record<string, unknown>, {
+      requestId: 'req-null-prototype',
+    })
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: 'metadata-record@example.com',
+        secret: '123456',
+        metadata: nullPrototypeMetadata,
+        now,
+      }),
+    ).resolves.toMatchObject({
+      verification: {
+        metadata: { requestId: 'req-null-prototype' },
+      },
+    })
   })
 
   it('uses a configured secret hasher for verification storage', async () => {

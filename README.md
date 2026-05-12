@@ -448,6 +448,9 @@ const passwordConfirmation = await service.confirmCurrentAccountPasswordByToken(
   currentPassword,
 })
 
+passwordConfirmation.currentSessionId
+passwordConfirmation.reAuthenticatedAt
+
 const reAuthStatus = await service.getCurrentAccountReAuthStatus({
   sessionToken,
   action: AuthPolicyAction.ChangePassword,
