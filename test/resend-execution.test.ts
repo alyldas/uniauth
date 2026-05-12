@@ -232,7 +232,7 @@ describe('verification resend execution flows', () => {
     })
   })
 
-  it('keeps the previous OTP verification usable when resend delivery fails before replacement', async () => {
+  it('keeps resend replacement state when OTP delivery fails after storage replacement', async () => {
     const store = new InMemoryAuthStore()
     const messages: Array<{ to: string; text: string }> = []
     let sendAttempts = 0
@@ -274,20 +274,26 @@ describe('verification resend execution flows', () => {
       expect.objectContaining({
         id: started.verificationId,
         status: VerificationStatus.Pending,
+        expiresAt: now,
+      }),
+      expect.objectContaining({
+        status: VerificationStatus.Pending,
       }),
     ])
 
-    const signedIn = await service.finishOtpSignIn({
-      verificationId: started.verificationId,
-      secret: '111111',
-      channel: OtpChannel.Email,
-      now,
+    await expect(
+      service.finishOtpSignIn({
+        verificationId: started.verificationId,
+        secret: '111111',
+        channel: OtpChannel.Email,
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationExpired,
     })
-
-    expect(signedIn.session.status).toBe(SessionStatus.Active)
   })
 
-  it('resends magic links with fresh secrets and leaves the previous link valid when replacement fails early', async () => {
+  it('resends magic links with fresh secrets and keeps replacement state when link creation fails', async () => {
     const { service, emailSender } = createInMemoryAuthKit({
       clock: { now: () => now },
       verificationResendCooldownSeconds: 0,
@@ -355,14 +361,24 @@ describe('verification resend execution flows', () => {
 
     expect(resendError).toBeInstanceOf(Error)
     expect(secondKit.emailSender.listMessages()).toHaveLength(1)
-
-    const fallbackSignIn = await secondKit.service.finishEmailMagicLinkSignIn({
-      verificationId: initial.verificationId,
-      secret: 'magic-1',
-      now,
+    expect(secondKit.store.listVerifications()).toEqual([
+      expect.objectContaining({
+        id: initial.verificationId,
+        expiresAt: now,
+      }),
+      expect.objectContaining({
+        status: VerificationStatus.Pending,
+      }),
+    ])
+    await expect(
+      secondKit.service.finishEmailMagicLinkSignIn({
+        verificationId: initial.verificationId,
+        secret: 'magic-1',
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationExpired,
     })
-
-    expect(fallbackSignIn.session.status).toBe(SessionStatus.Active)
     expect(emailSender.listMessages()).toHaveLength(2)
   })
 

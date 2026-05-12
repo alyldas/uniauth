@@ -117,7 +117,7 @@ export async function resendOtpChallenge(
 ): Promise<StartOtpChallengeResult> {
   const now = input.now ?? runtime.clock.now()
 
-  return runtime.transaction.run(async () => {
+  const { challenge, created, delivery } = await runtime.transaction.run(async () => {
     const challenge = await findOtpChallengeRecord(runtime, {
       verificationId: input.verificationId,
       context: 'OTP resend',
@@ -158,15 +158,22 @@ export async function resendOtpChallenge(
       ),
     })
 
-    await delivery.send(created)
     await expireVerificationForResend(runtime, challenge.verification.id, now)
 
     return {
-      verificationId: created.verification.id,
-      expiresAt: created.verification.expiresAt,
-      delivery: challenge.channel,
+      challenge,
+      created,
+      delivery,
     }
   })
+
+  await delivery.send(created)
+
+  return {
+    verificationId: created.verification.id,
+    expiresAt: created.verification.expiresAt,
+    delivery: challenge.channel,
+  }
 }
 
 export async function cancelOtpChallenge(

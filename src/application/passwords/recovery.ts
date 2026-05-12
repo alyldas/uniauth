@@ -138,7 +138,7 @@ export async function resendEmailPasswordRecovery(
   }
   const emailSender = runtime.emailSender
 
-  return runtime.transaction.run(async () => {
+  const { created, verification } = await runtime.transaction.run(async () => {
     const verification = await findPasswordRecoveryVerification(runtime, input.verificationId, {
       lock: true,
     })
@@ -164,32 +164,37 @@ export async function resendEmailPasswordRecovery(
       now,
       ...optionalProp('metadata', mergeVerificationMetadata(verification.metadata, input.metadata)),
     })
-    const link = await input.createLink({
-      verificationId: created.verification.id,
-      secret: created.secret,
-      email: verification.target,
-      expiresAt: created.verification.expiresAt,
-    })
-
-    await emailSender.sendEmail({
-      to: verification.target,
-      subject: DEFAULT_PASSWORD_RECOVERY_SUBJECT,
-      text: `Reset your password using this link: ${link}`,
-      metadata: {
-        verificationId: created.verification.id,
-        purpose: created.verification.purpose,
-        delivery: OtpChannel.Email,
-        provider: PASSWORD_PROVIDER_ID,
-      },
-    })
     await expireVerificationForResend(runtime, verification.id, now)
 
     return {
-      verificationId: created.verification.id,
-      expiresAt: created.verification.expiresAt,
-      delivery: OtpChannel.Email,
+      created,
+      verification,
     }
   })
+  const link = await input.createLink({
+    verificationId: created.verification.id,
+    secret: created.secret,
+    email: verification.target,
+    expiresAt: created.verification.expiresAt,
+  })
+
+  await emailSender.sendEmail({
+    to: verification.target,
+    subject: DEFAULT_PASSWORD_RECOVERY_SUBJECT,
+    text: `Reset your password using this link: ${link}`,
+    metadata: {
+      verificationId: created.verification.id,
+      purpose: created.verification.purpose,
+      delivery: OtpChannel.Email,
+      provider: PASSWORD_PROVIDER_ID,
+    },
+  })
+
+  return {
+    verificationId: created.verification.id,
+    expiresAt: created.verification.expiresAt,
+    delivery: OtpChannel.Email,
+  }
 }
 
 export async function cancelEmailPasswordRecovery(
