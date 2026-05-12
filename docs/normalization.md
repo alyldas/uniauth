@@ -188,6 +188,7 @@ That behavior should apply consistently to:
 
 - email OTP start;
 - phone OTP start;
+- current-account contact-change start;
 - email magic-link start;
 - password sign-in;
 - password recovery start;
@@ -208,6 +209,7 @@ normalized value is persisted or used as a key:
 - `AuthIdentity.email`;
 - `AuthIdentity.phone`;
 - `AuthIdentity.providerUserId` for local email-derived identities;
+- `User.email` and `User.phone` for verified current-account contact changes;
 - `Credential.subject` for password credentials;
 - pending `Verification.target` values;
 - application-owned rate-limit keys or analytics dimensions;

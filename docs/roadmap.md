@@ -496,10 +496,19 @@ Tracking issues: #308, #309, #310, #311.
 
 ## Next Release
 
-### v0.46 - Backlog To Be Defined
+### v0.46 - Current-Account Verified Contact Change
 
-- Define the next releasable feature set after current-account profile update helpers.
-- Keep `v0.46` scoped to product-facing additions rather than a maintenance-only batch.
+- Added trusted current-account verified contact change helpers for local `User.email` and
+  `User.phone` updates after OTP proof of the new target.
+- Kept start, resend, cancel, and finish routes on the existing `sessionToken` boundary with
+  optional recent-auth policy enforcement through `AuthPolicyAction.UpdateContact`.
+- Left sign-in identities, password credential subjects, provider profiles, notification
+  preferences, and product profile tables outside the contact-change helper boundary.
+- Added focused in-memory and Postgres parity coverage for re-auth enforcement, resend replacement,
+  cancellation, foreign-verification neutrality, safe field updates, and contact-change audit
+  metadata.
+- Added account-security and backend route recipes plus runnable examples for self-service verified
+  contact changes.
 
 Tracking issues: none yet.
 

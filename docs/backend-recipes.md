@@ -265,6 +265,7 @@ The repository keeps small transport-facing examples alongside these framework n
 
 - [Express auth module example](../examples/express-auth/index.ts)
 - [Fastify auth module example](../examples/fastify-auth/index.ts)
+- [Current-account contact change example](../examples/current-account-contact-change/index.ts)
 - [OTP backend wiring example](../examples/otp-backend/index.ts)
 - [OAuth / OIDC wiring example](../examples/oauth-oidc/index.ts)
 - [Provider token persistence](provider-token-persistence.md)
@@ -317,6 +318,59 @@ Validate request body shape in the framework layer before calling the helper. Co
 names and treats blank values as clearing the local auth display name. Email, phone, avatars, media
 storage, billing profile, and application-specific profile tables remain application-owned or
 identity-flow-owned.
+
+## Self-Service Contact Change
+
+Keep verified email and phone changes on the same trusted `sessionToken` boundary. Core owns the
+OTP challenge lifecycle and the local `User` contact field update; the application still owns body
+validation, UI labels, cookie rotation, notification preferences, and any product profile tables:
+
+```ts
+app.post('/auth/account/contact-change/start', requireSession, async (req, res, next) => {
+  try {
+    const started = await authService.startCurrentAccountContactChange({
+      sessionToken: req.auth.sessionToken,
+      channel: req.body.channel,
+      target: req.body.target,
+      reAuthenticatedAt: req.auth.reAuthenticatedAt,
+    })
+
+    res.status(202).json({
+      verificationId: started.verificationId,
+      expiresAt: started.expiresAt.toISOString(),
+      delivery: started.delivery,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+```
+
+```ts
+app.post('/auth/account/contact-change/finish', requireSession, async (req, res, next) => {
+  try {
+    const user = await authService.finishCurrentAccountContactChange({
+      sessionToken: req.auth.sessionToken,
+      verificationId: req.body.verificationId,
+      secret: req.body.code,
+    })
+
+    res.status(200).json({
+      id: user.id,
+      email: user.email ?? null,
+      phone: user.phone ?? null,
+      updatedAt: user.updatedAt.toISOString(),
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+```
+
+Use `resendCurrentAccountContactChange(...)` and `cancelCurrentAccountContactChange(...)` for
+trusted resend and cancellation routes. The helpers update only `User.email` or `User.phone` after
+proof of the new target; sign-in identities, password credential subjects, OAuth profiles, avatars,
+and downstream application records remain owned by their existing flows.
 
 ## Self-Service Account Closure
 

@@ -6,6 +6,7 @@ export const AuthPolicyAction = {
   SetPassword: 'setPassword',
   ChangePassword: 'changePassword',
   UpdateProfile: 'updateProfile',
+  UpdateContact: 'updateContact',
   CloseAccount: 'closeAccount',
 } as const
 

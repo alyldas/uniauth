@@ -44,6 +44,10 @@ identities, and email/phone are optional identity attributes.
 - `revokeOtherSessionsByToken`
 - `unlinkCurrentIdentityByToken`
 - `updateCurrentAccountProfileByToken`
+- `startCurrentAccountContactChange`
+- `resendCurrentAccountContactChange`
+- `cancelCurrentAccountContactChange`
+- `finishCurrentAccountContactChange`
 - `confirmCurrentAccountPasswordByToken`
 - `setCurrentAccountPasswordByToken`
 - `changeCurrentAccountPasswordByToken`
@@ -99,8 +103,11 @@ local sessions, and leaves cookie clearing, legal retention, and downstream data
 application. Pre-closure export snapshots also stay on that boundary: core returns safe local auth
 views and a bounded audit window, while file generation, legal export policy, billing state, and
 application-profile data remain outside the package. Current-account profile updates stay on the
-same boundary for local auth display-name changes while email, phone, avatars, media storage, and
-product profile records remain application-owned or identity-flow-owned.
+same boundary for local auth display-name changes. Verified email or phone changes can also stay on
+that boundary through a dedicated contact-change OTP lifecycle that updates only the local `User`
+contact field after proof of the new target. Sign-in identities, password credential subjects,
+OAuth provider profiles, avatars, media storage, notification preferences, and product profile
+records remain application-owned or identity-flow-owned.
 
 OTP challenges use `EmailSender` for email delivery and `SmsSender` for phone delivery. Core
 creates and hashes the verification secret, tracks the verification lifecycle, and maps successful

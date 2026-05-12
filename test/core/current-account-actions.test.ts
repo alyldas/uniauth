@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   AuditEventType,
   AuthPolicyAction,
+  OtpChannel,
   PASSWORD_PROVIDER_ID,
   UniAuthErrorCode,
+  VerificationPurpose,
   addSeconds,
   createDefaultAuthPolicy,
 } from '../../src'
@@ -221,6 +223,314 @@ describe('DefaultAuthService current-account action helpers', () => {
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.InvalidInput,
     })
+  })
+
+  it('starts, resends, and finishes current-account email changes by trusted session token', async () => {
+    const { service, emailSender } = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({
+        requireReAuthFor: [AuthPolicyAction.UpdateContact],
+      }),
+    })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-email-change',
+        email: 'old-current-account-email-change@example.com',
+        emailVerified: true,
+        phone: '+15550000003',
+        phoneVerified: true,
+      }),
+      now,
+    })
+    const originalIdentities = await service.getUserIdentities(signedIn.user.id)
+
+    await expect(
+      service.startCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        channel: OtpChannel.Email,
+        target: 'new-current-account-email-change@example.com',
+        secret: '111111',
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.ReAuthRequired,
+    })
+
+    const first = await service.startCurrentAccountContactChange({
+      sessionToken: signedIn.sessionToken,
+      channel: OtpChannel.Email,
+      target: ' New-Current-Account-Email-Change@Example.COM ',
+      secret: '111111',
+      reAuthenticatedAt: addSeconds(now, 20),
+      now: addSeconds(now, 20),
+      metadata: { source: 'settings' },
+    })
+    const resent = await service.resendCurrentAccountContactChange({
+      sessionToken: signedIn.sessionToken,
+      verificationId: first.verificationId,
+      secret: '222222',
+      now: addSeconds(now, 30),
+      metadata: { source: 'settings-resend' },
+    })
+
+    expect(emailSender.listMessages()).toEqual([
+      expect.objectContaining({
+        to: 'new-current-account-email-change@example.com',
+        metadata: expect.objectContaining({
+          purpose: VerificationPurpose.ContactChange,
+          delivery: OtpChannel.Email,
+        }),
+      }),
+      expect.objectContaining({
+        to: 'new-current-account-email-change@example.com',
+        metadata: expect.objectContaining({
+          purpose: VerificationPurpose.ContactChange,
+          delivery: OtpChannel.Email,
+        }),
+      }),
+    ])
+    await expect(
+      service.finishCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        verificationId: first.verificationId,
+        secret: '111111',
+        now: addSeconds(now, 35),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationExpired,
+    })
+
+    const updated = await service.finishCurrentAccountContactChange({
+      sessionToken: signedIn.sessionToken,
+      verificationId: resent.verificationId,
+      secret: '222222',
+      now: addSeconds(now, 40),
+      metadata: { source: 'settings-finish' },
+    })
+
+    expect(updated).toMatchObject({
+      id: signedIn.user.id,
+      email: 'new-current-account-email-change@example.com',
+      phone: '+15550000003',
+      updatedAt: addSeconds(now, 40),
+    })
+    expect(await service.getUserIdentities(signedIn.user.id)).toEqual(originalIdentities)
+    await expect(service.getAuditEvents({ userId: signedIn.user.id })).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.AccountContactUpdated,
+          sessionId: signedIn.session.id,
+          metadata: {
+            verificationId: resent.verificationId,
+            channel: OtpChannel.Email,
+            changedFields: ['email'],
+            requestMetadata: { source: 'settings-finish' },
+          },
+        }),
+      ]),
+    )
+  })
+
+  it('keeps current-account contact change ownership neutral and supports cancellation', async () => {
+    const { service } = createInMemoryAuthKit()
+    const alice = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-contact-change-owner',
+        email: 'current-account-contact-change-owner@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const bob = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-contact-change-foreign',
+        email: 'current-account-contact-change-foreign@example.com',
+        emailVerified: true,
+      }),
+      now: addSeconds(now, 1),
+    })
+    const started = await service.startCurrentAccountContactChange({
+      sessionToken: alice.sessionToken,
+      channel: OtpChannel.Phone,
+      target: '+1 (555) 000-0004',
+      secret: '333333',
+      now: addSeconds(now, 5),
+    })
+
+    await expect(
+      service.finishCurrentAccountContactChange({
+        sessionToken: bob.sessionToken,
+        verificationId: started.verificationId,
+        secret: '333333',
+        now: addSeconds(now, 6),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
+    })
+
+    await service.cancelCurrentAccountContactChange({
+      sessionToken: alice.sessionToken,
+      verificationId: started.verificationId,
+      now: addSeconds(now, 7),
+      metadata: { source: 'settings-cancel' },
+    })
+    await expect(
+      service.finishCurrentAccountContactChange({
+        sessionToken: alice.sessionToken,
+        verificationId: started.verificationId,
+        secret: '333333',
+        now: addSeconds(now, 8),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationExpired,
+    })
+  })
+
+  it('rejects invalid current-account contact change inputs before delivery', async () => {
+    const { service, emailSender, smsSender } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-contact-change-invalid-inputs',
+        email: 'current-account-contact-change-invalid-inputs@example.com',
+        emailVerified: true,
+        phone: '+15550000006',
+        phoneVerified: true,
+      }),
+      now,
+    })
+
+    await expect(
+      service.startCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        channel: 'push' as OtpChannel,
+        target: 'new@example.com',
+        now: addSeconds(now, 5),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.startCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        channel: OtpChannel.Email,
+        target: ' CURRENT-ACCOUNT-CONTACT-CHANGE-INVALID-INPUTS@example.com ',
+        now: addSeconds(now, 6),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.startCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        channel: OtpChannel.Phone,
+        target: '+1 (555) 000-0006',
+        now: addSeconds(now, 7),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+
+    expect(emailSender.listMessages()).toHaveLength(0)
+    expect(smsSender.listMessages()).toHaveLength(0)
+  })
+
+  it('keeps malformed current-account contact change verification ownership neutral', async () => {
+    const { service } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-contact-change-malformed-metadata',
+        email: 'current-account-contact-change-malformed-metadata@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const missingMetadata = await service.startOtpChallenge({
+      purpose: VerificationPurpose.ContactChange,
+      channel: OtpChannel.Email,
+      target: 'missing-metadata@example.com',
+      secret: '444444',
+      now: addSeconds(now, 5),
+    })
+    const invalidMetadata = await service.startOtpChallenge({
+      purpose: VerificationPurpose.ContactChange,
+      channel: OtpChannel.Email,
+      target: 'invalid-metadata@example.com',
+      secret: '555555',
+      now: addSeconds(now, 6),
+      metadata: {
+        currentAccountContactChange: {
+          userId: 1,
+          sessionId: signedIn.session.id,
+          channel: OtpChannel.Email,
+        },
+      },
+    })
+
+    for (const verificationId of [missingMetadata.verificationId, invalidMetadata.verificationId]) {
+      await expect(
+        service.finishCurrentAccountContactChange({
+          sessionToken: signedIn.sessionToken,
+          verificationId,
+          secret: '444444',
+          now: addSeconds(now, 10),
+        }),
+      ).rejects.toMatchObject({
+        code: UniAuthErrorCode.VerificationNotFound,
+      })
+    }
+  })
+
+  it('keeps non-contact verifications and adapter lookup failures on their expected paths', async () => {
+    const { service, store } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-contact-change-wrong-verification',
+        email: 'current-account-contact-change-wrong-verification@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+    const signInChallenge = await service.startOtpChallenge({
+      purpose: VerificationPurpose.SignIn,
+      channel: OtpChannel.Email,
+      target: 'current-account-contact-change-wrong-verification@example.com',
+      secret: '666666',
+      now: addSeconds(now, 5),
+    })
+
+    await expect(
+      service.finishCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        verificationId: signInChallenge.verificationId,
+        secret: '666666',
+        now: addSeconds(now, 10),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
+    })
+    await expect(
+      service.cancelCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        verificationId: 'missing-contact-change' as typeof signInChallenge.verificationId,
+        now: addSeconds(now, 11),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.VerificationNotFound,
+    })
+
+    const originalFindById = store.verificationRepo.findById
+    store.verificationRepo.findById = async () => {
+      throw new Error('verification lookup failed')
+    }
+
+    await expect(
+      service.resendCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        verificationId: signInChallenge.verificationId,
+        now: addSeconds(now, 12),
+      }),
+    ).rejects.toThrow('verification lookup failed')
+
+    store.verificationRepo.findById = originalFindById
   })
 
   it('keeps expired and revoked current-account profile update contexts neutral', async () => {
@@ -615,6 +925,7 @@ describe('DefaultAuthService current-account action helpers', () => {
           AuthPolicyAction.Unlink,
           AuthPolicyAction.SetPassword,
           AuthPolicyAction.ChangePassword,
+          AuthPolicyAction.UpdateContact,
         ],
       }),
     })
@@ -649,6 +960,20 @@ describe('DefaultAuthService current-account action helpers', () => {
       reAuthenticatedAt: now,
       metadata: { source: 'current-account-change' },
     })
+    const contactChange = await service.startCurrentAccountContactChange({
+      sessionToken: signedIn.sessionToken,
+      channel: OtpChannel.Email,
+      target: 'current-account-actions-no-now-new@example.com',
+      secret: '123456',
+      reAuthenticatedAt: now,
+      metadata: { source: 'current-account-contact-start' },
+    })
+    const updatedContact = await service.finishCurrentAccountContactChange({
+      sessionToken: signedIn.sessionToken,
+      verificationId: contactChange.verificationId,
+      secret: '123456',
+      metadata: { source: 'current-account-contact-finish' },
+    })
 
     await service.unlinkCurrentIdentityByToken({
       sessionToken: signedIn.sessionToken,
@@ -659,6 +984,11 @@ describe('DefaultAuthService current-account action helpers', () => {
 
     expect(created.metadata).toEqual({ source: 'current-account-set' })
     expect(changed.metadata).toEqual({ source: 'current-account-change' })
+    expect(updatedContact).toMatchObject({
+      id: signedIn.user.id,
+      email: 'current-account-actions-no-now-new@example.com',
+      updatedAt: now,
+    })
     await expect(
       service.signInWithPassword({
         email: 'current-account-actions-no-now@example.com',

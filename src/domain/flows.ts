@@ -267,6 +267,41 @@ export interface UpdateCurrentAccountProfileByTokenInput {
   readonly metadata?: Record<string, unknown>
 }
 
+export interface StartCurrentAccountContactChangeInput {
+  readonly sessionToken: string
+  readonly channel: OtpChannel
+  readonly target: string
+  readonly secret?: string
+  readonly ttlSeconds?: number
+  readonly reAuthenticatedAt?: Date
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface ResendCurrentAccountContactChangeInput {
+  readonly sessionToken: string
+  readonly verificationId: VerificationId
+  readonly secret?: string
+  readonly ttlSeconds?: number
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface CancelCurrentAccountContactChangeInput {
+  readonly sessionToken: string
+  readonly verificationId: VerificationId
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
+export interface FinishCurrentAccountContactChangeInput {
+  readonly sessionToken: string
+  readonly verificationId: VerificationId
+  readonly secret: string
+  readonly now?: Date
+  readonly metadata?: Record<string, unknown>
+}
+
 export interface RevokeUserSessionsInput {
   readonly userId: UserId
   readonly exceptSessionId?: SessionId

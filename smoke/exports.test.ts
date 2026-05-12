@@ -35,10 +35,12 @@ describe('package exports', () => {
     expect(bridges.mapBetterAuthOAuthToAssertion).toBeTypeOf('function')
     expect(core.AuditEventType.SignIn).toBe('auth.sign_in')
     expect(core.AuditEventType.AccountProfileUpdated).toBe('auth.account_profile_updated')
+    expect(core.AuditEventType.AccountContactUpdated).toBe('auth.account_contact_updated')
     expect(core.AuditEventType.VerificationCancelled).toBe('auth.verification_cancelled')
     expect(core.CredentialType.Password).toBe('password')
     expect(core.AuthPolicyAction.ChangePassword).toBe('changePassword')
     expect(core.AuthPolicyAction.UpdateProfile).toBe('updateProfile')
+    expect(core.AuthPolicyAction.UpdateContact).toBe('updateContact')
     expect(core.DefaultAuthService).toBeTypeOf('function')
     expect(core.EMAIL_MAGIC_LINK_PROVIDER_ID).toBe('email-magic-link')
     expect(core.EMAIL_OTP_PROVIDER_ID).toBe('email-otp')
@@ -46,6 +48,7 @@ describe('package exports', () => {
     expect(core.OtpChannel.Phone).toBe('phone')
     expect(core.PASSWORD_PROVIDER_ID).toBe('password')
     expect(core.PHONE_OTP_PROVIDER_ID).toBe('phone-otp')
+    expect(core.VerificationPurpose.ContactChange).toBe('contact-change')
     expect(core.RateLimitAction.ProviderSignIn).toBe('provider:sign-in')
     expect(core.RateLimitAction.OtpResend).toBe('otp:resend')
     expect(core.RateLimitAction.MagicLinkResend).toBe('magic-link:resend')
@@ -106,6 +109,18 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.revokeOtherSessionsByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.unlinkCurrentIdentityByToken).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.updateCurrentAccountProfileByToken).toBeTypeOf(
+      'function',
+    )
+    expect(core.DefaultAuthService.prototype.startCurrentAccountContactChange).toBeTypeOf(
+      'function',
+    )
+    expect(core.DefaultAuthService.prototype.resendCurrentAccountContactChange).toBeTypeOf(
+      'function',
+    )
+    expect(core.DefaultAuthService.prototype.cancelCurrentAccountContactChange).toBeTypeOf(
+      'function',
+    )
+    expect(core.DefaultAuthService.prototype.finishCurrentAccountContactChange).toBeTypeOf(
       'function',
     )
     expect(core.DefaultAuthService.prototype.setCurrentAccountPasswordByToken).toBeTypeOf(
@@ -227,6 +242,10 @@ describe('package exports', () => {
     expect(flowDeclarations).toContain('export interface LinkCurrentIdentityByTokenInput')
     expect(flowDeclarations).toContain('export interface UnlinkCurrentIdentityByTokenInput')
     expect(flowDeclarations).toContain('export interface UpdateCurrentAccountProfileByTokenInput')
+    expect(flowDeclarations).toContain('export interface StartCurrentAccountContactChangeInput')
+    expect(flowDeclarations).toContain('export interface ResendCurrentAccountContactChangeInput')
+    expect(flowDeclarations).toContain('export interface CancelCurrentAccountContactChangeInput')
+    expect(flowDeclarations).toContain('export interface FinishCurrentAccountContactChangeInput')
     expect(flowDeclarations).toContain('export interface RevokeOwnedSessionByTokenResult')
     expect(flowDeclarations).toContain('export interface RevokeOtherSessionsByTokenResult')
     expect(serviceDeclarations).toContain(
@@ -282,6 +301,18 @@ describe('package exports', () => {
     )
     expect(serviceDeclarations).toContain(
       'updateCurrentAccountProfileByToken(input: UpdateCurrentAccountProfileByTokenInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'startCurrentAccountContactChange(input: StartCurrentAccountContactChangeInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'resendCurrentAccountContactChange(input: ResendCurrentAccountContactChangeInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'cancelCurrentAccountContactChange(input: CancelCurrentAccountContactChangeInput)',
+    )
+    expect(serviceDeclarations).toContain(
+      'finishCurrentAccountContactChange(input: FinishCurrentAccountContactChangeInput)',
     )
     expect(serviceDeclarations).toContain(
       'setCurrentAccountPasswordByToken(input: SetCurrentAccountPasswordByTokenInput)',
