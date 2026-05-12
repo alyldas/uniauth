@@ -1018,6 +1018,91 @@ describe('DefaultAuthService current-account action helpers', () => {
     })
   })
 
+  it('rejects non-plain current-account request metadata and accepts null-prototype metadata', async () => {
+    const { service, store } = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({
+        requireReAuthFor: [AuthPolicyAction.UpdateProfile],
+      }),
+    })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-request-metadata',
+        email: 'current-account-request-metadata@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: signedIn.sessionToken,
+        displayName: 'Alice',
+        reAuthenticatedAt: now,
+        metadata: ['not-a-record'],
+        now: addSeconds(now, 1),
+      } as unknown as Parameters<typeof service.updateCurrentAccountProfileByToken>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.closeCurrentAccountByToken({
+        sessionToken: signedIn.sessionToken,
+        reAuthenticatedAt: now,
+        metadata: null,
+        now: addSeconds(now, 2),
+      } as unknown as Parameters<typeof service.closeCurrentAccountByToken>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.setCurrentAccountPasswordByToken({
+        sessionToken: signedIn.sessionToken,
+        password: 'first-password',
+        reAuthenticatedAt: now,
+        metadata: 'not-a-record',
+        now: addSeconds(now, 3),
+      } as unknown as Parameters<typeof service.setCurrentAccountPasswordByToken>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.startCurrentAccountContactChange({
+        sessionToken: signedIn.sessionToken,
+        channel: OtpChannel.Email,
+        target: 'current-account-request-metadata-new@example.com',
+        reAuthenticatedAt: now,
+        metadata: ['not-a-record'],
+        now: addSeconds(now, 4),
+      } as unknown as Parameters<typeof service.startCurrentAccountContactChange>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+
+    const nullPrototypeMetadata = Object.assign(Object.create(null) as Record<string, unknown>, {
+      source: 'settings',
+    })
+
+    await service.updateCurrentAccountProfileByToken({
+      sessionToken: signedIn.sessionToken,
+      displayName: 'Alice',
+      reAuthenticatedAt: now,
+      metadata: nullPrototypeMetadata,
+      now: addSeconds(now, 5),
+    })
+
+    expect(store.listAuditEvents()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: AuditEventType.AccountProfileUpdated,
+          metadata: {
+            changedFields: ['displayName'],
+            requestMetadata: { source: 'settings' },
+          },
+        }),
+      ]),
+    )
+  })
+
   it('keeps stale disabled-user current-account action helpers neutral', async () => {
     const { service, store } = createInMemoryAuthKit()
     const signedIn = await service.signIn({

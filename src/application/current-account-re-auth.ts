@@ -233,6 +233,7 @@ export async function confirmCurrentAccountPasswordByToken(
     await findUsablePasswordIdentity(runtime, credential, credential.subject)
 
     return {
+      currentSessionId: actor.sessionId,
       userId: actor.userId,
       reAuthenticatedAt: actor.now,
     }

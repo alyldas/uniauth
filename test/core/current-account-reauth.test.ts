@@ -484,6 +484,7 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
     })
 
     expect(confirmation).toEqual({
+      currentSessionId: signedIn.session.id,
       userId: signedIn.user.id,
       reAuthenticatedAt: addSeconds(now, 20),
     })
@@ -616,6 +617,30 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
       }),
     ).resolves.toMatchObject({
       subject: 'current-account-recent-auth-status@example.com',
+    })
+  })
+
+  it('rejects non-plain current-account OTP re-auth request metadata', async () => {
+    const { service } = createInMemoryAuthKit()
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-reauth-request-metadata',
+        email: 'current-account-reauth-request-metadata@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+
+    await expect(
+      service.startCurrentAccountOtpReAuth({
+        sessionToken: signedIn.sessionToken,
+        identityId: signedIn.identity.id,
+        channel: OtpChannel.Email,
+        metadata: ['not-a-record'],
+        now: addSeconds(now, 1),
+      } as unknown as Parameters<typeof service.startCurrentAccountOtpReAuth>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
     })
   })
 
@@ -808,6 +833,7 @@ describe('DefaultAuthService current-account re-auth helpers', () => {
         currentPassword: 'first-password',
       }),
     ).resolves.toEqual({
+      currentSessionId: signedIn.session.id,
       userId: signedIn.user.id,
       reAuthenticatedAt: runtimeNow,
     })
