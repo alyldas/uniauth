@@ -1,4 +1,5 @@
 import { optionalProp } from './optional.js'
+import { normalizeMetadataRecord } from './metadata.js'
 import { normalizeOtpTarget, type SupportedOtpChannel } from './otp-delivery.js'
 import {
   cancelOtpChallenge,
@@ -49,6 +50,7 @@ export async function startCurrentAccountContactChange(
   input: StartCurrentAccountContactChangeInput,
 ): Promise<StartOtpChallengeResult> {
   const now = input.now ?? runtime.clock.now()
+  const metadata = normalizeCurrentAccountContactChangeMetadata(input.metadata)
   const { session, user } = await resolveSessionContext(runtime, {
     sessionToken: input.sessionToken,
     now,
@@ -70,7 +72,7 @@ export async function startCurrentAccountContactChange(
       user.id,
       session.id,
       input.channel,
-      input.metadata,
+      metadata,
     ),
   })
 }
@@ -95,7 +97,7 @@ export async function resendCurrentAccountContactChange(
       actor.userId,
       actor.sessionId,
       challenge.channel,
-      input.metadata,
+      normalizeCurrentAccountContactChangeMetadata(input.metadata),
     ),
   })
 }
@@ -120,7 +122,7 @@ export async function cancelCurrentAccountContactChange(
       actor.userId,
       actor.sessionId,
       challenge.channel,
-      input.metadata,
+      normalizeCurrentAccountContactChangeMetadata(input.metadata),
     ),
   })
 }
@@ -135,6 +137,7 @@ export async function finishCurrentAccountContactChange(
     input.verificationId,
     input.now,
   )
+  const requestMetadata = normalizeCurrentAccountContactChangeMetadata(input.metadata)
   await enforceOtpFinishRateLimit(runtime, resolved.challenge, resolved.actor.now)
 
   return runtime.transaction.run(async () => {
@@ -161,7 +164,7 @@ export async function finishCurrentAccountContactChange(
         verificationId: consumed.id,
         channel: challenge.channel,
         changedFields: [contactFieldFromChannel(challenge.channel)],
-        ...optionalProp('requestMetadata', input.metadata),
+        ...optionalProp('requestMetadata', requestMetadata),
       },
     })
 
@@ -189,6 +192,12 @@ function rejectUnchangedContact(user: User, channel: OtpChannelType, target: str
   if (channel === OtpChannel.Phone && user.phone === target) {
     throw invalidInput('Current account phone already matches the requested target.')
   }
+}
+
+function normalizeCurrentAccountContactChangeMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Current-account contact change metadata')
 }
 
 function buildCurrentAccountContactChangeMetadata(

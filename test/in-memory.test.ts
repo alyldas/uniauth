@@ -88,6 +88,20 @@ describe('InMemoryAuthStore', () => {
     })
     expect(
       await store.identityRepo
+        .create(
+          identity({
+            id: asIdentityId('identity-missing-user'),
+            userId: asUserId('missing-user'),
+            provider: 'missing-user',
+            providerUserId: 'missing-user',
+          }),
+        )
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
+    expect(
+      await store.identityRepo
         .update(secondIdentity.id, {
           provider: emailIdentity.provider,
           providerUserId: emailIdentity.providerUserId,
@@ -100,6 +114,13 @@ describe('InMemoryAuthStore', () => {
         .catch((caught: unknown) => caught),
     ).toMatchObject({
       code: UniAuthErrorCode.IdentityNotFound,
+    })
+    expect(
+      await store.identityRepo
+        .update(secondIdentity.id, { userId: asUserId('missing-user') })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
     })
     expect(
       await store.identityRepo.update(secondIdentity.id, { providerUserId: 'oauth-alice-2' }),
@@ -152,6 +173,18 @@ describe('InMemoryAuthStore', () => {
     ).toMatchObject({
       code: UniAuthErrorCode.CredentialAlreadyExists,
     })
+    expect(
+      await store.credentialRepo
+        .create({
+          ...sameUserCredential,
+          id: asCredentialId('credential-missing-user'),
+          userId: asUserId('missing-user'),
+          subject: 'missing-user@example.com',
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
     expect(await store.credentialRepo.create(secondCredential)).toBe(secondCredential)
     const updatedPasswordHash = await passwordHasher.hash('new')
     expect(
@@ -179,6 +212,13 @@ describe('InMemoryAuthStore', () => {
         .catch((caught: unknown) => caught),
     ).toMatchObject({
       code: UniAuthErrorCode.CredentialNotFound,
+    })
+    expect(
+      await store.credentialRepo
+        .update(credential.id, { userId: asUserId('missing-user') })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
     })
 
     const verification: Verification = {
@@ -229,6 +269,18 @@ describe('InMemoryAuthStore', () => {
     ).toMatchObject({
       code: UniAuthErrorCode.InvalidInput,
     })
+    expect(
+      await store.sessionRepo
+        .create({
+          ...session,
+          id: asSessionId('session-missing-user'),
+          userId: asUserId('missing-user'),
+          tokenHash: hashSecret('missing-user-session-token'),
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
+    })
     const otherSession: Session = {
       ...session,
       id: asSessionId('session-2'),
@@ -252,6 +304,13 @@ describe('InMemoryAuthStore', () => {
       await store.sessionRepo.update(asSessionId('missing'), {}).catch((caught: unknown) => caught),
     ).toMatchObject({
       code: UniAuthErrorCode.SessionNotFound,
+    })
+    expect(
+      await store.sessionRepo
+        .update(session.id, { userId: asUserId('missing-user') })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.UserNotFound,
     })
 
     await store.auditLogRepo.append({

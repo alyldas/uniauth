@@ -1,4 +1,5 @@
 import { link, unlink } from './accounts.js'
+import { normalizeMetadataRecord } from './metadata.js'
 import { optionalProp } from './optional.js'
 import { changePassword, setPassword } from './passwords.js'
 import type { AuthServiceRuntime } from './runtime.js'
@@ -58,6 +59,7 @@ export async function linkCurrentIdentityByToken(
 ): Promise<LinkResult> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizeCurrentAccountMetadata(input.metadata)
     const { user } = await resolveSessionContext(runtime, {
       sessionToken: input.sessionToken,
       now,
@@ -70,7 +72,7 @@ export async function linkCurrentIdentityByToken(
       ...optionalProp('finishInput', input.finishInput),
       ...optionalProp('reAuthenticatedAt', input.reAuthenticatedAt),
       now,
-      ...(input.metadata ? { metadata: input.metadata } : {}),
+      ...optionalProp('metadata', metadata),
     })
   })
 }
@@ -81,6 +83,7 @@ export async function unlinkCurrentIdentityByToken(
 ): Promise<void> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizeCurrentAccountMetadata(input.metadata)
     const { user } = await resolveSessionContext(runtime, {
       sessionToken: input.sessionToken,
       now,
@@ -91,7 +94,7 @@ export async function unlinkCurrentIdentityByToken(
       identityId: input.identityId,
       ...optionalProp('reAuthenticatedAt', input.reAuthenticatedAt),
       now,
-      ...(input.metadata ? { metadata: input.metadata } : {}),
+      ...optionalProp('metadata', metadata),
     })
   })
 }
@@ -102,6 +105,7 @@ export async function closeCurrentAccountByToken(
 ): Promise<CloseCurrentAccountByTokenResult> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizeCurrentAccountMetadata(input.metadata)
     const { session, user } = await resolveSessionContext(runtime, {
       sessionToken: input.sessionToken,
       now,
@@ -129,7 +133,7 @@ export async function closeCurrentAccountByToken(
       sessionId: session.id,
       metadata: {
         revokedSessionIds: [...revoked.revokedSessionIds],
-        ...optionalProp('requestMetadata', input.metadata),
+        ...optionalProp('requestMetadata', metadata),
       },
     })
 
@@ -147,6 +151,7 @@ export async function updateCurrentAccountProfileByToken(
 ): Promise<User> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizeCurrentAccountMetadata(input.metadata)
     const { session, user } = await resolveSessionContext(runtime, {
       sessionToken: input.sessionToken,
       now,
@@ -168,7 +173,7 @@ export async function updateCurrentAccountProfileByToken(
       sessionId: session.id,
       metadata: {
         changedFields: [CurrentAccountProfileField.DisplayName],
-        ...optionalProp('requestMetadata', input.metadata),
+        ...optionalProp('requestMetadata', metadata),
       },
     })
 
@@ -182,6 +187,7 @@ export async function setCurrentAccountPasswordByToken(
 ): Promise<Credential> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizeCurrentAccountMetadata(input.metadata)
     const { user } = await resolveSessionContext(runtime, {
       sessionToken: input.sessionToken,
       now,
@@ -198,7 +204,7 @@ export async function setCurrentAccountPasswordByToken(
       password: input.password,
       ...optionalProp('reAuthenticatedAt', input.reAuthenticatedAt),
       now,
-      ...(input.metadata ? { metadata: input.metadata } : {}),
+      ...optionalProp('metadata', metadata),
     })
   })
 }
@@ -209,6 +215,7 @@ export async function changeCurrentAccountPasswordByToken(
 ): Promise<Credential> {
   return runtime.transaction.run(async () => {
     const now = input.now ?? runtime.clock.now()
+    const metadata = normalizeCurrentAccountMetadata(input.metadata)
     const { user } = await resolveSessionContext(runtime, {
       sessionToken: input.sessionToken,
       now,
@@ -220,9 +227,15 @@ export async function changeCurrentAccountPasswordByToken(
       newPassword: input.newPassword,
       ...optionalProp('reAuthenticatedAt', input.reAuthenticatedAt),
       now,
-      ...(input.metadata ? { metadata: input.metadata } : {}),
+      ...optionalProp('metadata', metadata),
     })
   })
+}
+
+function normalizeCurrentAccountMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  return normalizeMetadataRecord(metadata, 'Current-account request metadata')
 }
 
 function normalizeCurrentAccountProfilePatch(

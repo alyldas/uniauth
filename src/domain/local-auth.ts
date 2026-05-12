@@ -1,4 +1,4 @@
-import type { UserId, VerificationId } from './ids.js'
+import type { SessionId, UserId, VerificationId } from './ids.js'
 import type { OtpChannel } from './kinds.js'
 
 export interface EmailMagicLink {
@@ -55,6 +55,7 @@ export interface SignInWithPasswordInput {
 }
 
 export interface CurrentAccountPasswordReAuthConfirmation {
+  readonly currentSessionId: SessionId
   readonly userId: UserId
   readonly reAuthenticatedAt: Date
 }

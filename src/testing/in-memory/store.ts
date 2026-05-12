@@ -103,6 +103,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
     listByUserId: async (userId) =>
       [...this.identities.values()].filter((identity) => identity.userId === userId),
     create: async (identity) => {
+      this.assertUserExists(identity.userId)
       const key = this.identityKey(identity.provider, identity.providerUserId)
 
       if (this.identityKeys.has(key)) {
@@ -121,6 +122,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       }
 
       const updated = applyPatch(existing, patch)
+      this.assertUserExists(updated.userId)
       const oldKey = this.identityKey(existing.provider, existing.providerUserId)
       const newKey = this.identityKey(updated.provider, updated.providerUserId)
       const existingIdentityId = this.identityKeys.get(newKey)
@@ -152,6 +154,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
     listByUserId: async (userId) =>
       [...this.credentials.values()].filter((credential) => credential.userId === userId),
     create: async (credential) => {
+      this.assertUserExists(credential.userId)
       const key = this.credentialKey(credential.type, credential.subject)
       const userKey = this.credentialUserKey(credential.type, credential.userId)
 
@@ -175,6 +178,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       }
 
       const updated = applyPatch(existing, patch)
+      this.assertUserExists(updated.userId)
       const oldKey = this.credentialKey(existing.type, existing.subject)
       const newKey = this.credentialKey(updated.type, updated.subject)
       const oldUserKey = this.credentialUserKey(existing.type, existing.userId)
@@ -230,6 +234,8 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
     listByUserId: async (userId) =>
       [...this.sessions.values()].filter((session) => session.userId === userId),
     create: async (session) => {
+      this.assertUserExists(session.userId)
+
       if (this.sessionKeys.has(session.tokenHash)) {
         throw new UniAuthError(UniAuthErrorCode.InvalidInput, 'Session token already exists.')
       }
@@ -246,6 +252,7 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       }
 
       const updated = applyPatch(existing, patch)
+      this.assertUserExists(updated.userId)
       const existingSessionId = this.sessionKeys.get(updated.tokenHash)
 
       if (updated.tokenHash !== existing.tokenHash && existingSessionId) {
@@ -324,6 +331,12 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
 
   listAuditEvents(): readonly AuditEvent[] {
     return [...this.auditEvents]
+  }
+
+  private assertUserExists(userId: User['id']): void {
+    if (!this.users.has(userId)) {
+      throw new UniAuthError(UniAuthErrorCode.UserNotFound, 'User was not found.')
+    }
   }
 
   private identityKey(provider: AuthIdentityProvider, providerUserId: string): string {

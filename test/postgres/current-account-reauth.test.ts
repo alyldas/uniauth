@@ -256,6 +256,7 @@ describe('Postgres current-account re-auth helpers', () => {
     })
 
     expect(confirmation).toEqual({
+      currentSessionId: signedIn.session.id,
       userId: signedIn.user.id,
       reAuthenticatedAt: addSeconds(now, 20),
     })

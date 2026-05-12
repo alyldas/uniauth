@@ -9,6 +9,8 @@ import {
   asUserId,
   asVerificationId,
   createDefaultAuthPolicy,
+  type AuthIdentity,
+  type IdentityId,
 } from '../../src'
 import { InMemoryAuthStore, createInMemoryAuthKit } from '../../src/testing'
 import { assertion, now } from '../helpers.js'
@@ -342,7 +344,7 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
       createdAt: now,
       updatedAt: now,
     })
-    await malformedKit.store.identityRepo.create({
+    const orphanedIdentity: AuthIdentity = {
       id: asIdentityId('missing-user-identity'),
       userId: asUserId('missing-user'),
       provider: 'email',
@@ -352,7 +354,16 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
       status: AuthIdentityStatus.Active,
       createdAt: now,
       updatedAt: now,
-    })
+    }
+    const malformedStoreInternals = malformedKit.store as unknown as {
+      readonly identities: Map<AuthIdentity['id'], AuthIdentity>
+      readonly identityKeys: Map<string, IdentityId>
+    }
+    malformedStoreInternals.identities.set(orphanedIdentity.id, orphanedIdentity)
+    malformedStoreInternals.identityKeys.set(
+      JSON.stringify([orphanedIdentity.provider, orphanedIdentity.providerUserId]),
+      orphanedIdentity.id,
+    )
 
     const inactiveEmailTarget = await malformedKit.service.signIn({
       assertion: assertion({

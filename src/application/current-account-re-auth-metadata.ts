@@ -1,3 +1,4 @@
+import { normalizeMetadataRecord } from './metadata.js'
 import { optionalProp } from './optional.js'
 import { OtpChannel, type SessionId, type UserId } from '../domain/types.js'
 import type { SupportedOtpChannel } from './otp-delivery.js'
@@ -16,13 +17,18 @@ export function buildCurrentAccountOtpReAuthMetadata(
   channel: SupportedOtpChannel,
   requestMetadata: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
+  const normalizedRequestMetadata = normalizeMetadataRecord(
+    requestMetadata,
+    'Current-account OTP re-auth metadata',
+  )
+
   return {
     [CURRENT_ACCOUNT_OTP_RE_AUTH_METADATA_KEY]: {
       userId,
       sessionId,
       channel,
     },
-    ...optionalProp('requestMetadata', requestMetadata),
+    ...optionalProp('requestMetadata', normalizedRequestMetadata),
   }
 }
 
