@@ -3,7 +3,13 @@ import type { AuthProvider } from '../../contracts.js'
 import { invalidInput } from '../../errors.js'
 import { optionalProp } from '../../utils/optional.js'
 import { mapOAuthOidcProfileToAssertion } from './profile.js'
-import { isRecord, readFinishPayload, readString, requireNonBlankString } from './support.js'
+import {
+  isRecord,
+  normalizeMetadataRecord,
+  readFinishPayload,
+  readString,
+  requireNonBlankString,
+} from './support.js'
 import type {
   OAuthOidcAuthorizationCodeExchangeInput,
   OAuthOidcFetchProfileInput,
@@ -48,7 +54,7 @@ function readAuthorizationCodeExchangeInput(
   }
 
   const state = readString(input.state) ?? readString(payload.state)
-  const metadata = isMetadata(payload.metadata) ? payload.metadata : input.metadata
+  const metadata = readAuthorizationCodeMetadata(input, payload)
 
   return {
     code,
@@ -57,6 +63,23 @@ function readAuthorizationCodeExchangeInput(
     ...optionalProp('codeVerifier', readString(payload.codeVerifier)),
     ...optionalProp('metadata', metadata),
   }
+}
+
+function readAuthorizationCodeMetadata(
+  input: FinishInput,
+  payload: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (Object.prototype.hasOwnProperty.call(payload, 'metadata')) {
+    return normalizeMetadataRecord(
+      payload.metadata,
+      'OAuth/OIDC finish metadata must be a plain object.',
+    )
+  }
+
+  return normalizeMetadataRecord(
+    input.metadata,
+    'OAuth/OIDC finish metadata must be a plain object.',
+  )
 }
 
 function readFetchProfileInput(
@@ -92,8 +115,4 @@ function normalizeTokenSet(tokens: OAuthOidcTokenSet): OAuthOidcTokenSet {
     ...optionalProp('expiresAt', tokenSet.expiresAt),
     ...optionalProp('scopes', tokenSet.scopes),
   }
-}
-
-function isMetadata(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

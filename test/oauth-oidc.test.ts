@@ -191,7 +191,6 @@ describe('OAuth/OIDC provider contract', () => {
         code: ' payload-code ',
         redirectUri: '   ',
         codeVerifier: '   ',
-        metadata: 'not-metadata',
       },
     })
 
@@ -200,6 +199,49 @@ describe('OAuth/OIDC provider contract', () => {
       metadata: {
         requestId: 'fallback-request',
       },
+    })
+  })
+
+  it('rejects malformed OAuth/OIDC finish metadata instead of falling back', async () => {
+    const client = new RecordingOAuthOidcClient(
+      { accessToken: 'token' },
+      {
+        subject: 'metadata-user',
+      },
+    )
+    const provider = createOAuthOidcProvider({
+      providerId: 'metadata-provider',
+      client,
+    })
+
+    await expect(
+      catchError(() =>
+        provider.finish({
+          code: 'code',
+          metadata: {
+            requestId: 'fallback-request',
+          },
+          payload: {
+            metadata: 'not-metadata',
+          },
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'OAuth/OIDC finish metadata must be a plain object.',
+    })
+    expect(client.exchangeInput).toBeUndefined()
+
+    await expect(
+      catchError(() =>
+        provider.finish({
+          code: 'code',
+          metadata: new Date() as unknown as Record<string, unknown>,
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'OAuth/OIDC finish metadata must be a plain object.',
     })
   })
 
@@ -259,7 +301,32 @@ describe('OAuth/OIDC provider contract', () => {
     })
   })
 
+  it('rejects OAuth/OIDC profile metadata that is not a plain object', async () => {
+    await expect(
+      catchError(() =>
+        mapOAuthOidcProfileToAssertion({
+          provider: 'direct',
+          profile: {
+            subject: 'direct-subject',
+            metadata: ['tenant-1'] as unknown as Record<string, unknown>,
+          },
+          finishInput: {},
+          exchangeInput: {
+            code: 'code',
+          },
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'OAuth/OIDC profile metadata must be a plain object.',
+    })
+  })
+
   it('creates normalized token records for application-owned persistence', () => {
+    const metadata = Object.assign(Object.create(null) as Record<string, unknown>, {
+      tenantId: 'tenant-1',
+    })
+
     expect(
       createOAuthOidcTokenRecord({
         provider: ' example-oauth ',
@@ -276,9 +343,7 @@ describe('OAuth/OIDC provider contract', () => {
           expiresAt: now,
           scopes: ['openid', ' email ', 'openid', '   '],
         },
-        metadata: {
-          tenantId: 'tenant-1',
-        },
+        metadata,
       }),
     ).toEqual({
       provider: 'example-oauth',
@@ -450,6 +515,20 @@ describe('OAuth/OIDC provider contract', () => {
           refreshToken: 'refresh-token',
         },
         metadata: 'not-an-object' as unknown as Record<string, unknown>,
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcTokenRecord({
+        provider: 'oauth',
+        providerUserId: 'subject',
+        binding: {
+          kind: OAuthOidcTokenBindingKind.User,
+          value: 'user-1',
+        },
+        tokens: {
+          refreshToken: 'refresh-token',
+        },
+        metadata: new Date() as unknown as Record<string, unknown>,
       }),
     )
   })

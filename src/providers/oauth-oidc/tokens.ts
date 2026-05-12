@@ -1,6 +1,6 @@
 import { invalidInput } from '../../errors.js'
 import { optionalProp } from '../../utils/optional.js'
-import { isRecord, readString, requireNonBlankString } from './support.js'
+import { isRecord, normalizeMetadataRecord, readString, requireNonBlankString } from './support.js'
 import type {
   CreateOAuthOidcTokenRecordInput,
   OAuthOidcTokenBinding,
@@ -102,13 +102,10 @@ function normalizeScopes(value: unknown): readonly string[] | undefined {
 }
 
 function normalizeMetadata(value: unknown): Record<string, unknown> | undefined {
-  if (value === undefined) {
-    return undefined
-  }
+  const metadata = normalizeMetadataRecord(
+    value,
+    'OAuth/OIDC token record metadata must be a plain object.',
+  )
 
-  if (!isRecord(value)) {
-    throw invalidInput('OAuth/OIDC token record metadata must be a plain object.')
-  }
-
-  return { ...value }
+  return metadata ? { ...metadata } : undefined
 }

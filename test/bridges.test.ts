@@ -169,6 +169,56 @@ describe('auth bridge helpers', () => {
     })
   })
 
+  it('rejects Auth.js metadata that is not a plain object', async () => {
+    await expect(
+      catchError(() =>
+        mapAuthJsOAuthToAssertion({
+          account: {
+            provider: 'google',
+            providerAccountId: 'user-1',
+          },
+          metadata: ['tenant-1'] as unknown as Record<string, unknown>,
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Bridge metadata must be a plain object.',
+    })
+
+    await expect(
+      catchError(() =>
+        mapAuthJsOAuthToAssertion({
+          account: {
+            provider: 'google',
+            providerAccountId: 'user-1',
+          },
+          metadata: new Date() as unknown as Record<string, unknown>,
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Bridge metadata must be a plain object.',
+    })
+  })
+
+  it('accepts Auth.js metadata records without an object prototype', () => {
+    const metadata = Object.assign(Object.create(null) as Record<string, unknown>, {
+      tenantId: 'tenant-1',
+    })
+
+    expect(
+      mapAuthJsOAuthToAssertion({
+        account: {
+          provider: 'google',
+          providerAccountId: 'user-1',
+        },
+        metadata,
+      }).metadata,
+    ).toEqual({
+      tenantId: 'tenant-1',
+    })
+  })
+
   it('maps Better Auth account or profile data without copying account tokens', () => {
     const assertion = mapBetterAuthOAuthToAssertion({
       providerId: 'discord-app',
@@ -292,6 +342,23 @@ describe('auth bridge helpers', () => {
     ).toEqual({
       provider: 'google',
       providerUserId: 'google-user-2',
+    })
+  })
+
+  it('rejects Better Auth metadata that is not a plain object', async () => {
+    await expect(
+      catchError(() =>
+        mapBetterAuthOAuthToAssertion({
+          account: {
+            providerId: 'google',
+            accountId: 'user-1',
+          },
+          metadata: ['tenant-1'] as unknown as Record<string, unknown>,
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Bridge metadata must be a plain object.',
     })
   })
 
