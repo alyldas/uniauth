@@ -197,5 +197,26 @@ describe('rate-limit integration', () => {
       message: 'Rate-limit resetAt must be a valid date.',
     })
     expect(invalidResetAtKit.store.listAuditEvents()).toHaveLength(0)
+
+    const nonDateResetAtLimiter = new InMemoryRateLimiter()
+    nonDateResetAtLimiter.setDecision(
+      {
+        action: RateLimitAction.ProviderSignIn,
+        key: rateLimitKey('email', 'alice'),
+      },
+      { allowed: false, resetAt: 'not-a-date' as unknown as Date },
+    )
+    const nonDateResetAtKit = createInMemoryAuthKit({ rateLimiter: nonDateResetAtLimiter })
+
+    await expect(
+      nonDateResetAtKit.service.signIn({
+        assertion: assertion({ email: 'non-date-reset-at@example.com', emailVerified: true }),
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Rate-limit resetAt must be a valid date.',
+    })
+    expect(nonDateResetAtKit.store.listAuditEvents()).toHaveLength(0)
   })
 })

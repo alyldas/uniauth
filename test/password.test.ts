@@ -238,6 +238,15 @@ describe('password credentials', () => {
         now,
       })
       .catch((caught: unknown) => caught)
+    const invalidReAuthenticatedAtError = await service
+      .setPassword({
+        userId: first.user.id,
+        email: 'alice@example.com',
+        password: 'alice-password',
+        reAuthenticatedAt: 'not-a-date',
+        now,
+      } as unknown as Parameters<typeof service.setPassword>[0])
+      .catch((caught: unknown) => caught)
     await service.setPassword({
       userId: first.user.id,
       email: 'alice@example.com',
@@ -321,6 +330,10 @@ describe('password credentials', () => {
 
     expect(updated.passwordHash).not.toBe('alice-password')
     expect(reAuthError).toMatchObject({ code: UniAuthErrorCode.ReAuthRequired })
+    expect(invalidReAuthenticatedAtError).toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Re-authentication time is invalid.',
+    })
     expect(conflictError).toMatchObject({ code: UniAuthErrorCode.CredentialAlreadyExists })
     expect(emailChangeError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(missingHasherError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
