@@ -522,6 +522,16 @@ describe('PostgresAuthStore unit coverage', () => {
       ]),
       result([
         userRow({
+          created_at: new Date('invalid'),
+        }),
+      ]),
+      result([
+        userRow({
+          metadata: '{',
+        }),
+      ]),
+      result([
+        userRow({
           metadata: '[]',
         }),
       ]),
@@ -552,6 +562,12 @@ describe('PostgresAuthStore unit coverage', () => {
     ).rejects.toThrow('Expected a database row to be returned.')
     await expect(store.userRepo.findById(asUserId('user-1'))).rejects.toThrow(
       'Invalid date value returned from Postgres.',
+    )
+    await expect(store.userRepo.findById(asUserId('user-1'))).rejects.toThrow(
+      'Invalid date value returned from Postgres.',
+    )
+    await expect(store.userRepo.findById(asUserId('user-1'))).rejects.toThrow(
+      'Expected a JSON object returned from Postgres.',
     )
     await expect(store.userRepo.findById(asUserId('user-1'))).rejects.toThrow(
       'Expected a JSON object returned from Postgres.',
