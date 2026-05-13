@@ -110,7 +110,13 @@ function parseAuthDate(value: string | undefined): Date | undefined {
     throw invalidSignedWebAppInitData()
   }
 
-  return new Date(seconds * 1000)
+  const authDate = new Date(seconds * 1000)
+
+  if (Number.isNaN(authDate.getTime())) {
+    throw invalidSignedWebAppInitData()
+  }
+
+  return authDate
 }
 
 function enforceAuthDateMaxAge(input: {
