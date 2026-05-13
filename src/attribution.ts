@@ -70,6 +70,14 @@ export const UNIAUTH_ATTRIBUTION = {
 } as const satisfies UniAuthAttributionDetails
 
 export function getUniAuthAttributionNotice(options: UniAuthAttributionNoticeOptions = {}): string {
+  if (!isAttributionOptions(options)) {
+    throw new Error('Attribution notice options must be a plain object.')
+  }
+
+  if (options.productName !== undefined && typeof options.productName !== 'string') {
+    throw new Error('Attribution product name must be a string.')
+  }
+
   const productName = options.productName?.trim()
   const subject = productName ? `${productName} uses` : 'This product uses'
   const parts = [`${subject} ${UNIAUTH_ATTRIBUTION.packageName}.`, UNIAUTH_ATTRIBUTION.copyright]
@@ -83,4 +91,13 @@ export function getUniAuthAttributionNotice(options: UniAuthAttributionNoticeOpt
   }
 
   return parts.join(' ')
+}
+
+function isAttributionOptions(value: unknown): value is UniAuthAttributionNoticeOptions {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
 }
