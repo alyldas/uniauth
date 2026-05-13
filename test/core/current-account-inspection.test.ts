@@ -345,6 +345,25 @@ describe('DefaultAuthService current-account inspection helpers', () => {
     const { service, store } = createInMemoryAuthKit()
     const signedIn = await service.signIn({ assertion: assertion(), now })
 
+    await expect(
+      // @ts-expect-error runtime validation for untyped callers
+      service.getCurrentAccountInspectionSnapshot(null),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      // @ts-expect-error runtime validation for untyped callers
+      service.getCurrentAccountAuditEventPage(123),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      // @ts-expect-error runtime validation for untyped callers
+      service.getCurrentAccountClosureExportSnapshot([]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+
     await store.userRepo.update(signedIn.user.id, {
       disabledAt: addSeconds(now, 10),
     })

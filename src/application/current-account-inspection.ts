@@ -11,11 +11,14 @@ import type {
   GetCurrentAccountInspectionSnapshotInput,
 } from '../domain/types.js'
 import { toCurrentAccountInspectionSnapshot } from '../domain/types.js'
+import { invalidInput } from '../errors.js'
 
 export async function getCurrentAccountInspectionSnapshot(
   runtime: AuthServiceRuntime,
   input: GetCurrentAccountInspectionSnapshotInput,
 ): Promise<CurrentAccountInspectionSnapshot> {
+  assertCurrentAccountInspectionInput(input)
+
   const { session, user } = await resolveSessionContext(runtime, input)
   const account = await getAccountSecuritySnapshotForUser(runtime, user)
   const auditWindow = input.audit
@@ -42,6 +45,8 @@ export async function getCurrentAccountClosureExportSnapshot(
   runtime: AuthServiceRuntime,
   input: GetCurrentAccountClosureExportSnapshotInput,
 ): Promise<CurrentAccountClosureExportSnapshot> {
+  assertCurrentAccountInspectionInput(input)
+
   const generatedAt = input.now ?? runtime.clock.now()
   const inspection = await getCurrentAccountInspectionSnapshot(runtime, {
     ...input,
@@ -58,6 +63,8 @@ export async function getCurrentAccountAuditEventPage(
   runtime: AuthServiceRuntime,
   input: GetCurrentAccountAuditEventPageInput,
 ): Promise<AuditEventPage> {
+  assertCurrentAccountInspectionInput(input)
+
   const { user } = await resolveSessionContext(runtime, input)
 
   return getAuditEventPage(runtime, {
@@ -69,4 +76,15 @@ export async function getCurrentAccountAuditEventPage(
     ...(input.after ? { after: input.after } : {}),
     ...(input.limit !== undefined ? { limit: input.limit } : {}),
   })
+}
+
+function assertCurrentAccountInspectionInput(
+  input: unknown,
+): asserts input is
+  | GetCurrentAccountInspectionSnapshotInput
+  | GetCurrentAccountClosureExportSnapshotInput
+  | GetCurrentAccountAuditEventPageInput {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    throw invalidInput('Current-account inspection input is required.')
+  }
 }

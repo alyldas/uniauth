@@ -6,11 +6,16 @@ import {
   type AccountInspectionSnapshot,
   type GetAccountInspectionSnapshotInput,
 } from '../domain/types.js'
+import { invalidInput } from '../errors.js'
 
 export async function getAccountInspectionSnapshot(
   runtime: AuthServiceRuntime,
   input: GetAccountInspectionSnapshotInput,
 ): Promise<AccountInspectionSnapshot> {
+  if (!isAccountInspectionInput(input)) {
+    throw invalidInput('Account inspection input is required.')
+  }
+
   const account = await getAccountSecuritySnapshot(runtime, input.userId)
   const auditWindow = input.audit
   const auditLimit = auditWindow?.limit ?? input.auditLimit
@@ -26,4 +31,8 @@ export async function getAccountInspectionSnapshot(
     auditEvents: auditPage.events,
     ...(auditPage.nextCursor ? { nextAuditCursor: auditPage.nextCursor } : {}),
   })
+}
+
+function isAccountInspectionInput(value: unknown): value is GetAccountInspectionSnapshotInput {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

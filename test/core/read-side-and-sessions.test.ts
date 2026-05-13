@@ -132,6 +132,13 @@ describe('DefaultAuthService read side and sessions', () => {
     const { service, store } = createInMemoryAuthKit()
     const result = await service.signIn({ assertion: assertion(), now })
 
+    await expect(
+      // @ts-expect-error runtime validation for untyped callers
+      service.resolveSessionContext(null),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+
     await store.userRepo.update(result.user.id, { disabledAt: addSeconds(now, 10) })
 
     await expect(
@@ -358,6 +365,12 @@ describe('DefaultAuthService read side and sessions', () => {
     expect(
       (await service.getAccountInspectionSnapshot({ userId: signedIn.user.id })).auditEvents,
     ).toHaveLength(3)
+    await expect(
+      // @ts-expect-error runtime validation for untyped callers
+      service.getAccountInspectionSnapshot(null),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
 
     const firstWindow = await service.getAccountInspectionSnapshot({
       userId: signedIn.user.id,
