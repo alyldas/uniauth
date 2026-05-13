@@ -279,7 +279,10 @@ function resolveVerificationExpiresAt(
     throw invalidInput('Verification TTL must be a non-negative number of seconds.')
   }
 
-  return addSeconds(input.now, ttlSeconds)
+  const expiresAt = addSeconds(input.now, ttlSeconds)
+  assertValidDate(expiresAt, 'Verification expiration time is invalid.')
+
+  return expiresAt
 }
 
 function resolveVerificationResendCooldownSeconds(

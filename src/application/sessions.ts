@@ -179,7 +179,10 @@ function resolveSessionExpiresAt(
     throw invalidInput('Session TTL must be a non-negative number of seconds.')
   }
 
-  return addSeconds(input.now, runtime.sessionTtlSeconds)
+  const expiresAt = addSeconds(input.now, runtime.sessionTtlSeconds)
+  assertValidDate(expiresAt, 'Session expiration time is invalid.')
+
+  return expiresAt
 }
 
 async function requireActiveSession(

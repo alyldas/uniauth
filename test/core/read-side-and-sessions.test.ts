@@ -571,6 +571,12 @@ describe('DefaultAuthService read side and sessions', () => {
       }),
     ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     await expect(
+      createInMemoryAuthKit({ sessionTtlSeconds: Number.MAX_VALUE }).service.signIn({
+        assertion: assertion(),
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
       service.touchSession({
         sessionId: signedIn.session.id,
         now: new Date('invalid'),
@@ -600,6 +606,14 @@ describe('DefaultAuthService read side and sessions', () => {
     await expect(
       service.createVerification({
         purpose: VerificationPurpose.SignIn,
+        target: 'overflow@example.com',
+        ttlSeconds: Number.MAX_VALUE,
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.SignIn,
         target: 'invalid-now@example.com',
         now: new Date('invalid'),
       }),
@@ -616,6 +630,15 @@ describe('DefaultAuthService read side and sessions', () => {
       createInMemoryAuthKit({ verificationTtlSeconds: Number.NaN }).service.createVerification({
         purpose: VerificationPurpose.SignIn,
         target: 'runtime-nan@example.com',
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    await expect(
+      createInMemoryAuthKit({
+        verificationTtlSeconds: Number.MAX_VALUE,
+      }).service.createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: 'runtime-overflow@example.com',
         now,
       }),
     ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
