@@ -15,6 +15,7 @@ export const RateLimitAction = {
 } as const
 
 export type RateLimitAction = (typeof RateLimitAction)[keyof typeof RateLimitAction]
+const RateLimitActions = new Set<string>(Object.values(RateLimitAction))
 
 export interface RateLimitAttempt {
   readonly action: RateLimitAction
@@ -63,7 +64,7 @@ export function isRateLimitedErrorDetails(input: unknown): input is RateLimitedE
 
   const { action, retryAfterSeconds, resetAt } = input as Partial<RateLimitedErrorDetails>
 
-  if (typeof action !== 'string' || !action.trim()) {
+  if (typeof action !== 'string' || !RateLimitActions.has(action)) {
     return false
   }
 
