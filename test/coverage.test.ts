@@ -220,6 +220,12 @@ describe('public utility coverage', () => {
     })
 
     await expect(runtime.transaction.run(async () => 'immediate')).resolves.toBe('immediate')
+    await expect(
+      createAuthServiceRuntime({ repos: store }).transaction.run(async () => 'repository'),
+    ).resolves.toBe('repository')
+    expect(
+      createAuthServiceRuntime(Object.assign(Object.create(null), { repos: store })).repos.userRepo,
+    ).toBe(store.userRepo)
     expect(() =>
       createAuthServiceRuntime(null as unknown as Parameters<typeof createAuthServiceRuntime>[0]),
     ).toThrow('Auth service options must be a plain object.')
@@ -240,6 +246,18 @@ describe('public utility coverage', () => {
         } as unknown as Parameters<typeof createAuthServiceRuntime>[0]['repos'],
       }),
     ).toThrow('User repository update is required.')
+    expect(() =>
+      createAuthServiceRuntime({
+        repos: {
+          userRepo: store.userRepo,
+          identityRepo: store.identityRepo,
+          credentialRepo: store.credentialRepo,
+          verificationRepo: store.verificationRepo,
+          sessionRepo: store.sessionRepo,
+          auditLogRepo: null,
+        } as unknown as Parameters<typeof createAuthServiceRuntime>[0]['repos'],
+      }),
+    ).toThrow('Audit log repository is required.')
     expect(() =>
       createAuthService({
         repos: null as unknown as Parameters<typeof createAuthService>[0]['repos'],
