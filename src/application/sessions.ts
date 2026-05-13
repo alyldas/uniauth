@@ -83,6 +83,11 @@ export async function resolveSession(
   input: ResolveSessionInput,
 ): Promise<Session> {
   const now = input.now ?? runtime.clock.now()
+
+  if (typeof input.sessionToken !== 'string') {
+    throw invalidInput('Session token is required.')
+  }
+
   const sessionToken = input.sessionToken.trim()
 
   if (!sessionToken) {
