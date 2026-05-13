@@ -30,8 +30,8 @@ npm run lint
 ## Package Gate
 
 `npm run check` is the local release gate. It runs dependency audit, formatting, ESLint,
-local Markdown link checks, typecheck, 100% coverage, export smoke tests, package lint, package
-type-resolution checks, and `npm pack --dry-run`.
+local Markdown file, anchor, and image link checks, typecheck, 100% coverage, export smoke tests,
+package lint, package type-resolution checks, and `npm pack --dry-run`.
 
 Use Docker when you want the same package gate inside the pinned Node 22 Alpine image:
 
