@@ -45,6 +45,14 @@ describe('DefaultAuthService OTP and verification flows', () => {
       code: UniAuthErrorCode.VerificationInvalidSecret,
     })
 
+    await expect(
+      service.consumeVerification({
+        verificationId: created.verification.id,
+        secret: '   ',
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+
     const consumed = await service.consumeVerification({
       verificationId: created.verification.id,
       secret: '123456',
@@ -74,6 +82,16 @@ describe('DefaultAuthService OTP and verification flows', () => {
       .catch((caught: unknown) => caught)
 
     expect(blankTargetError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(store.listVerifications()).toHaveLength(1)
+
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.SignIn,
+        target: 'blank-secret@example.com',
+        secret: '   ',
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(store.listVerifications()).toHaveLength(1)
 
     await expect(
