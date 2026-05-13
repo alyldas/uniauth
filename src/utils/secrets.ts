@@ -41,10 +41,15 @@ export function generateOtpSecret(length = 6): string {
 }
 
 export function hashSecret(secret: string): string {
+  requireSecretString(secret, 'Secret must be a string.')
   return `${SECRET_HASH_PREFIX}${createHash('sha256').update(secret).digest('hex')}`
 }
 
 export function verifySecret(secret: string, secretHash: string): boolean {
+  if (typeof secret !== 'string' || typeof secretHash !== 'string') {
+    return false
+  }
+
   return verifyPrefixedSecret(secretHash, hashSecret(secret), SECRET_HASH_PREFIX)
 }
 
@@ -80,13 +85,17 @@ export function createScryptSecretHasher(options: ScryptSecretHasherOptions = {}
   return {
     async hash(secret): Promise<string> {
       const salt = randomBytes(saltByteLength)
-      const derived = await deriveScrypt(secret, salt, {
-        cost,
-        blockSize,
-        parallelization,
-        keyLength,
-        maxmem,
-      })
+      const derived = await deriveScrypt(
+        requireSecretString(secret, 'Secret must be a string.'),
+        salt,
+        {
+          cost,
+          blockSize,
+          parallelization,
+          keyLength,
+          maxmem,
+        },
+      )
 
       return [
         SCRYPT_SECRET_HASH_PREFIX.slice(0, -1),
@@ -107,16 +116,32 @@ export function createScryptSecretHasher(options: ScryptSecretHasherOptions = {}
 export const scryptSecretHasher: SecretHasher = createScryptSecretHasher()
 
 export function createHmacSecretHasher(input: { readonly pepper: string }): SecretHasher {
-  if (typeof input.pepper !== 'string' || !input.pepper.trim()) {
+  const candidate = input as unknown
+
+  if (
+    !candidate ||
+    typeof candidate !== 'object' ||
+    Array.isArray(candidate) ||
+    !('pepper' in candidate) ||
+    typeof candidate.pepper !== 'string' ||
+    !candidate.pepper.trim()
+  ) {
     throw new Error('Secret hasher pepper is required.')
   }
 
+  const pepper = candidate.pepper
   const hash = (secret: string): string =>
-    `${HMAC_SECRET_HASH_PREFIX}${createHmac('sha256', input.pepper).update(secret).digest('hex')}`
+    `${HMAC_SECRET_HASH_PREFIX}${createHmac('sha256', pepper)
+      .update(requireSecretString(secret, 'Secret must be a string.'))
+      .digest('hex')}`
 
   return {
     hash,
     verify(secret, secretHash): boolean {
+      if (typeof secret !== 'string' || typeof secretHash !== 'string') {
+        return false
+      }
+
       return verifyPrefixedSecret(secretHash, hash(secret), HMAC_SECRET_HASH_PREFIX)
     },
   }
@@ -138,6 +163,10 @@ function verifyPrefixedSecret(secretHash: string, actualHash: string, prefix: st
 }
 
 async function verifyScryptSecret(secret: string, secretHash: string): Promise<boolean> {
+  if (typeof secret !== 'string' || typeof secretHash !== 'string') {
+    return false
+  }
+
   if (!secretHash.startsWith(SCRYPT_SECRET_HASH_PREFIX)) {
     return false
   }
@@ -222,4 +251,12 @@ function readPositiveInteger(value: number, name: string): number {
   }
 
   return value
+}
+
+function requireSecretString(secret: string, message: string): string {
+  if (typeof secret !== 'string') {
+    throw new Error(message)
+  }
+
+  return secret
 }

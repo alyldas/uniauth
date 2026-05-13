@@ -19,6 +19,7 @@ import {
   createSequentialIdGenerator,
   generateOtpSecret,
   generateSecret,
+  getUniAuthAttributionNotice,
   hashSecret,
   invalidCredentials,
   invalidInput,
@@ -113,12 +114,24 @@ describe('public utility coverage', () => {
     expect(verifySecret('secret', 'plaintext')).toBe(false)
     expect(verifySecret('secret', 'sha256:short')).toBe(false)
     expect(verifySecret('wrong', secretHash)).toBe(false)
+    expect(verifySecret(123 as unknown as string, secretHash)).toBe(false)
+    expect(verifySecret('secret', 123 as unknown as string)).toBe(false)
+    expect(() => hashSecret(123 as unknown as string)).toThrow('Secret must be a string.')
     expect(hmacHash).toMatch(/^hmac-sha256:/)
     expect(await hmacHasher.verify('123456', hmacHash)).toBe(true)
     expect(await hmacHasher.verify('000000', hmacHash)).toBe(false)
     expect(await hmacHasher.verify('123456', secretHash)).toBe(false)
+    expect(await hmacHasher.verify(123 as unknown as string, hmacHash)).toBe(false)
+    expect(() => hmacHasher.hash(123 as unknown as string)).toThrow('Secret must be a string.')
     expect(defaultScryptHash).toMatch(/^scrypt:/)
     expect(await defaultScryptHasher.verify('123456', defaultScryptHash)).toBe(true)
+    await expect(defaultScryptHasher.hash(123 as unknown as string)).rejects.toThrow(
+      'Secret must be a string.',
+    )
+    expect(await defaultScryptHasher.verify(123 as unknown as string, defaultScryptHash)).toBe(
+      false,
+    )
+    expect(await defaultScryptHasher.verify('123456', 123 as unknown as string)).toBe(false)
     expect(scryptHash).toMatch(/^scrypt:/)
     expect(await scryptHasher.verify('123456', scryptHash)).toBe(true)
     expect(await scryptHasher.verify('000000', scryptHash)).toBe(false)
@@ -131,6 +144,9 @@ describe('public utility coverage', () => {
       'Secret hasher pepper is required.',
     )
     expect(() => createHmacSecretHasher({ pepper: '   ' })).toThrow(
+      'Secret hasher pepper is required.',
+    )
+    expect(() => createHmacSecretHasher(undefined as unknown as { pepper: string })).toThrow(
       'Secret hasher pepper is required.',
     )
     expect(() => createScryptSecretHasher({ cost: 15 })).toThrow(
@@ -153,6 +169,15 @@ describe('public utility coverage', () => {
     )
     expect(addSeconds(now, 5)).toEqual(new Date('2026-01-01T00:00:05.000Z'))
     expect(systemClock.now()).toBeInstanceOf(Date)
+    expect(() => getUniAuthAttributionNotice({ productName: 123 as unknown as string })).toThrow(
+      'Attribution product name must be a string.',
+    )
+    expect(() => getUniAuthAttributionNotice(null as unknown as object)).toThrow(
+      'Attribution notice options must be a plain object.',
+    )
+    expect(getUniAuthAttributionNotice(Object.assign(Object.create(null), {}))).toContain(
+      'This product uses',
+    )
 
     const store = new InMemoryAuthStore()
     const runtime = createAuthServiceRuntime({
