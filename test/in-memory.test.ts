@@ -443,7 +443,7 @@ describe('InMemoryAuthStore', () => {
     expect(await passwordHasher.verify('correct-password', 123 as unknown as string)).toBe(false)
   })
 
-  it('rejects malformed in-memory testing helper inputs', () => {
+  it('rejects malformed in-memory testing helper inputs', async () => {
     expect(() =>
       createInMemoryAuthKit(null as unknown as Parameters<typeof createInMemoryAuthKit>[0]),
     ).toThrow('In-memory auth kit options must be a plain object.')
@@ -479,9 +479,19 @@ describe('InMemoryAuthStore', () => {
     ).toThrow('Provider registry provider id is required.')
     expect(() =>
       registry.register({
+        id: '   ',
+        finish: async () => ({ provider: 'static', providerUserId: 'user-1' }),
+      }),
+    ).toThrow('Provider registry provider id is required.')
+    expect(() =>
+      registry.register({
         id: 'static',
         finish: 'finish' as unknown as Parameters<typeof registry.register>[0]['finish'],
       }),
     ).toThrow('Provider registry provider finish is required.')
+    await expect(registry.get('   ')).rejects.toThrow('Provider registry provider id is required.')
+    await expect(
+      registry.get(123 as unknown as Parameters<typeof registry.get>[0]),
+    ).rejects.toThrow('Provider registry provider id is required.')
   })
 })

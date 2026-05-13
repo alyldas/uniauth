@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { UniAuthErrorCode, type ProviderIdentityAssertion, createAuthService } from '../../src'
+import { resolveAssertion } from '../../src/application/sign-in/assertion.js'
 import { InMemoryAuthStore, StaticAuthProvider, createInMemoryAuthKit } from '../../src/testing'
 import { assertion, now } from '../helpers.js'
 
@@ -17,6 +18,14 @@ describe('provider resolution and assertion validation failures', () => {
     expect(
       await noRegistryService.signIn({ now }).catch((caught: unknown) => caught),
     ).toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      resolveAssertion(
+        {} as Parameters<typeof resolveAssertion>[0],
+        null as unknown as Parameters<typeof resolveAssertion>[1],
+      ),
+    ).rejects.toMatchObject({
       code: UniAuthErrorCode.InvalidInput,
     })
     expect(
