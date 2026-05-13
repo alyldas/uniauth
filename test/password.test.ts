@@ -286,12 +286,37 @@ describe('password credentials', () => {
         now,
       })
       .catch((caught: unknown) => caught)
+    const nonStringEmailError = await service
+      .setPassword({
+        userId: first.user.id,
+        email: 123,
+        password: 'password',
+        reAuthenticatedAt: now,
+        now,
+      } as unknown as Parameters<typeof service.setPassword>[0])
+      .catch((caught: unknown) => caught)
     const blankPasswordError = await service
       .signInWithPassword({
         email: 'alice@example.com',
         password: '',
         now,
       })
+      .catch((caught: unknown) => caught)
+    const nonStringSetupPasswordError = await service
+      .setPassword({
+        userId: first.user.id,
+        email: 'alice@example.com',
+        password: 123,
+        reAuthenticatedAt: now,
+        now,
+      } as unknown as Parameters<typeof service.setPassword>[0])
+      .catch((caught: unknown) => caught)
+    const nonStringSignInPasswordError = await service
+      .signInWithPassword({
+        email: 'alice@example.com',
+        password: 123,
+        now,
+      } as unknown as Parameters<typeof service.signInWithPassword>[0])
       .catch((caught: unknown) => caught)
 
     expect(updated.passwordHash).not.toBe('alice-password')
@@ -300,7 +325,12 @@ describe('password credentials', () => {
     expect(emailChangeError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(missingHasherError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(blankEmailError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
-    expect(blankPasswordError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(nonStringEmailError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(blankPasswordError).toMatchObject({ code: UniAuthErrorCode.InvalidCredentials })
+    expect(nonStringSetupPasswordError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(nonStringSignInPasswordError).toMatchObject({
+      code: UniAuthErrorCode.InvalidCredentials,
+    })
   })
 
   it('starts and finishes password recovery with consume-once verification semantics', async () => {
