@@ -150,6 +150,35 @@ describe('verification resend window and rate-limit helpers', () => {
       code: UniAuthErrorCode.InvalidInput,
       message: 'Verification resend cooldown must be a non-negative integer.',
     })
+    await expect(
+      service.getVerificationResendWindow({
+        verificationId: created.verification.id,
+        cooldownSeconds: Number.MAX_VALUE,
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Verification resend cooldown produces an invalid availability time.',
+    })
+    const overflowRuntime = createInMemoryAuthKit({
+      verificationResendCooldownSeconds: Number.MAX_VALUE,
+    })
+    const overflowRuntimeVerification = await overflowRuntime.service.createVerification({
+      purpose: VerificationPurpose.Link,
+      target: 'runtime-overflow-target',
+      secret: 'secret-token',
+      now,
+    })
+
+    await expect(
+      overflowRuntime.service.getVerificationResendWindow({
+        verificationId: overflowRuntimeVerification.verification.id,
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Verification resend cooldown produces an invalid availability time.',
+    })
   })
 
   it('keeps Postgres resend window semantics aligned with in-memory behavior', async () => {
