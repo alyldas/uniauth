@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  UniAuthErrorCode,
   VerificationPurpose,
   VerificationStatus,
   addSeconds,
@@ -163,6 +164,15 @@ describe('security storage regressions', () => {
         }),
       ).resolves.toMatchObject({
         id: secondSession.session.id,
+      })
+      await expect(
+        service.resolveSession({
+          sessionToken: 123,
+          now,
+        } as unknown as Parameters<typeof service.resolveSession>[0]),
+      ).rejects.toMatchObject({
+        code: UniAuthErrorCode.InvalidInput,
+        message: 'Session token is required.',
       })
 
       expect(await store.sessionRepo.findByTokenHash(signedIn.sessionToken)).toBeUndefined()
