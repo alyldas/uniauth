@@ -2,6 +2,7 @@ import type { AuditEvent, AuditEventCursor } from './audit.js'
 import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
 import type { ProviderTrustLevel } from './kinds.js'
 import { isExpiredVerification, isUsableVerification } from './rules.js'
+import { invalidInput } from '../errors.js'
 
 export interface AccountSecurityUserView {
   readonly id: User['id']
@@ -220,6 +221,11 @@ export function toVerificationResendWindow(
   const resendAvailableAt = new Date(
     verification.createdAt.getTime() + input.cooldownSeconds * 1000,
   )
+
+  if (Number.isNaN(resendAvailableAt.getTime())) {
+    throw invalidInput('Verification resend cooldown produces an invalid availability time.')
+  }
+
   const cooldownRemainingSeconds = Math.max(
     0,
     Math.ceil((resendAvailableAt.getTime() - input.now.getTime()) / 1000),
