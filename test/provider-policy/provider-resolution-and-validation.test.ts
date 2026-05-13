@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { UniAuthErrorCode, type ProviderIdentityAssertion, createAuthService } from '../../src'
-import { InMemoryAuthStore } from '../../src/testing'
+import { InMemoryAuthStore, StaticAuthProvider, createInMemoryAuthKit } from '../../src/testing'
 import { assertion, now } from '../helpers.js'
 
 describe('provider resolution and assertion validation failures', () => {
@@ -185,6 +185,47 @@ describe('provider resolution and assertion validation failures', () => {
       identity: {
         metadata: { source: 'assertion' },
       },
+    })
+
+    const { providerRegistry, service } = createInMemoryAuthKit()
+    providerRegistry.register(
+      new StaticAuthProvider(' oidc ', {
+        providerUserId: 'provider-user-1',
+        email: 'person@example.com',
+        emailVerified: true,
+      }),
+    )
+
+    await expect(
+      service.signIn({
+        provider: ' oidc ',
+        finishInput: {},
+        now,
+      }),
+    ).resolves.toMatchObject({
+      identity: {
+        provider: 'oidc',
+        providerUserId: 'provider-user-1',
+      },
+    })
+    await expect(
+      service.signIn({
+        provider: '   ',
+        finishInput: {},
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.signIn({
+        // @ts-expect-error runtime validation for untyped callers
+        provider: 123,
+        finishInput: {},
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
     })
   })
 })

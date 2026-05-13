@@ -17,25 +17,41 @@ export async function resolveAssertion(
     readonly finishInput?: FinishInput
   },
 ): Promise<ProviderIdentityAssertion> {
+  if (!(input && typeof input === 'object')) {
+    throw invalidInput('Either assertion or provider finish input is required.')
+  }
+
   if (input.assertion) {
     return normalizeAssertion(runtime, input.assertion)
   }
 
-  if (!input.provider || !input.finishInput) {
+  if (input.provider === undefined || !input.finishInput) {
     throw invalidInput('Either assertion or provider finish input is required.')
   }
+
+  const providerId = normalizeProviderId(input.provider)
 
   if (!runtime.providerRegistry) {
     throw new UniAuthError(UniAuthErrorCode.ProviderNotFound, 'Auth provider was not found.')
   }
 
-  const provider = await runtime.providerRegistry.get(input.provider)
+  const provider = await runtime.providerRegistry.get(providerId)
 
   if (!provider) {
     throw new UniAuthError(UniAuthErrorCode.ProviderNotFound, 'Auth provider was not found.')
   }
 
   return normalizeAssertion(runtime, await provider.finish(input.finishInput))
+}
+
+function normalizeProviderId(value: unknown): string {
+  const provider = normalizeRequiredClaim(value, 'Provider is required.')
+
+  if (!provider || hasControlCharacter(provider)) {
+    throw invalidInput('Provider is required.')
+  }
+
+  return provider
 }
 
 export function normalizeAssertion(
