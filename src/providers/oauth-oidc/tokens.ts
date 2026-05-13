@@ -1,6 +1,13 @@
 import { invalidInput } from '../../errors.js'
 import { optionalProp } from '../../utils/optional.js'
-import { isRecord, normalizeMetadataRecord, readString, requireNonBlankString } from './support.js'
+import {
+  isRecord,
+  normalizeMetadataRecord,
+  normalizeOptionalDate,
+  normalizeOptionalStringArray,
+  readString,
+  requireNonBlankString,
+} from './support.js'
 import type {
   CreateOAuthOidcTokenRecordInput,
   OAuthOidcTokenBinding,
@@ -57,8 +64,14 @@ function normalizeTokenSet(
   const refreshToken = readString(tokens.refreshToken)
   const idToken = readString(tokens.idToken)
   const tokenType = readString(tokens.tokenType)
-  const expiresAt = normalizeExpiresAt(tokens.expiresAt)
-  const scopes = normalizeScopes(tokens.scopes)
+  const expiresAt = normalizeOptionalDate(
+    tokens.expiresAt,
+    'OAuth/OIDC token expiration time is invalid.',
+  )
+  const scopes = normalizeOptionalStringArray(
+    tokens.scopes,
+    'OAuth/OIDC token scopes must be an array of strings.',
+  )
 
   if (!accessToken && !refreshToken && !idToken) {
     throw invalidInput(
@@ -74,31 +87,6 @@ function normalizeTokenSet(
     ...optionalProp('expiresAt', expiresAt),
     ...optionalProp('scopes', scopes),
   }
-}
-
-function normalizeExpiresAt(value: unknown): Date | undefined {
-  if (value === undefined) {
-    return undefined
-  }
-
-  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
-    throw invalidInput('OAuth/OIDC token expiration time is invalid.')
-  }
-
-  return value
-}
-
-function normalizeScopes(value: unknown): readonly string[] | undefined {
-  if (value === undefined) {
-    return undefined
-  }
-
-  if (!Array.isArray(value) || value.some((scope) => typeof scope !== 'string')) {
-    throw invalidInput('OAuth/OIDC token scopes must be an array of strings.')
-  }
-
-  const scopes = [...new Set(value.map((scope) => scope.trim()).filter(Boolean))]
-  return scopes.length > 0 ? scopes : undefined
 }
 
 function normalizeMetadata(value: unknown): Record<string, unknown> | undefined {

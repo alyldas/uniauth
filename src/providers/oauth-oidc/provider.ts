@@ -6,6 +6,8 @@ import { mapOAuthOidcProfileToAssertion } from './profile.js'
 import {
   isRecord,
   normalizeMetadataRecord,
+  normalizeOptionalDate,
+  normalizeOptionalStringArray,
   readFinishPayload,
   readString,
   requireNonBlankString,
@@ -112,7 +114,16 @@ function normalizeTokenSet(tokens: OAuthOidcTokenSet): OAuthOidcTokenSet {
     ...optionalProp('refreshToken', refreshToken),
     ...optionalProp('idToken', idToken),
     ...optionalProp('tokenType', readString(tokenSet.tokenType)),
-    ...optionalProp('expiresAt', tokenSet.expiresAt),
-    ...optionalProp('scopes', tokenSet.scopes),
+    ...optionalProp(
+      'expiresAt',
+      normalizeOptionalDate(tokenSet.expiresAt, 'OAuth/OIDC token expiration time is invalid.'),
+    ),
+    ...optionalProp(
+      'scopes',
+      normalizeOptionalStringArray(
+        tokenSet.scopes,
+        'OAuth/OIDC token scopes must be an array of strings.',
+      ),
+    ),
   }
 }
