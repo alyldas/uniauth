@@ -254,6 +254,12 @@ describe('verification resend window and rate-limit helpers', () => {
     expect(
       isRateLimitedErrorDetails({
         action: RateLimitAction.OtpStart,
+        resetAt: 'not-a-date',
+      }),
+    ).toBe(false)
+    expect(
+      isRateLimitedErrorDetails({
+        action: RateLimitAction.OtpStart,
         retryAfterSeconds: 15,
         resetAt: now.toISOString(),
       }),

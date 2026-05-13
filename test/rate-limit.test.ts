@@ -13,6 +13,9 @@ import { assertion, now, rateLimitKey } from './helpers.js'
 describe('rate-limit integration', () => {
   it('builds unambiguous keys for arbitrary rate-limit parts', () => {
     expect(rateLimitKey('a', 'b\u0000c')).not.toBe(rateLimitKey('a\u0000b', 'c'))
+    expect(() => rateLimitKey('a', 1 as unknown as string)).toThrow(
+      'Rate-limit key parts must be strings.',
+    )
   })
 
   it('denies provider sign-in before creating a user, identity, or session', async () => {

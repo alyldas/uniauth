@@ -78,7 +78,7 @@ function requirePlainRecord(value: unknown, message: string): Record<string, unk
   return value
 }
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
+export function isPlainRecord(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return false
   }
