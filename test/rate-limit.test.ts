@@ -152,4 +152,50 @@ describe('rate-limit integration', () => {
       }),
     ])
   })
+
+  it('rejects malformed rate-limit decisions before writing audit metadata', async () => {
+    const invalidRetryAfterLimiter = new InMemoryRateLimiter()
+    invalidRetryAfterLimiter.setDecision(
+      {
+        action: RateLimitAction.ProviderSignIn,
+        key: rateLimitKey('email', 'alice'),
+      },
+      { allowed: false, retryAfterSeconds: -1 },
+    )
+    const invalidRetryAfterKit = createInMemoryAuthKit({
+      rateLimiter: invalidRetryAfterLimiter,
+    })
+
+    await expect(
+      invalidRetryAfterKit.service.signIn({
+        assertion: assertion({ email: 'invalid-retry@example.com', emailVerified: true }),
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Rate-limit retryAfterSeconds must be a non-negative number.',
+    })
+    expect(invalidRetryAfterKit.store.listAuditEvents()).toHaveLength(0)
+
+    const invalidResetAtLimiter = new InMemoryRateLimiter()
+    invalidResetAtLimiter.setDecision(
+      {
+        action: RateLimitAction.ProviderSignIn,
+        key: rateLimitKey('email', 'alice'),
+      },
+      { allowed: false, resetAt: new Date('invalid') },
+    )
+    const invalidResetAtKit = createInMemoryAuthKit({ rateLimiter: invalidResetAtLimiter })
+
+    await expect(
+      invalidResetAtKit.service.signIn({
+        assertion: assertion({ email: 'invalid-reset-at@example.com', emailVerified: true }),
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Rate-limit resetAt must be a valid date.',
+    })
+    expect(invalidResetAtKit.store.listAuditEvents()).toHaveLength(0)
+  })
 })
