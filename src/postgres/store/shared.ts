@@ -290,6 +290,10 @@ function isForeignKeyViolation(error: unknown): boolean {
 
 function readDate(value: Date | string): Date {
   if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw new Error('Invalid date value returned from Postgres.')
+    }
+
     return value
   }
 
@@ -318,7 +322,14 @@ function readJsonObject(
   }
 
   if (typeof value === 'string') {
-    const parsed = JSON.parse(value) as unknown
+    let parsed: unknown
+
+    try {
+      parsed = JSON.parse(value) as unknown
+    } catch {
+      throw new Error('Expected a JSON object returned from Postgres.')
+    }
+
     return ensureRecord(parsed)
   }
 
