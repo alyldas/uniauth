@@ -2,7 +2,9 @@
 const { existsSync, readdirSync, readFileSync } = require('node:fs')
 const { dirname, join, resolve } = require('node:path')
 
-const MARKDOWN_LINK_PATTERN = /(?<!!)\[[^\]]+\]\(([^)]+)\)/g
+const MARKDOWN_LINK_PATTERN = /!?\[[^\]]*\]\(([^)]+)\)/g
+const HEADING_PATTERN = /^(#{1,6})\s+(.+)$/gm
+const HTML_ANCHOR_PATTERN = /<a\s+(?:[^>]*\s+)?(?:id|name)=["']([^"']+)["'][^>]*>/giu
 const MARKDOWN_DIRECTORIES = ['docs', '.github']
 
 const markdownFiles = [
@@ -10,6 +12,7 @@ const markdownFiles = [
   ...MARKDOWN_DIRECTORIES.flatMap((directory) => listMarkdownFiles(directory)),
 ]
 const brokenLinks = []
+const anchorCache = new Map()
 
 for (const file of markdownFiles) {
   const contents = readFileSync(file, 'utf8')
@@ -22,7 +25,7 @@ for (const file of markdownFiles) {
       continue
     }
 
-    const [pathTarget] = target.split('#')
+    const [pathTarget, anchorTarget] = target.split('#')
 
     if (!pathTarget) {
       continue
@@ -32,6 +35,16 @@ for (const file of markdownFiles) {
 
     if (!existsSync(resolvedTarget)) {
       brokenLinks.push(`${file}: ${target}`)
+      continue
+    }
+
+    if (anchorTarget && resolvedTarget.endsWith('.md')) {
+      const anchors = readMarkdownAnchors(resolvedTarget)
+      const decodedAnchor = decodeURIComponent(anchorTarget)
+
+      if (!anchors.has(decodedAnchor)) {
+        brokenLinks.push(`${file}: ${target}`)
+      }
     }
   }
 }
@@ -74,4 +87,45 @@ function readLocalTarget(rawTarget) {
   }
 
   return target
+}
+
+function readMarkdownAnchors(file) {
+  const cachedAnchors = anchorCache.get(file)
+
+  if (cachedAnchors) {
+    return cachedAnchors
+  }
+
+  const contents = readFileSync(file, 'utf8')
+  const anchors = new Set()
+
+  for (const match of contents.matchAll(HEADING_PATTERN)) {
+    const heading = match[2]
+
+    if (heading) {
+      anchors.add(toGitHubHeadingAnchor(heading))
+    }
+  }
+
+  for (const match of contents.matchAll(HTML_ANCHOR_PATTERN)) {
+    const anchor = match[1]
+
+    if (anchor) {
+      anchors.add(anchor)
+    }
+  }
+
+  anchorCache.set(file, anchors)
+  return anchors
+}
+
+function toGitHubHeadingAnchor(heading) {
+  return heading
+    .trim()
+    .replace(/<[^>]+>/gu, '')
+    .replace(/`([^`]+)`/gu, '$1')
+    .toLowerCase()
+    .replace(/[^\p{Letter}\p{Number}\s-]/gu, '')
+    .trim()
+    .replace(/\s+/gu, '-')
 }
