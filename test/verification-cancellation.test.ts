@@ -332,6 +332,14 @@ describe('verification cancellation flows', () => {
       type: AuditEventType.VerificationCancelled,
     })
 
+    await expect(
+      service.getAuditEvents({
+        type: 123,
+      } as unknown as Parameters<typeof service.getAuditEvents>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Audit event type is invalid.',
+    })
     expect(cancelled.expiresAt).toEqual(now)
     expect(auditEvents).toEqual([
       expect.objectContaining({
