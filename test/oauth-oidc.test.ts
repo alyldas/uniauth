@@ -391,6 +391,43 @@ describe('OAuth/OIDC provider contract', () => {
 
   it('rejects incomplete OAuth/OIDC inputs', async () => {
     await expectInvalid(() =>
+      createOAuthOidcProvider(null as unknown as Parameters<typeof createOAuthOidcProvider>[0]),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcProvider({
+        providerId: 'oauth',
+        client: undefined as unknown as OAuthOidcClient,
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcProvider({
+        providerId: 'oauth',
+        client: {
+          exchangeCode: 'exchange' as unknown as OAuthOidcClient['exchangeCode'],
+          fetchProfile: async () => ({ subject: 'subject' }),
+        },
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcProvider({
+        providerId: 'oauth',
+        client: {
+          exchangeCode: async () => ({ accessToken: 'token' }),
+          fetchProfile: 'fetch' as unknown as OAuthOidcClient['fetchProfile'],
+        },
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcProvider({
+        providerId: 'oauth',
+        client: new RecordingOAuthOidcClient({ accessToken: 'token' }, { subject: 'subject' }),
+        mapProfile: 'mapper' as unknown as NonNullable<
+          Parameters<typeof createOAuthOidcProvider>[0]['mapProfile']
+        >,
+      }),
+    )
+
+    await expectInvalid(() =>
       createOAuthOidcProvider({
         providerId: '',
         client: new RecordingOAuthOidcClient({ accessToken: 'token' }, { subject: 'subject' }),
@@ -547,6 +584,26 @@ describe('OAuth/OIDC provider contract', () => {
           refreshToken: 'refresh-token',
         },
         metadata: new Date() as unknown as Record<string, unknown>,
+      }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcTokenRecord(
+        null as unknown as Parameters<typeof createOAuthOidcTokenRecord>[0],
+      ),
+    )
+    await expectInvalid(() =>
+      mapOAuthOidcProfileToAssertion(
+        null as unknown as Parameters<typeof mapOAuthOidcProfileToAssertion>[0],
+      ),
+    )
+    await expectInvalid(() =>
+      mapOAuthOidcProfileToAssertion({
+        provider: 'oauth',
+        profile: null as unknown as OAuthOidcProfile,
+        finishInput: {},
+        exchangeInput: {
+          code: 'code',
+        },
       }),
     )
   })

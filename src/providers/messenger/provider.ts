@@ -4,6 +4,7 @@ import type {
   ProviderIdentityAssertion,
 } from '../../domain/types.js'
 import type { AuthProvider, Clock } from '../../contracts.js'
+import { invalidInput } from '../../errors.js'
 import { optionalProp } from '../../utils/optional.js'
 import { MAX_WEBAPP_PROVIDER_ID, TELEGRAM_MINI_APP_PROVIDER_ID } from './constants.js'
 import { normalizeMaxWebAppInitData, readWebAppInitData } from './payload.js'
@@ -11,7 +12,12 @@ import {
   type SignedWebAppInitDataValidationResult,
   validateSignedWebAppInitData,
 } from './signed-webapp.js'
-import { invalidSignedWebAppInitData, isRecord, readString } from './support.js'
+import {
+  invalidSignedWebAppInitData,
+  isRecord,
+  readString,
+  requireNonBlankString,
+} from './support.js'
 
 export interface MessengerWebAppProviderOptions {
   readonly botToken: string
@@ -32,17 +38,21 @@ interface MessengerWebAppUser {
 export function createTelegramMiniAppProvider(
   options: MessengerWebAppProviderOptions,
 ): AuthProvider {
+  const providerOptions = normalizeMessengerWebAppProviderOptions(options)
+
   return createMessengerWebAppProvider({
-    ...options,
-    providerId: options.providerId ?? TELEGRAM_MINI_APP_PROVIDER_ID,
+    ...providerOptions,
+    providerId: providerOptions.providerId ?? TELEGRAM_MINI_APP_PROVIDER_ID,
     resolveInitData: (value) => value,
   })
 }
 
 export function createMaxWebAppProvider(options: MessengerWebAppProviderOptions): AuthProvider {
+  const providerOptions = normalizeMessengerWebAppProviderOptions(options)
+
   return createMessengerWebAppProvider({
-    ...options,
-    providerId: options.providerId ?? MAX_WEBAPP_PROVIDER_ID,
+    ...providerOptions,
+    providerId: providerOptions.providerId ?? MAX_WEBAPP_PROVIDER_ID,
     resolveInitData: normalizeMaxWebAppInitData,
   })
 }
@@ -53,20 +63,47 @@ function createMessengerWebAppProvider(
     readonly resolveInitData: (value: string) => string
   },
 ): AuthProvider {
+  const providerId = requireNonBlankString(options.providerId, 'Messenger provider id is required.')
+  const botToken = requireNonBlankString(options.botToken, 'Bot token is required.')
+
   return {
-    id: options.providerId,
+    id: providerId,
     async finish(input: FinishInput): Promise<ProviderIdentityAssertion> {
       const initData = options.resolveInitData(readWebAppInitData(input))
       const validated = validateSignedWebAppInitData({
         initData,
-        botToken: options.botToken,
+        botToken,
         ...optionalProp('now', options.clock?.now()),
         ...optionalProp('maxAgeSeconds', options.maxAgeSeconds),
       })
 
-      return mapMessengerWebAppAssertion(options.providerId, validated)
+      return mapMessengerWebAppAssertion(providerId, validated)
     },
   }
+}
+
+function normalizeMessengerWebAppProviderOptions(
+  options: MessengerWebAppProviderOptions,
+): MessengerWebAppProviderOptions {
+  if (!isRecord(options)) {
+    throw invalidInput('Messenger provider options are required.')
+  }
+
+  requireNonBlankString(options.botToken, 'Bot token is required.')
+
+  if (options.providerId !== undefined) {
+    requireNonBlankString(options.providerId, 'Messenger provider id is required.')
+  }
+
+  if (options.clock !== undefined && !isClock(options.clock)) {
+    throw invalidInput('Messenger provider clock must provide now().')
+  }
+
+  return options
+}
+
+function isClock(value: unknown): value is Clock {
+  return isRecord(value) && typeof value.now === 'function'
 }
 
 function mapMessengerWebAppAssertion(
