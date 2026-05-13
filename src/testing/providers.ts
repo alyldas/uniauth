@@ -7,7 +7,9 @@ export class StaticAuthProvider implements AuthProvider {
   private assertion: ProviderIdentityAssertion
 
   constructor(id: AuthIdentityProvider, assertion: Omit<ProviderIdentityAssertion, 'provider'>) {
-    if (typeof id !== 'string' || !id.trim()) {
+    const providerId = normalizeProviderId(id)
+
+    if (!providerId) {
       throw invalidInput('Static auth provider id is required.')
     }
 
@@ -15,8 +17,8 @@ export class StaticAuthProvider implements AuthProvider {
       throw invalidInput('Static auth provider assertion is required.')
     }
 
-    this.id = id
-    this.assertion = { provider: id, ...assertion }
+    this.id = providerId
+    this.assertion = { provider: providerId, ...assertion }
   }
 
   async finish(): Promise<ProviderIdentityAssertion> {
@@ -37,7 +39,13 @@ export class InMemoryProviderRegistry implements ProviderRegistry {
   private readonly providers = new Map<AuthIdentityProvider, AuthProvider>()
 
   register(provider: AuthProvider): void {
-    if (!isRecord(provider) || typeof provider.id !== 'string' || !provider.id.trim()) {
+    if (!isRecord(provider)) {
+      throw invalidInput('Provider registry provider id is required.')
+    }
+
+    const providerId = normalizeProviderId(provider.id)
+
+    if (!providerId) {
       throw invalidInput('Provider registry provider id is required.')
     }
 
@@ -45,14 +53,28 @@ export class InMemoryProviderRegistry implements ProviderRegistry {
       throw invalidInput('Provider registry provider finish is required.')
     }
 
-    this.providers.set(provider.id, provider)
+    this.providers.set(providerId, provider)
   }
 
   async get(provider: AuthIdentityProvider): Promise<AuthProvider | undefined> {
-    return this.providers.get(provider)
+    const providerId = normalizeProviderId(provider)
+
+    if (!providerId) {
+      throw invalidInput('Provider registry provider id is required.')
+    }
+
+    return this.providers.get(providerId)
   }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeProviderId(value: unknown): AuthIdentityProvider | '' {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  return value.trim() as AuthIdentityProvider | ''
 }
