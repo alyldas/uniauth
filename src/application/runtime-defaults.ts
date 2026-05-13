@@ -75,7 +75,7 @@ function getRepositoryUnitOfWork(repos: AuthServiceRepositories): UnitOfWork | u
 }
 
 function assertRepositories(repos: unknown): asserts repos is AuthServiceRepositories {
-  if (!isRecord(repos)) {
+  if (!isObject(repos)) {
     throw invalidInput('Auth service repositories are required.')
   }
 
@@ -112,7 +112,7 @@ function assertRepositories(repos: unknown): asserts repos is AuthServiceReposit
 }
 
 function assertRepo(value: unknown, methods: readonly string[], name: string): void {
-  if (!isRecord(value)) {
+  if (!isObject(value)) {
     throw invalidInput(`${name} is required.`)
   }
 
@@ -124,10 +124,18 @@ function assertRepo(value: unknown, methods: readonly string[], name: string): v
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+  if (!isObject(value)) {
     return false
   }
 
   const prototype = Object.getPrototypeOf(value)
   return prototype === Object.prototype || prototype === null
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  return true
 }
