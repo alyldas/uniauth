@@ -257,6 +257,12 @@ describe('messenger WebApp providers', () => {
     )
     await expectInvalid(() =>
       validateSignedWebAppInitData({
+        initData: signInitData(validFields({ auth_date: '8640000000001' })),
+        botToken,
+      }),
+    )
+    await expectInvalid(() =>
+      validateSignedWebAppInitData({
         initData: signInitData({ user: JSON.stringify({ id: 1 }) }),
         botToken,
         maxAgeSeconds: 60,
