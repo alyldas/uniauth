@@ -246,8 +246,11 @@ function normalizeCurrentAccountProfilePatch(
     throw invalidInput('Current account profile update requires at least one profile field.')
   }
 
-  const displayName =
-    typeof input.displayName === 'string' ? input.displayName.trim() || undefined : undefined
+  if (input.displayName !== undefined && typeof input.displayName !== 'string') {
+    throw invalidInput('Current account display name must be a string.')
+  }
+
+  const displayName = input.displayName?.trim() || undefined
 
   return {
     displayName,
