@@ -17,6 +17,34 @@ export function readString(value: unknown): string | undefined {
   return value.trim() || undefined
 }
 
+export function normalizeOptionalDate(value: unknown, message: string): Date | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    throw invalidInput(message)
+  }
+
+  return value
+}
+
+export function normalizeOptionalStringArray(
+  value: unknown,
+  message: string,
+): readonly string[] | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    throw invalidInput(message)
+  }
+
+  const items = [...new Set(value.map((item) => item.trim()).filter(Boolean))]
+  return items.length > 0 ? items : undefined
+}
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

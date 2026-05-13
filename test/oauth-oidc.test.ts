@@ -419,6 +419,24 @@ describe('OAuth/OIDC provider contract', () => {
         }),
       }).finish({ code: 'code' }),
     )
+    await expectInvalid(() =>
+      createOAuthOidcProvider({
+        providerId: 'oauth',
+        client: new RecordingOAuthOidcClient(
+          { accessToken: 'token', expiresAt: new Date('invalid') },
+          { subject: 'subject' },
+        ),
+      }).finish({ code: 'code' }),
+    )
+    await expectInvalid(() =>
+      createOAuthOidcProvider({
+        providerId: 'oauth',
+        client: new RecordingOAuthOidcClient(
+          { accessToken: 'token', scopes: ['openid', 42] as unknown as readonly string[] },
+          { subject: 'subject' },
+        ),
+      }).finish({ code: 'code' }),
+    )
 
     await expectInvalid(() =>
       createOAuthOidcProvider({
