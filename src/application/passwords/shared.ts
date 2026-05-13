@@ -24,6 +24,10 @@ export function normalizePasswordEmail(
   runtime: Pick<AuthServiceRuntime, 'normalizer'>,
   email: string,
 ): string {
+  if (typeof email !== 'string') {
+    throw invalidInput('Email is required.')
+  }
+
   const trimmed = email.trim()
 
   if (!trimmed) {
@@ -40,7 +44,7 @@ export function normalizePasswordEmail(
 }
 
 export function assertPassword(password: string): void {
-  if (!password) {
+  if (typeof password !== 'string' || !password) {
     throw invalidInput('Password is required.')
   }
 }

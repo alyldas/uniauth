@@ -13,7 +13,6 @@ import { invalidCredentials } from '../../errors.js'
 import { RateLimitAction, rateLimitKey } from '../../ports.js'
 import {
   PasswordAuditMode,
-  assertPassword,
   findPasswordCredentialByEmail,
   findUsableCredentialUser,
   findUsablePasswordIdentity,
@@ -27,7 +26,10 @@ export async function signInWithPassword(
 ): Promise<AuthResult> {
   const now = input.now ?? runtime.clock.now()
   const email = normalizePasswordEmail(runtime, input.email)
-  assertPassword(input.password)
+  if (typeof input.password !== 'string' || !input.password) {
+    throw invalidCredentials()
+  }
+
   const passwordHasher = getPasswordHasher(runtime)
 
   await enforceRateLimit(runtime, {
