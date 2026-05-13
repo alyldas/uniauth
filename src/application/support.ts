@@ -10,8 +10,8 @@ import type {
   UserId,
 } from '../domain/types.js'
 import { AuditEventType, isActiveIdentity, isActiveUser } from '../domain/types.js'
-import { UniAuthError, UniAuthErrorCode, rateLimited } from '../errors.js'
-import type { RateLimitAttempt } from '../contracts.js'
+import { UniAuthError, UniAuthErrorCode, invalidInput, rateLimited } from '../errors.js'
+import type { RateLimitAttempt, RateLimitDecision } from '../contracts.js'
 
 const PolicyDenialReason = {
   ReAuthRequired: 're-auth-required',
@@ -77,20 +77,41 @@ export async function enforceRateLimit(
     return
   }
 
+  const details = normalizeRateLimitDecisionDetails(input.action, decision)
+
   await audit(runtime, AuditEventType.RateLimited, input.now, {
-    metadata: {
-      action: input.action,
-      ...optionalProp('retryAfterSeconds', decision.retryAfterSeconds),
-      ...optionalProp('resetAt', decision.resetAt?.toISOString()),
-    },
+    metadata: details,
   })
 
-  throw rateLimited({
-    action: input.action,
+  throw rateLimited(details)
+}
+
+function normalizeRateLimitDecisionDetails(
+  action: RateLimitAttempt['action'],
+  decision: RateLimitDecision,
+): {
+  readonly action: RateLimitAttempt['action']
+  readonly retryAfterSeconds?: number
+  readonly resetAt?: string
+} {
+  if (
+    decision.retryAfterSeconds !== undefined &&
+    (!Number.isFinite(decision.retryAfterSeconds) || decision.retryAfterSeconds < 0)
+  ) {
+    throw invalidInput('Rate-limit retryAfterSeconds must be a non-negative number.')
+  }
+
+  if (decision.resetAt !== undefined && Number.isNaN(decision.resetAt.getTime())) {
+    throw invalidInput('Rate-limit resetAt must be a valid date.')
+  }
+
+  return {
+    action,
     ...optionalProp('retryAfterSeconds', decision.retryAfterSeconds),
     ...optionalProp('resetAt', decision.resetAt?.toISOString()),
-  })
+  }
 }
+
 export async function audit(
   runtime: AuthServiceRuntime,
   type: AuditEventType,
