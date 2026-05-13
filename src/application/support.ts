@@ -12,6 +12,7 @@ import type {
 import { AuditEventType, isActiveIdentity, isActiveUser } from '../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidInput, rateLimited } from '../errors.js'
 import type { RateLimitAttempt, RateLimitDecision } from '../contracts.js'
+import { assertValidDate } from '../utils/time.js'
 
 const PolicyDenialReason = {
   ReAuthRequired: 're-auth-required',
@@ -47,6 +48,12 @@ export async function ensureReAuth(
   reAuthenticatedAt: Date | undefined,
   now: Date,
 ): Promise<void> {
+  assertValidDate(now, 'Request time is invalid.')
+
+  if (reAuthenticatedAt !== undefined) {
+    assertValidDate(reAuthenticatedAt, 'Re-authentication time is invalid.')
+  }
+
   const required = await runtime.policy.requiresReAuth({
     action,
     userId,
@@ -101,7 +108,10 @@ function normalizeRateLimitDecisionDetails(
     throw invalidInput('Rate-limit retryAfterSeconds must be a non-negative number.')
   }
 
-  if (decision.resetAt !== undefined && Number.isNaN(decision.resetAt.getTime())) {
+  if (
+    decision.resetAt !== undefined &&
+    (!(decision.resetAt instanceof Date) || Number.isNaN(decision.resetAt.getTime()))
+  ) {
     throw invalidInput('Rate-limit resetAt must be a valid date.')
   }
 

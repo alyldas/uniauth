@@ -174,6 +174,15 @@ describe('security storage regressions', () => {
         code: UniAuthErrorCode.InvalidInput,
         message: 'Session token is required.',
       })
+      await expect(
+        service.createSession({
+          userId: signedIn.user.id,
+          now: 'not-a-date',
+        } as unknown as Parameters<typeof service.createSession>[0]),
+      ).rejects.toMatchObject({
+        code: UniAuthErrorCode.InvalidInput,
+        message: 'Session creation time is invalid.',
+      })
 
       expect(await store.sessionRepo.findByTokenHash(signedIn.sessionToken)).toBeUndefined()
       expect(await store.sessionRepo.findByTokenHash(secondSession.sessionToken)).toBeUndefined()
