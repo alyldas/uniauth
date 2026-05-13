@@ -44,6 +44,12 @@ describe('domain rules', () => {
     expect(isActiveSession(activeSession, now)).toBe(true)
     expect(isActiveSession({ ...activeSession, expiresAt: now }, now)).toBe(false)
     expect(isActiveSession({ ...activeSession, status: SessionStatus.Revoked }, now)).toBe(false)
+    expect(() =>
+      isActiveSession({ ...activeSession, expiresAt: new Date('invalid') }, now),
+    ).toThrow('Session expiration time is invalid.')
+    expect(() => isActiveSession(activeSession, new Date('invalid'))).toThrow(
+      'Session comparison time is invalid.',
+    )
   })
 
   it('detects consumed and expired verifications', () => {
@@ -65,5 +71,11 @@ describe('domain rules', () => {
     )
     expect(isExpiredVerification({ ...verification, expiresAt: now }, now)).toBe(true)
     expect(isUsableVerification({ ...verification, expiresAt: now }, now)).toBe(false)
+    expect(() =>
+      isExpiredVerification({ ...verification, expiresAt: new Date('invalid') }, now),
+    ).toThrow('Verification expiration time is invalid.')
+    expect(() => isExpiredVerification(verification, new Date('invalid'))).toThrow(
+      'Verification comparison time is invalid.',
+    )
   })
 })
