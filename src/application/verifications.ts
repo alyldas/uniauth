@@ -150,7 +150,7 @@ export async function createVerificationRecord(
   runtime: AuthServiceRuntime,
   input: CreateVerificationRecordInput,
 ): Promise<CreateVerificationResult> {
-  const secret = input.secret ?? generateSecret()
+  const secret = resolveVerificationSecret(input.secret)
   const metadata = normalizeVerificationMetadata(input.metadata)
   const trimmedTarget = input.target.trim()
 
@@ -192,6 +192,7 @@ export async function consumeVerificationRecord(
   input: ConsumeVerificationInput,
 ): Promise<Verification> {
   const now = input.now ?? runtime.clock.now()
+  const secret = requireVerificationSecret(input.secret)
   const verification = await runtime.repos.verificationRepo.findByIdForUpdate(input.verificationId)
 
   if (!verification) {
@@ -209,7 +210,7 @@ export async function consumeVerificationRecord(
     throw new UniAuthError(UniAuthErrorCode.VerificationExpired, 'Verification has expired.')
   }
 
-  if (!(await runtime.secretHasher.verify(input.secret, verification.secretHash))) {
+  if (!(await runtime.secretHasher.verify(secret, verification.secretHash))) {
     throw new UniAuthError(
       UniAuthErrorCode.VerificationInvalidSecret,
       'Verification secret is invalid.',
@@ -225,6 +226,22 @@ export async function consumeVerificationRecord(
   })
 
   return consumed
+}
+
+function resolveVerificationSecret(secret: string | undefined): string {
+  if (secret === undefined) {
+    return generateSecret()
+  }
+
+  return requireVerificationSecret(secret)
+}
+
+function requireVerificationSecret(secret: string): string {
+  if (typeof secret !== 'string' || !secret.trim()) {
+    throw invalidInput('Verification secret is required.')
+  }
+
+  return secret
 }
 
 export async function expireVerificationForResend(
