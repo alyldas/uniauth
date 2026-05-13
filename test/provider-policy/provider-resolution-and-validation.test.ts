@@ -58,6 +58,29 @@ describe('provider resolution and assertion validation failures', () => {
     expect(
       await noRegistryService
         .signIn({
+          assertion: {
+            provider: 123,
+            providerUserId: 'user',
+          } as unknown as ProviderIdentityAssertion,
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(
+      await noRegistryService
+        .signIn({
+          assertion: {
+            provider: 'email',
+            providerUserId: 'user',
+            email: 123,
+          } as unknown as ProviderIdentityAssertion,
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(
+      await noRegistryService
+        .signIn({
           assertion: assertion({
             provider: 'oauth',
             providerUserId: 'invalid-trust',

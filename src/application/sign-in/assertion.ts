@@ -42,8 +42,11 @@ export function normalizeAssertion(
   runtime: Pick<AuthServiceRuntime, 'normalizer'>,
   assertion: Partial<ProviderIdentityAssertion>,
 ): ProviderIdentityAssertion {
-  const provider = assertion.provider?.trim() ?? ''
-  const providerUserId = assertion.providerUserId?.trim() ?? ''
+  const provider = normalizeRequiredClaim(assertion.provider, 'Provider is required.')
+  const providerUserId = normalizeRequiredClaim(
+    assertion.providerUserId,
+    'Provider user id is required.',
+  )
 
   if (!provider || !providerUserId) {
     throw invalidInput('Provider and provider user id are required.')
@@ -55,7 +58,7 @@ export function normalizeAssertion(
 
   const email = normalizeOptionalClaim(assertion.email, runtime.normalizer.normalizeEmail)
   const phone = normalizeOptionalClaim(assertion.phone, runtime.normalizer.normalizePhone)
-  const displayName = assertion.displayName?.trim() || undefined
+  const displayName = normalizeOptionalClaim(assertion.displayName, (value) => value)
 
   return {
     provider,
@@ -81,16 +84,28 @@ export function normalizeAssertion(
   }
 }
 
+function normalizeRequiredClaim(value: unknown, message: string): string {
+  if (typeof value !== 'string') {
+    throw invalidInput(message)
+  }
+
+  return value.trim()
+}
+
 function hasControlCharacter(value: string): boolean {
   return /[\u0000-\u001f\u007f]/u.test(value)
 }
 
 function normalizeOptionalClaim(
-  value: string | undefined,
+  value: unknown,
   normalize: (value: string) => string,
 ): string | undefined {
   if (value === undefined) {
     return undefined
+  }
+
+  if (typeof value !== 'string') {
+    throw invalidInput('Provider assertion optional claims must be strings.')
   }
 
   const trimmed = value.trim()
