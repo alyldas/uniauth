@@ -1,11 +1,20 @@
 import type { ProviderIdentityAssertion } from '../../domain/types.js'
+import { invalidInput } from '../../errors.js'
 import { optionalProp } from '../../utils/optional.js'
-import { normalizeMetadataRecord, readString, requireNonBlankString } from './support.js'
+import { isRecord, normalizeMetadataRecord, readString, requireNonBlankString } from './support.js'
 import type { OAuthOidcProfileMapperInput } from './types.js'
 
 export function mapOAuthOidcProfileToAssertion(
   input: OAuthOidcProfileMapperInput,
 ): ProviderIdentityAssertion {
+  if (!isRecord(input)) {
+    throw invalidInput('OAuth/OIDC profile mapper input is required.')
+  }
+
+  if (!isRecord(input.profile)) {
+    throw invalidInput('OAuth/OIDC profile is required.')
+  }
+
   const subject = requireNonBlankString(
     input.profile.subject,
     'OAuth/OIDC profile subject is required.',

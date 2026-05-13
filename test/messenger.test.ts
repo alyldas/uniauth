@@ -9,6 +9,7 @@ import {
   createTelegramMiniAppProvider,
   validateSignedWebAppInitData,
 } from '../src'
+import { normalizeMaxWebAppInitData } from '../src/providers/messenger/payload.js'
 import { createInMemoryAuthKit } from '../src/testing'
 import { now } from './helpers.js'
 
@@ -311,6 +312,22 @@ describe('messenger WebApp providers', () => {
   it('rejects missing payloads and malformed WebApp users', async () => {
     const provider = createTelegramMiniAppProvider({ botToken })
 
+    await expectInvalid(() =>
+      createTelegramMiniAppProvider(
+        null as unknown as Parameters<typeof createTelegramMiniAppProvider>[0],
+      ),
+    )
+    await expectInvalid(() => createTelegramMiniAppProvider({ botToken: '' }))
+    await expectInvalid(() => createTelegramMiniAppProvider({ botToken, providerId: '   ' }))
+    await expectInvalid(() =>
+      createTelegramMiniAppProvider({
+        botToken,
+        clock: { now: 'now' } as unknown as NonNullable<
+          Parameters<typeof createTelegramMiniAppProvider>[0]['clock']
+        >,
+      }),
+    )
+    await expectInvalid(() => normalizeMaxWebAppInitData(123 as unknown as string))
     await expectInvalid(() => provider.finish({}))
     await expectInvalid(() => provider.finish({ payload: { other: true } }))
     await expectInvalid(() => provider.finish({ payload: signInitData({}) }))

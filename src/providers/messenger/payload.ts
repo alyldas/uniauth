@@ -25,6 +25,10 @@ export function readWebAppInitData(input: FinishInput): string {
 }
 
 export function normalizeMaxWebAppInitData(value: string): string {
+  if (typeof value !== 'string') {
+    throw invalidInput('MAX WebApp init data must be a string.')
+  }
+
   return isMaxWebAppDataContainer(value) ? extractMaxWebAppInitData(value) : value
 }
 

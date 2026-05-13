@@ -20,10 +20,31 @@ import type {
 } from './types.js'
 
 export function createOAuthOidcProvider(options: OAuthOidcProviderOptions): AuthProvider {
+  if (!isRecord(options)) {
+    throw invalidInput('OAuth/OIDC provider options are required.')
+  }
+
   const providerId = requireNonBlankString(
     options.providerId,
     'OAuth/OIDC provider id is required.',
   )
+
+  if (!isRecord(options.client)) {
+    throw invalidInput('OAuth/OIDC provider client is required.')
+  }
+
+  if (typeof options.client.exchangeCode !== 'function') {
+    throw invalidInput('OAuth/OIDC provider client exchangeCode is required.')
+  }
+
+  if (typeof options.client.fetchProfile !== 'function') {
+    throw invalidInput('OAuth/OIDC provider client fetchProfile is required.')
+  }
+
+  if (options.mapProfile !== undefined && typeof options.mapProfile !== 'function') {
+    throw invalidInput('OAuth/OIDC profile mapper must be a function.')
+  }
+
   const mapProfile = options.mapProfile ?? mapOAuthOidcProfileToAssertion
 
   return {

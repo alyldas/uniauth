@@ -18,6 +18,10 @@ import type {
 export function createOAuthOidcTokenRecord(
   input: CreateOAuthOidcTokenRecordInput,
 ): OAuthOidcTokenRecord {
+  if (!isRecord(input)) {
+    throw invalidInput('OAuth/OIDC token record input is required.')
+  }
+
   const provider = requireNonBlankString(
     input.provider,
     'OAuth/OIDC token record provider is required.',
