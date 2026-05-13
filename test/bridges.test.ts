@@ -74,6 +74,28 @@ describe('auth bridge helpers', () => {
   it('rejects Auth.js non-oauth accounts and mismatched subjects', async () => {
     await expect(
       catchError(() =>
+        mapAuthJsOAuthToAssertion(
+          null as unknown as Parameters<typeof mapAuthJsOAuthToAssertion>[0],
+        ),
+      ),
+    ).resolves.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Auth.js bridge input is required.',
+    })
+
+    await expect(
+      catchError(() =>
+        mapAuthJsOAuthToAssertion({
+          account: null as unknown as Parameters<typeof mapAuthJsOAuthToAssertion>[0]['account'],
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Auth.js account is required.',
+    })
+
+    await expect(
+      catchError(() =>
         mapAuthJsOAuthToAssertion({
           account: {
             provider: 'credentials',
@@ -286,6 +308,17 @@ describe('auth bridge helpers', () => {
   })
 
   it('rejects Better Auth inputs without a stable provider id or with conflicting subjects', async () => {
+    await expect(
+      catchError(() =>
+        mapBetterAuthOAuthToAssertion(
+          null as unknown as Parameters<typeof mapBetterAuthOAuthToAssertion>[0],
+        ),
+      ),
+    ).resolves.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Better Auth bridge input is required.',
+    })
+
     await expect(
       catchError(() =>
         mapBetterAuthOAuthToAssertion({

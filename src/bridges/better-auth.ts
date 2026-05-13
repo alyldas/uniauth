@@ -5,7 +5,13 @@ import type {
 } from '../domain/types.js'
 import { invalidInput } from '../errors.js'
 import { optionalProp } from '../utils/optional.js'
-import { buildMetadata, readBooleanLike, readString, requireMatchingStrings } from './support.js'
+import {
+  buildMetadata,
+  isPlainRecord,
+  readBooleanLike,
+  readString,
+  requireMatchingStrings,
+} from './support.js'
 
 export interface BetterAuthAccount {
   readonly providerId?: string
@@ -39,6 +45,10 @@ export interface BetterAuthOAuthAssertionInput {
 export function mapBetterAuthOAuthToAssertion(
   input: BetterAuthOAuthAssertionInput,
 ): ProviderIdentityAssertion {
+  if (!isPlainRecord(input as unknown)) {
+    throw invalidInput('Better Auth bridge input is required.')
+  }
+
   const frameworkProviderId = readString(input.account?.providerId)
   const provider = readString(input.providerId) ?? frameworkProviderId
 

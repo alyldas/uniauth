@@ -7,6 +7,7 @@ import { invalidInput } from '../errors.js'
 import { optionalProp } from '../utils/optional.js'
 import {
   buildMetadata,
+  isPlainRecord,
   readBooleanLike,
   readString,
   requireMatchingStrings,
@@ -53,6 +54,14 @@ export interface AuthJsOAuthAssertionInput {
 export function mapAuthJsOAuthToAssertion(
   input: AuthJsOAuthAssertionInput,
 ): ProviderIdentityAssertion {
+  if (!isPlainRecord(input as unknown)) {
+    throw invalidInput('Auth.js bridge input is required.')
+  }
+
+  if (!isPlainRecord(input.account as unknown)) {
+    throw invalidInput('Auth.js account is required.')
+  }
+
   const accountType = readString(input.account.type)?.toLowerCase()
 
   if (accountType && !AUTH_JS_OAUTH_ACCOUNT_TYPES.has(accountType)) {

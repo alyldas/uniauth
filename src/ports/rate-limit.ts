@@ -49,6 +49,10 @@ export interface OtpSecretGeneratorInput {
 export type OtpSecretGenerator = (input: OtpSecretGeneratorInput) => string | Promise<string>
 
 export function rateLimitKey(...parts: readonly string[]): string {
+  if (parts.some((part) => typeof part !== 'string')) {
+    throw new Error('Rate-limit key parts must be strings.')
+  }
+
   return JSON.stringify(parts)
 }
 
@@ -71,6 +75,10 @@ export function isRateLimitedErrorDetails(input: unknown): input is RateLimitedE
   }
 
   if (resetAt !== undefined && typeof resetAt !== 'string') {
+    return false
+  }
+
+  if (typeof resetAt === 'string' && Number.isNaN(new Date(resetAt).getTime())) {
     return false
   }
 
