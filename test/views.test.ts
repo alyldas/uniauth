@@ -251,6 +251,49 @@ describe('safe projection helpers', () => {
     expect(view).not.toHaveProperty('metadata')
   })
 
+  it('rejects invalid verification resend window helper inputs', () => {
+    const verification: Verification = {
+      id: asVerificationId('verification-invalid-window'),
+      purpose: 'sign-in',
+      target: 'alice@example.com',
+      secretHash: 'secret-hash',
+      status: VerificationStatus.Pending,
+      createdAt: now,
+      expiresAt: new Date('2026-01-01T00:10:00.000Z'),
+    }
+
+    expect(() =>
+      toVerificationResendWindow(
+        {
+          ...verification,
+          createdAt: 'not-a-date' as unknown as Date,
+        },
+        { now, cooldownSeconds: 60 },
+      ),
+    ).toThrow('Verification creation time is invalid.')
+    expect(() =>
+      toVerificationResendWindow(
+        {
+          ...verification,
+          expiresAt: 'not-a-date' as unknown as Date,
+        },
+        { now, cooldownSeconds: 60 },
+      ),
+    ).toThrow('Verification expiration time is invalid.')
+    expect(() =>
+      toVerificationResendWindow(verification, {
+        now: 'not-a-date' as unknown as Date,
+        cooldownSeconds: 60,
+      }),
+    ).toThrow('Verification resend window time is invalid.')
+    expect(() =>
+      toVerificationResendWindow(verification, {
+        now,
+        cooldownSeconds: 1.5,
+      }),
+    ).toThrow('Verification resend cooldown must be a non-negative integer.')
+  })
+
   it('maps trusted inspection views without leaking audit metadata', () => {
     const userView = toAccountSecurityUserView(user('user-9'))
     const identityOnlyAuditView = toAuditEventView({

@@ -218,6 +218,14 @@ export function toVerificationResendWindow(
     readonly cooldownSeconds: number
   },
 ): VerificationResendWindow {
+  assertResendWindowDate(verification.createdAt, 'Verification creation time is invalid.')
+  assertResendWindowDate(verification.expiresAt, 'Verification expiration time is invalid.')
+  assertResendWindowDate(input.now, 'Verification resend window time is invalid.')
+
+  if (!Number.isInteger(input.cooldownSeconds) || input.cooldownSeconds < 0) {
+    throw invalidInput('Verification resend cooldown must be a non-negative integer.')
+  }
+
   const resendAvailableAt = new Date(
     verification.createdAt.getTime() + input.cooldownSeconds * 1000,
   )
@@ -243,5 +251,11 @@ export function toVerificationResendWindow(
     resendAvailableAt,
     cooldownSeconds: input.cooldownSeconds,
     cooldownRemainingSeconds,
+  }
+}
+
+function assertResendWindowDate(value: unknown, message: string): asserts value is Date {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    throw invalidInput(message)
   }
 }
