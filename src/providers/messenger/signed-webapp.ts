@@ -133,6 +133,11 @@ function enforceAuthDateMaxAge(input: {
   }
 
   const now = input.now ?? new Date()
+
+  if (Number.isNaN(now.getTime())) {
+    throw invalidSignedWebAppInitData()
+  }
+
   const minTime = now.getTime() - input.maxAgeSeconds * 1000
   const authTime = input.authDate.getTime()
 
