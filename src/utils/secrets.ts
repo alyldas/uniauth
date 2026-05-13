@@ -31,11 +31,13 @@ const scryptAsync = promisify(
 )
 
 export function generateSecret(byteLength = 32): string {
-  return randomBytes(byteLength).toString('base64url')
+  return randomBytes(readPositiveInteger(byteLength, 'Secret byte length')).toString('base64url')
 }
 
 export function generateOtpSecret(length = 6): string {
-  return Array.from({ length }, () => randomInt(10).toString()).join('')
+  return Array.from({ length: readPositiveInteger(length, 'OTP secret length') }, () =>
+    randomInt(10).toString(),
+  ).join('')
 }
 
 export function hashSecret(secret: string): string {

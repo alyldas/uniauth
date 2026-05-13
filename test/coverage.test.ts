@@ -105,6 +105,10 @@ describe('public utility coverage', () => {
 
     expect(generatedSecret).toBeTypeOf('string')
     expect(generatedOtpSecret).toMatch(/^\d{6}$/)
+    expect(() => generateSecret(0)).toThrow('Secret byte length must be a positive integer.')
+    expect(() => generateSecret(1.5)).toThrow('Secret byte length must be a positive integer.')
+    expect(() => generateOtpSecret(0)).toThrow('OTP secret length must be a positive integer.')
+    expect(() => generateOtpSecret(1.5)).toThrow('OTP secret length must be a positive integer.')
     expect(verifySecret('secret', secretHash)).toBe(true)
     expect(verifySecret('secret', 'plaintext')).toBe(false)
     expect(verifySecret('secret', 'sha256:short')).toBe(false)
