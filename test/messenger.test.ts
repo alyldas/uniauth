@@ -288,6 +288,14 @@ describe('messenger WebApp providers', () => {
     await expectInvalid(() =>
       validateSignedWebAppInitData({
         initData: signInitData(validFields()),
+        botToken,
+        maxAgeSeconds: 60,
+        now: new Date('invalid'),
+      }),
+    )
+    await expectInvalid(() =>
+      validateSignedWebAppInitData({
+        initData: signInitData(validFields()),
         botToken: '',
       }),
     )
