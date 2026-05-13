@@ -4,6 +4,7 @@ import {
   type DefaultAuthServiceOptions,
 } from '../../application/auth-service.js'
 import { optionalProp } from '../../application/optional.js'
+import { invalidInput } from '../../errors.js'
 import type { AuthPolicy } from '../../application/policy.js'
 import type {
   AuthNormalizer,
@@ -60,6 +61,10 @@ interface InMemoryAuthKitResult {
 export function createInMemoryAuthKit(
   options: CreateInMemoryAuthKitOptions = {},
 ): InMemoryAuthKitResult {
+  if (!isOptionsRecord(options)) {
+    throw invalidInput('In-memory auth kit options must be a plain object.')
+  }
+
   const store = new InMemoryAuthStore({
     ...optionalProp('normalizer', options.normalizer),
   })
@@ -100,4 +105,13 @@ export function createInMemoryAuthKit(
     passwordHasher,
     idGenerator,
   }
+}
+
+function isOptionsRecord(value: unknown): value is CreateInMemoryAuthKitOptions {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
 }

@@ -19,7 +19,13 @@ import {
   type Session,
   type Verification,
 } from '../src'
-import { InMemoryAuthStore, InMemoryPasswordHasher } from '../src/testing'
+import {
+  createInMemoryAuthKit,
+  InMemoryAuthStore,
+  InMemoryPasswordHasher,
+  InMemoryProviderRegistry,
+  StaticAuthProvider,
+} from '../src/testing'
 import { identity, now, user } from './helpers.js'
 
 describe('InMemoryAuthStore', () => {
@@ -433,5 +439,43 @@ describe('InMemoryAuthStore', () => {
     expect(await passwordHasher.verify('correct-password', 'sha256:not-a-password-hash')).toBe(
       false,
     )
+    expect(await passwordHasher.verify(123 as unknown as string, passwordHash)).toBe(false)
+    expect(await passwordHasher.verify('correct-password', 123 as unknown as string)).toBe(false)
+  })
+
+  it('rejects malformed in-memory testing helper inputs', () => {
+    expect(() =>
+      createInMemoryAuthKit(null as unknown as Parameters<typeof createInMemoryAuthKit>[0]),
+    ).toThrow('In-memory auth kit options must be a plain object.')
+
+    expect(
+      () =>
+        new StaticAuthProvider('', {
+          providerUserId: 'user-1',
+        }),
+    ).toThrow('Static auth provider id is required.')
+    expect(
+      () =>
+        new StaticAuthProvider(
+          'static',
+          null as unknown as ConstructorParameters<typeof StaticAuthProvider>[1],
+        ),
+    ).toThrow('Static auth provider assertion is required.')
+
+    const provider = new StaticAuthProvider('static', { providerUserId: 'user-1' })
+    expect(() =>
+      provider.setAssertion(null as unknown as Parameters<typeof provider.setAssertion>[0]),
+    ).toThrow('Static auth provider assertion is required.')
+
+    const registry = new InMemoryProviderRegistry()
+    expect(() =>
+      registry.register(null as unknown as Parameters<typeof registry.register>[0]),
+    ).toThrow('Provider registry provider id is required.')
+    expect(() =>
+      registry.register({
+        id: 'static',
+        finish: 'finish' as unknown as Parameters<typeof registry.register>[0]['finish'],
+      }),
+    ).toThrow('Provider registry provider finish is required.')
   })
 })
