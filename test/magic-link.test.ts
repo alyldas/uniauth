@@ -173,6 +173,13 @@ describe('email magic link sign-in', () => {
         now,
       })
       .catch((caught: unknown) => caught)
+    const nonStringEmailError = await service
+      .startEmailMagicLinkSignIn({
+        email: 123,
+        createLink: () => 'https://app.example.test/auth/magic',
+        now,
+      } as unknown as Parameters<typeof service.startEmailMagicLinkSignIn>[0])
+      .catch((caught: unknown) => caught)
     const missingSenderError = await defaultService
       .startEmailMagicLinkSignIn({
         email: 'alice@example.com',
@@ -203,6 +210,7 @@ describe('email magic link sign-in', () => {
       .catch((caught: unknown) => caught)
 
     expect(blankEmailError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(nonStringEmailError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(missingSenderError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(missingVerificationError).toMatchObject({
       code: UniAuthErrorCode.VerificationNotFound,
