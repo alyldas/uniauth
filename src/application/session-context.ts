@@ -3,12 +3,16 @@ import { optionalProp } from './optional.js'
 import { getActiveUser } from './support.js'
 import { resolveSession, touchSession } from './sessions.js'
 import type { ResolveSessionContextInput, ResolvedSessionContext } from '../domain/types.js'
-import { UniAuthError, UniAuthErrorCode, isUniAuthError } from '../errors.js'
+import { UniAuthError, UniAuthErrorCode, invalidInput, isUniAuthError } from '../errors.js'
 
 export async function resolveSessionContext(
   runtime: AuthServiceRuntime,
   input: ResolveSessionContextInput,
 ): Promise<ResolvedSessionContext> {
+  if (!isRecord(input)) {
+    throw invalidInput('Session context input is required.')
+  }
+
   const resolvedSession = await resolveSession(runtime, {
     sessionToken: input.sessionToken,
     ...optionalProp('now', input.now),
@@ -40,4 +44,8 @@ async function getResolvedSessionUser(
 
     throw error
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
