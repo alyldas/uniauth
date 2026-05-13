@@ -107,7 +107,7 @@ export function createScryptSecretHasher(options: ScryptSecretHasherOptions = {}
 export const scryptSecretHasher: SecretHasher = createScryptSecretHasher()
 
 export function createHmacSecretHasher(input: { readonly pepper: string }): SecretHasher {
-  if (!input.pepper) {
+  if (typeof input.pepper !== 'string' || !input.pepper.trim()) {
     throw new Error('Secret hasher pepper is required.')
   }
 

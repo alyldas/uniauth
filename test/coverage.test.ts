@@ -130,6 +130,9 @@ describe('public utility coverage', () => {
     expect(() => createHmacSecretHasher({ pepper: '' })).toThrow(
       'Secret hasher pepper is required.',
     )
+    expect(() => createHmacSecretHasher({ pepper: '   ' })).toThrow(
+      'Secret hasher pepper is required.',
+    )
     expect(() => createScryptSecretHasher({ cost: 15 })).toThrow(
       'Scrypt cost must be a power of two.',
     )
