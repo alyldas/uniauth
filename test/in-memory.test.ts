@@ -447,6 +447,12 @@ describe('InMemoryAuthStore', () => {
     expect(() =>
       createInMemoryAuthKit(null as unknown as Parameters<typeof createInMemoryAuthKit>[0]),
     ).toThrow('In-memory auth kit options must be a plain object.')
+    expect(() =>
+      createInMemoryAuthKit([] as unknown as Parameters<typeof createInMemoryAuthKit>[0]),
+    ).toThrow('In-memory auth kit options must be a plain object.')
+    expect(createInMemoryAuthKit(Object.assign(Object.create(null), {})).store).toBeInstanceOf(
+      InMemoryAuthStore,
+    )
 
     expect(
       () =>
