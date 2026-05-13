@@ -197,6 +197,7 @@ export async function consumeVerificationRecord(
   input: ConsumeVerificationInput,
 ): Promise<Verification> {
   const now = input.now ?? runtime.clock.now()
+  assertValidDate(now, 'Verification consumption time is invalid.')
   const secret = requireVerificationSecret(input.secret)
   const verification = await runtime.repos.verificationRepo.findByIdForUpdate(input.verificationId)
 

@@ -83,6 +83,7 @@ export async function resolveSession(
   input: ResolveSessionInput,
 ): Promise<Session> {
   const now = input.now ?? runtime.clock.now()
+  assertValidDate(now, 'Session resolution time is invalid.')
 
   if (typeof input.sessionToken !== 'string') {
     throw invalidInput('Session token is required.')

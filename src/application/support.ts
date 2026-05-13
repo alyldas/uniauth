@@ -133,6 +133,8 @@ export async function audit(
     readonly metadata?: Record<string, unknown>
   } = {},
 ): Promise<void> {
+  assertValidDate(occurredAt, 'Audit event time is invalid.')
+
   const event: AuditEvent = {
     id: runtime.idGenerator.auditEventId(),
     type,
