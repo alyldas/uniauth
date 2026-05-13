@@ -219,6 +219,14 @@ describe('DefaultAuthService current-account action helpers', () => {
     await expect(
       service.updateCurrentAccountProfileByToken({
         sessionToken: signedIn.sessionToken,
+        displayName: 123 as unknown as string,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: signedIn.sessionToken,
       }),
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.InvalidInput,
