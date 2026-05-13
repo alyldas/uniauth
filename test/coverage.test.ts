@@ -12,6 +12,7 @@ import {
   asSessionId,
   asUserId,
   asVerificationId,
+  createAuthService,
   createDefaultAuthPolicy,
   createHmacSecretHasher,
   createScryptSecretHasher,
@@ -219,6 +220,31 @@ describe('public utility coverage', () => {
     })
 
     await expect(runtime.transaction.run(async () => 'immediate')).resolves.toBe('immediate')
+    expect(() =>
+      createAuthServiceRuntime(null as unknown as Parameters<typeof createAuthServiceRuntime>[0]),
+    ).toThrow('Auth service options must be a plain object.')
+    expect(() =>
+      createAuthServiceRuntime({
+        repos: null as unknown as Parameters<typeof createAuthServiceRuntime>[0]['repos'],
+      }),
+    ).toThrow('Auth service repositories are required.')
+    expect(() =>
+      createAuthServiceRuntime({
+        repos: {
+          userRepo: { ...store.userRepo, update: undefined },
+          identityRepo: store.identityRepo,
+          credentialRepo: store.credentialRepo,
+          verificationRepo: store.verificationRepo,
+          sessionRepo: store.sessionRepo,
+          auditLogRepo: store.auditLogRepo,
+        } as unknown as Parameters<typeof createAuthServiceRuntime>[0]['repos'],
+      }),
+    ).toThrow('User repository update is required.')
+    expect(() =>
+      createAuthService({
+        repos: null as unknown as Parameters<typeof createAuthService>[0]['repos'],
+      }),
+    ).toThrow('Auth service repositories are required.')
   })
 
   it('covers default policy and error helper branches', () => {

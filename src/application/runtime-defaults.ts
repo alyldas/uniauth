@@ -2,6 +2,7 @@ import { optionalProp } from './optional.js'
 import type { AuthPolicy } from './policy.js'
 import { defaultAuthPolicy } from './policy.js'
 import type { AuthServiceRuntime } from './runtime.js'
+import { invalidInput } from '../errors.js'
 import type {
   AuthServiceInfrastructure,
   AuthServiceRepositories,
@@ -36,6 +37,12 @@ export interface DefaultAuthServiceOptions extends AuthServiceInfrastructure {
 }
 
 export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): AuthServiceRuntime {
+  if (!isRecord(options)) {
+    throw invalidInput('Auth service options must be a plain object.')
+  }
+
+  assertRepositories(options.repos)
+
   return {
     repos: options.repos,
     ...optionalProp('emailSender', options.emailSender),
@@ -65,4 +72,62 @@ function getRepositoryUnitOfWork(repos: AuthServiceRepositories): UnitOfWork | u
   return typeof candidate.run === 'function'
     ? { run: (operation) => candidate.run!(operation) }
     : undefined
+}
+
+function assertRepositories(repos: unknown): asserts repos is AuthServiceRepositories {
+  if (!isRecord(repos)) {
+    throw invalidInput('Auth service repositories are required.')
+  }
+
+  assertRepo(repos.userRepo, ['findById', 'create', 'update'], 'User repository')
+  assertRepo(
+    repos.identityRepo,
+    [
+      'findById',
+      'findByProviderUserId',
+      'findByVerifiedEmail',
+      'findByVerifiedPhone',
+      'listByUserId',
+      'create',
+      'update',
+    ],
+    'Identity repository',
+  )
+  assertRepo(
+    repos.credentialRepo,
+    ['findPasswordByEmail', 'findPasswordByUserId', 'listByUserId', 'create', 'update'],
+    'Credential repository',
+  )
+  assertRepo(
+    repos.verificationRepo,
+    ['findById', 'findByIdForUpdate', 'create', 'update'],
+    'Verification repository',
+  )
+  assertRepo(
+    repos.sessionRepo,
+    ['findById', 'findByTokenHash', 'listByUserId', 'create', 'update'],
+    'Session repository',
+  )
+  assertRepo(repos.auditLogRepo, ['append', 'list'], 'Audit log repository')
+}
+
+function assertRepo(value: unknown, methods: readonly string[], name: string): void {
+  if (!isRecord(value)) {
+    throw invalidInput(`${name} is required.`)
+  }
+
+  for (const method of methods) {
+    if (typeof value[method] !== 'function') {
+      throw invalidInput(`${name} ${method} is required.`)
+    }
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
 }
