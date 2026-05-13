@@ -312,6 +312,42 @@ describe('public utility coverage', () => {
         targetIdentities: [],
       }),
     ).toBe(true)
+    expect(
+      createDefaultAuthPolicy(Object.assign(Object.create(null), {})).canAutoLink({
+        assertion: assertion(),
+        targetUser: user(),
+        existingIdentities: [],
+      }),
+    ).toBe(false)
+    expect(() => createDefaultAuthPolicy(null as unknown as object)).toThrow(
+      'Default auth policy options must be a plain object.',
+    )
+    expect(() =>
+      createDefaultAuthPolicy({ requireReAuthFor: [''] as unknown as AuthPolicyAction[] }),
+    ).toThrow('Default auth policy re-auth actions must be non-blank strings.')
+    expect(() =>
+      createDefaultAuthPolicy({ reAuthMaxAgeSeconds: Number.POSITIVE_INFINITY }),
+    ).toThrow('Default auth policy re-auth max age must be a non-negative number.')
+    expect(() =>
+      defaultPolicy.requiresReAuth(
+        null as unknown as Parameters<typeof defaultPolicy.requiresReAuth>[0],
+      ),
+    ).toThrow('Default auth policy re-auth context is required.')
+    expect(() =>
+      defaultPolicy.requiresReAuth({
+        action: AuthPolicyAction.MergeAccounts,
+        userId: asUserId('user-1'),
+        now: new Date('invalid'),
+      }),
+    ).toThrow('Default auth policy re-auth time is invalid.')
+    expect(() =>
+      defaultPolicy.requiresReAuth({
+        action: AuthPolicyAction.MergeAccounts,
+        userId: asUserId('user-1'),
+        now,
+        reAuthenticatedAt: new Date('invalid'),
+      }),
+    ).toThrow('Default auth policy re-auth timestamp is invalid.')
 
     const error = new UniAuthError(UniAuthErrorCode.InvalidInput, 'Invalid.', { field: 'email' })
 
