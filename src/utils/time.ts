@@ -6,6 +6,12 @@ export const systemClock: Clock = {
 }
 
 export function addSeconds(date: Date, seconds: number): Date {
+  assertValidDate(date, 'Date must be valid.')
+
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds)) {
+    throw invalidInput('Seconds must be a finite number.')
+  }
+
   return new Date(date.getTime() + seconds * 1000)
 }
 

@@ -67,6 +67,9 @@ describe('public utility coverage', () => {
     expect(normalizeTarget(' +1 (555) 123-4567 ')).toBe('+15551234567')
     expect(normalizeTarget(' opaque-token ')).toBe('opaque-token')
     expect(normalizeTarget('   ')).toBe('')
+    expect(() => normalizeEmail(123 as unknown as string)).toThrow('Email must be a string.')
+    expect(() => normalizePhone(123 as unknown as string)).toThrow('Phone must be a string.')
+    expect(() => normalizeTarget(123 as unknown as string)).toThrow('Target must be a string.')
     expect(compatibilityAuthNormalizer.normalizeEmail(' Alice@Example.COM ')).toBe(
       'alice@example.com',
     )
@@ -86,6 +89,23 @@ describe('public utility coverage', () => {
         normalizePhone: (phone) => phone.replace(/\s+/g, '').trim(),
       }).normalizeTarget(' Alice@Example.COM '),
     ).toBe('ALICE@EXAMPLE.COM')
+    expect(
+      createAuthNormalizer(Object.assign(Object.create(null), {})).normalizeTarget(' A@B '),
+    ).toBe('a@b')
+    expect(() => createAuthNormalizer(null as unknown as object)).toThrow(
+      'Normalizer options must be a plain object.',
+    )
+    expect(() =>
+      createAuthNormalizer({ normalizeEmail: 'email' as unknown as (value: string) => string }),
+    ).toThrow('Email normalizer must be a function.')
+    expect(() =>
+      createAuthNormalizer({ normalizePhone: 'phone' as unknown as (value: string) => string }),
+    ).toThrow('Phone normalizer must be a function.')
+    expect(() =>
+      createAuthNormalizer({
+        normalizeTarget: 'target' as unknown as (value: string) => string,
+      }),
+    ).toThrow('Target normalizer must be a function.')
 
     const generatedSecret = generateSecret(8)
     const generatedOtpSecret = generateOtpSecret()
@@ -168,6 +188,13 @@ describe('public utility coverage', () => {
       'Scrypt maxmem must be a positive integer.',
     )
     expect(addSeconds(now, 5)).toEqual(new Date('2026-01-01T00:00:05.000Z'))
+    expect(() => addSeconds(new Date(Number.NaN), 5)).toThrow('Date must be valid.')
+    expect(() => addSeconds(now, Number.POSITIVE_INFINITY)).toThrow(
+      'Seconds must be a finite number.',
+    )
+    expect(() => addSeconds(now, '5' as unknown as number)).toThrow(
+      'Seconds must be a finite number.',
+    )
     expect(systemClock.now()).toBeInstanceOf(Date)
     expect(() => getUniAuthAttributionNotice({ productName: 123 as unknown as string })).toThrow(
       'Attribution product name must be a string.',
