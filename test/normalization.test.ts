@@ -176,6 +176,16 @@ describe('shared normalization boundary', () => {
       code: UniAuthErrorCode.InvalidInput,
       message: 'Verification target is required.',
     })
+    await expect(
+      service.createVerification({
+        purpose: VerificationPurpose.Link,
+        target: 123,
+        now,
+      } as unknown as Parameters<typeof service.createVerification>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Verification target is required.',
+    })
 
     expect(store.listVerifications()).toHaveLength(0)
     expect(emailSender.listMessages()).toHaveLength(0)

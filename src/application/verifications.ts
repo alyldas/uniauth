@@ -152,6 +152,11 @@ export async function createVerificationRecord(
 ): Promise<CreateVerificationResult> {
   const secret = resolveVerificationSecret(input.secret)
   const metadata = normalizeVerificationMetadata(input.metadata)
+
+  if (typeof input.target !== 'string') {
+    throw invalidInput('Verification target is required.')
+  }
+
   const trimmedTarget = input.target.trim()
 
   if (!trimmedTarget) {
