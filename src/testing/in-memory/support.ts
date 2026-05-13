@@ -44,6 +44,10 @@ export class InMemoryPasswordHasher implements PasswordHasher {
   }
 
   async verify(password: string, passwordHash: string): Promise<boolean> {
+    if (typeof password !== 'string' || typeof passwordHash !== 'string') {
+      return false
+    }
+
     if (!passwordHash.startsWith(TEST_PASSWORD_HASH_PREFIX)) {
       return false
     }
