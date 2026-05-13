@@ -38,6 +38,16 @@ describe('verification cancellation flows', () => {
       service.consumeVerification({
         verificationId: created.verification.id,
         secret: '123456',
+        now: 'not-a-date',
+      } as unknown as Parameters<typeof service.consumeVerification>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Verification consumption time is invalid.',
+    })
+    await expect(
+      service.consumeVerification({
+        verificationId: created.verification.id,
+        secret: '123456',
         now,
       }),
     ).rejects.toMatchObject({

@@ -218,5 +218,26 @@ describe('rate-limit integration', () => {
       message: 'Rate-limit resetAt must be a valid date.',
     })
     expect(nonDateResetAtKit.store.listAuditEvents()).toHaveLength(0)
+
+    const invalidAuditTimeLimiter = new InMemoryRateLimiter()
+    invalidAuditTimeLimiter.setDecision(
+      {
+        action: RateLimitAction.ProviderSignIn,
+        key: rateLimitKey('email', 'alice'),
+      },
+      { allowed: false, retryAfterSeconds: 1 },
+    )
+    const invalidAuditTimeKit = createInMemoryAuthKit({ rateLimiter: invalidAuditTimeLimiter })
+
+    await expect(
+      invalidAuditTimeKit.service.signIn({
+        assertion: assertion({ email: 'invalid-audit-time@example.com', emailVerified: true }),
+        now: 'not-a-date',
+      } as unknown as Parameters<typeof invalidAuditTimeKit.service.signIn>[0]),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Audit event time is invalid.',
+    })
+    expect(invalidAuditTimeKit.store.listAuditEvents()).toHaveLength(0)
   })
 })

@@ -175,6 +175,15 @@ describe('security storage regressions', () => {
         message: 'Session token is required.',
       })
       await expect(
+        service.resolveSession({
+          sessionToken: signedIn.sessionToken,
+          now: 'not-a-date',
+        } as unknown as Parameters<typeof service.resolveSession>[0]),
+      ).rejects.toMatchObject({
+        code: UniAuthErrorCode.InvalidInput,
+        message: 'Session resolution time is invalid.',
+      })
+      await expect(
         service.createSession({
           userId: signedIn.user.id,
           now: 'not-a-date',
