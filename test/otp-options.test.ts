@@ -100,9 +100,36 @@ describe('OTP configuration', () => {
         now,
       })
       .catch((caught: unknown) => caught)
+    const nonStringEmailTargetError = await createInMemoryAuthKit()
+      .service.startOtpChallenge({
+        purpose: VerificationPurpose.SignIn,
+        channel: OtpChannel.Email,
+        target: 123 as unknown as string,
+        now,
+      })
+      .catch((caught: unknown) => caught)
+    const nonStringPhoneTargetError = await createInMemoryAuthKit()
+      .service.startOtpChallenge({
+        purpose: VerificationPurpose.SignIn,
+        channel: OtpChannel.Phone,
+        target: 123 as unknown as string,
+        now,
+      })
+      .catch((caught: unknown) => caught)
+    const nonStringUnsupportedTargetError = await createInMemoryAuthKit()
+      .service.startOtpChallenge({
+        purpose: VerificationPurpose.SignIn,
+        channel: 'push' as OtpChannel,
+        target: 123 as unknown as string,
+        now,
+      })
+      .catch((caught: unknown) => caught)
 
     expect(invalidLengthError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(emptyCustomError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(nonStringEmailTargetError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(nonStringPhoneTargetError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(nonStringUnsupportedTargetError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(invalidLength.store.listVerifications()).toHaveLength(0)
     expect(emptyCustom.store.listVerifications()).toHaveLength(0)
   })

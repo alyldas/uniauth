@@ -521,6 +521,16 @@ describe('DefaultAuthService OTP and verification flows', () => {
         })
         .catch((caught: unknown) => caught),
     ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+    expect(
+      await serviceWithoutSmsSender
+        .startOtpChallenge({
+          purpose: VerificationPurpose.SignIn,
+          channel: OtpChannel.Email,
+          target: 123 as unknown as string,
+          now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
 
     const { service, store } = createInMemoryAuthKit()
     const challenge = await service.startOtpChallenge({
