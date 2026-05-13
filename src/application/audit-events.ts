@@ -45,6 +45,10 @@ export async function getAuditEventPage(
 }
 
 function normalizeAuditEventQuery(input: AuditEventQuery): NormalizedAuditEventQuery {
+  if (!isAuditEventQuery(input)) {
+    throw invalidInput('Audit event query is invalid.')
+  }
+
   const before = input.before ? normalizeAuditEventCursor(input.before) : undefined
   const after = input.after ? normalizeAuditEventCursor(input.after) : undefined
 
@@ -109,4 +113,8 @@ function normalizeAuditEventCursor(input: AuditEventCursor): AuditEventCursor {
     occurredAt,
     id: id as AuditEventCursor['id'],
   }
+}
+
+function isAuditEventQuery(value: unknown): value is AuditEventQuery {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
