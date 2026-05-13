@@ -490,6 +490,18 @@ describe('DefaultAuthService read side and sessions', () => {
       code: UniAuthErrorCode.InvalidInput,
     })
     await expect(
+      // @ts-expect-error runtime validation for untyped callers
+      service.getAuditEvents(null),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
+      // @ts-expect-error runtime validation for untyped callers
+      service.getAuditEventPage(123),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+    })
+    await expect(
       service.getAuditEvents({
         before: {
           occurredAt: new Date(Number.NaN),
