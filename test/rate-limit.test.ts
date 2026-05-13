@@ -6,6 +6,7 @@ import {
   UniAuthErrorCode,
   VerificationPurpose,
   VerificationStatus,
+  isRateLimitedErrorDetails,
 } from '../src'
 import { InMemoryRateLimiter, createInMemoryAuthKit } from '../src/testing'
 import { assertion, now, rateLimitKey } from './helpers.js'
@@ -16,6 +17,19 @@ describe('rate-limit integration', () => {
     expect(() => rateLimitKey('a', 1 as unknown as string)).toThrow(
       'Rate-limit key parts must be strings.',
     )
+  })
+
+  it('recognizes only supported rate-limit error detail actions', () => {
+    expect(isRateLimitedErrorDetails({ action: RateLimitAction.OtpStart })).toBe(true)
+    expect(
+      isRateLimitedErrorDetails({
+        action: RateLimitAction.PasswordSignIn,
+        retryAfterSeconds: 10,
+        resetAt: now.toISOString(),
+      }),
+    ).toBe(true)
+    expect(isRateLimitedErrorDetails({ action: 'custom:action' })).toBe(false)
+    expect(isRateLimitedErrorDetails({ action: ` ${RateLimitAction.OtpStart} ` })).toBe(false)
   })
 
   it('denies provider sign-in before creating a user, identity, or session', async () => {
