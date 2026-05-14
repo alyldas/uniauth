@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, vm1082285, ci]
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
