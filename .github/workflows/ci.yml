@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, vm1082285, ci]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
