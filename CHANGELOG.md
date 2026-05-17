@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.47.0](https://github.com/alyldas/uniauth/compare/v0.46.0...v0.47.0) (2026-05-17)
+
+
+### Features
+
+* добавлены фасады сервиса и политика паролей ([27612ac](https://github.com/alyldas/uniauth/commit/27612ac2f5ba07f7f6767fe778f380b1ba707438))
+
+
+### Bug Fixes
+
+* accept repository class containers ([282ca7f](https://github.com/alyldas/uniauth/commit/282ca7f3cbe6439f11301e15f9a6e5620a4fb301))
+* harden current account metadata and store parity ([19eff04](https://github.com/alyldas/uniauth/commit/19eff04e2110f561f00d26469beb0e24b0185534))
+* harden password runtime inputs ([abe8070](https://github.com/alyldas/uniauth/commit/abe8070900286bfb46c20a5461d9ab76e62e2845))
+* harden postgres writes and provider metadata ([0d21f70](https://github.com/alyldas/uniauth/commit/0d21f70ae8b544ac6dc1e71ed5ab23ff074d26d6))
+* normalize postgres mapper errors ([1f967cb](https://github.com/alyldas/uniauth/commit/1f967cb321bcfcaa3914ebf0bb008f65a9d084bd))
+* normalize provider registry ids ([f4df0a8](https://github.com/alyldas/uniauth/commit/f4df0a802417fa091545fb90ef3ec9151d47aec1))
+* reject blank hmac peppers ([a32b1a1](https://github.com/alyldas/uniauth/commit/a32b1a12cb0f6064f16e328955b8cf0fc4050494))
+* reject blank verification secrets ([02fd06a](https://github.com/alyldas/uniauth/commit/02fd06a408d72f5636b08683b51dfd9755b1ada9))
+* reject invalid current-account display names ([8bcfee1](https://github.com/alyldas/uniauth/commit/8bcfee1831c575971d3bc86203b0f673edfbe233))
+* reject invalid provider assertion claims ([f1cb223](https://github.com/alyldas/uniauth/commit/f1cb223830ccdef1f26bd4babebb367633ac7a34))
+* reject invalid resend cooldown dates ([4f9b36d](https://github.com/alyldas/uniauth/commit/4f9b36d29533342c00aca19dc7b32d1948716893))
+* reject invalid ttl expirations ([790b0e9](https://github.com/alyldas/uniauth/commit/790b0e9f894448aa72be4500d6f6a4a9f0e12219))
+* reject invalid webapp auth dates ([84487e8](https://github.com/alyldas/uniauth/commit/84487e83037ce3ef18bfe7ab9118699f035fea5d))
+* reject invalid webapp max-age times ([058694f](https://github.com/alyldas/uniauth/commit/058694f585605be05ac5b15e3f45662b1099c39b))
+* reject non-string audit event types ([f16dc32](https://github.com/alyldas/uniauth/commit/f16dc32299e4ac3a20b6e753627ac0ea2778ba4f))
+* reject non-string magic-link emails ([002c992](https://github.com/alyldas/uniauth/commit/002c9924d944918c3954ea3878c1eec396e39cf1))
+* reject non-string otp targets ([3110cc0](https://github.com/alyldas/uniauth/commit/3110cc0901c67cf8b24a9f3dce42ee5082e6af6c))
+* reject non-string session tokens ([bd618d6](https://github.com/alyldas/uniauth/commit/bd618d6735d8b2e39ce0a07fde6c71c8e0df0947))
+* reject non-string verification targets ([e7d4f1e](https://github.com/alyldas/uniauth/commit/e7d4f1ef5d27a6b81e3f191036e02c11d7d852cc))
+* validate audit query containers ([fda3e38](https://github.com/alyldas/uniauth/commit/fda3e386e28894c1b40a9878db597db1f0068698))
+* validate auth service runtime inputs ([f4cb4c7](https://github.com/alyldas/uniauth/commit/f4cb4c72af0fe63959e09de1f59ab364b0a35915))
+* validate bridge and rate-limit helpers ([31e4ef4](https://github.com/alyldas/uniauth/commit/31e4ef4d69a8952944f55f0bfb99b2e2337ecd7f))
+* validate bridge oauth metadata ([#347](https://github.com/alyldas/uniauth/issues/347)) ([843edf0](https://github.com/alyldas/uniauth/commit/843edf075d475583b726c1d86134c1d70c6a73c9))
+* validate date-shaped runtime inputs ([ef713bc](https://github.com/alyldas/uniauth/commit/ef713bcc2fda08778d55bfaf383bf3a8bf88538b))
+* validate default policy runtime inputs ([fbdf363](https://github.com/alyldas/uniauth/commit/fbdf36341be35d12b588a22b21823ef4d57ed6fa))
+* validate domain rule dates ([2b9aaaf](https://github.com/alyldas/uniauth/commit/2b9aaafa8c0a605922636e02a0cf8ce1fb5b18c9))
+* validate generated secret lengths ([9c49678](https://github.com/alyldas/uniauth/commit/9c49678b621892e6643355393ed0bafc93b19a13))
+* validate in-memory testing helpers ([902ff69](https://github.com/alyldas/uniauth/commit/902ff6902282875d3adcbb793ef8901dcd161437))
+* validate inspection input containers ([ea7ef08](https://github.com/alyldas/uniauth/commit/ea7ef086beb3fafd4a12097cf7b24983f1323d20))
+* validate normalizer and time helpers ([89093a3](https://github.com/alyldas/uniauth/commit/89093a398cdf12a1968cbdb14057d27b27a6552a))
+* validate oauth token metadata ([c2987d5](https://github.com/alyldas/uniauth/commit/c2987d5efba85e1e9170be3cc008dbfc2eaa28c7))
+* validate provider runtime inputs ([6135352](https://github.com/alyldas/uniauth/commit/61353522fc943180dee9c3a6ebbcffb151fc3b8a))
+* validate public helper runtime inputs ([a3a7306](https://github.com/alyldas/uniauth/commit/a3a730631a437a8fde40e8fc2bf5c97e1fd3e0ef))
+* validate rate-limit decision metadata ([7bd3407](https://github.com/alyldas/uniauth/commit/7bd34072d922afa5fc89a96485ae367d995777a1))
+* validate rate-limit detail actions ([064a63a](https://github.com/alyldas/uniauth/commit/064a63ababca2111f14220781ac7cb6987fb4889))
+* validate request metadata across flows ([69129e4](https://github.com/alyldas/uniauth/commit/69129e4fb7a6599ccc274d8345bca2748fa1bde1))
+* validate resend window helper inputs ([28f70f6](https://github.com/alyldas/uniauth/commit/28f70f67d65b22e6793b9a2612b5451ad6e769e0))
+* validate runtime boundary times ([160e16f](https://github.com/alyldas/uniauth/commit/160e16ff22101cf10f4970480af2b918be2e81b7))
+* исправлена очистка HTML-тегов в markdown-якорях ([0691c6d](https://github.com/alyldas/uniauth/commit/0691c6d9c1d49a6e9e11d4ad07dbec425be6e169))
+
 ## [0.46.0](https://github.com/alyldas/uniauth/compare/v0.45.0...v0.46.0) (2026-05-12)
 
 
