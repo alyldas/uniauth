@@ -8,23 +8,23 @@ providers, queues, password policy, and rate-limit storage.
 Use the unified OTP API for email and phone sign-in:
 
 ```ts
-const challenge = await service.startOtpChallenge({
+const challenge = await service.public.otp.start({
   purpose: VerificationPurpose.SignIn,
   channel: OtpChannel.Email,
   target: 'alice@example.com',
 })
 
-const result = await service.finishOtpSignIn({
+const result = await service.public.otp.signIn({
   verificationId: challenge.verificationId,
   secret: 'code from user input',
   channel: OtpChannel.Email,
 })
 
-const resent = await service.resendOtpChallenge({
+const resent = await service.public.otp.resend({
   verificationId: challenge.verificationId,
 })
 
-await service.cancelOtpChallenge({
+await service.admin.verifications.cancelOtp({
   verificationId: challenge.verificationId,
   channel: OtpChannel.Email,
 })
@@ -38,18 +38,18 @@ the current account, prefer the current-account helper over rebuilding the owned
 application code:
 
 ```ts
-const challenge = await service.startCurrentAccountOtpReAuth({
+const challenge = await service.account.reAuth.startOtp({
   sessionToken,
   identityId,
   channel: OtpChannel.Email,
 })
 
-const resent = await service.resendCurrentAccountOtpReAuth({
+const resent = await service.account.reAuth.resendOtp({
   sessionToken,
   verificationId: challenge.verificationId,
 })
 
-const confirmation = await service.finishCurrentAccountOtpReAuth({
+const confirmation = await service.account.reAuth.finishOtp({
   sessionToken,
   verificationId: resent.verificationId,
   secret: 'code from user input',
@@ -63,7 +63,7 @@ If the user abandons that step instead of finishing it, the route can cancel the
 challenge on the same trusted boundary:
 
 ```ts
-await service.cancelCurrentAccountOtpReAuth({
+await service.account.reAuth.cancelOtp({
   sessionToken,
   verificationId: challenge.verificationId,
 })
@@ -73,7 +73,7 @@ If the UI only needs to know whether a fresh recent-auth step is currently requi
 self-service action, prefer the dedicated status helper over hand-rolled freshness math:
 
 ```ts
-const status = await service.getCurrentAccountReAuthStatus({
+const status = await service.account.reAuth.status({
   sessionToken,
   action: AuthPolicyAction.ChangePassword,
   reAuthenticatedAt,
@@ -95,24 +95,24 @@ Email magic links are sign-in verifications delivered through `EmailSender`. Cor
 the secret, then calls your `createLink` function.
 
 ```ts
-const magic = await service.startEmailMagicLinkSignIn({
+const magic = await service.public.magicLink.start({
   email: 'alice@example.com',
   createLink: ({ verificationId, secret }) =>
     `/auth/magic?verification=${verificationId}&token=${secret}`,
 })
 
-await service.finishEmailMagicLinkSignIn({
+await service.public.magicLink.finish({
   verificationId: magic.verificationId,
   secret: 'token from request',
 })
 
-const resentMagic = await service.resendEmailMagicLinkSignIn({
+const resentMagic = await service.public.magicLink.resend({
   verificationId: magic.verificationId,
   createLink: ({ verificationId, secret }) =>
     `/auth/magic?verification=${verificationId}&token=${secret}`,
 })
 
-await service.cancelEmailMagicLinkSignIn({
+await service.admin.verifications.cancelMagicLink({
   verificationId: magic.verificationId,
 })
 ```
@@ -121,22 +121,26 @@ The application owns route parsing, redirects, cookies, and browser security hea
 
 ## Passwords
 
-Passwords use `CredentialRepo` and `PasswordHasher`. Core does not bundle a password hashing
-runtime; production apps should pass a hasher backed by their chosen algorithm, runtime, and
-parameters.
+Passwords use `CredentialRepo`, `PasswordHasher`, and an optional `PasswordPolicy` for new password
+material. Core does not bundle a password hashing runtime or strength rules; production apps should
+pass a hasher backed by their chosen algorithm, runtime, and parameters, plus a policy backed by
+their strength and breached-password requirements.
 
 ```ts
-await service.setPassword({
-  userId,
-  email: 'alice@example.com',
+await service.account.password.set({
+  sessionToken,
   password: 'password from settings form',
+  reAuthenticatedAt,
 })
 
-await service.signInWithPassword({
+await service.public.password.signIn({
   email: 'alice@example.com',
   password: 'password from sign-in form',
 })
 ```
+
+Production bootstraps can set `requirePasswordPolicy: true` to fail fast when password flows are
+enabled without an application password policy.
 
 The password sign-in method is also an `AuthIdentity` with provider `password`, so unlink policy and
 last-sign-in-method protection stay shared with provider, OTP, and magic-link identities.
@@ -145,25 +149,25 @@ Use `changePassword` when the user knows the current password. Use email passwor
 user only has a recovery token:
 
 ```ts
-const recovery = await service.startEmailPasswordRecovery({
+const recovery = await service.public.passwordRecovery.start({
   email: 'alice@example.com',
   createLink: ({ verificationId, secret }) =>
     `/auth/recovery?verification=${verificationId}&token=${secret}`,
 })
 
-await service.finishEmailPasswordRecovery({
+await service.admin.credentials.finishPasswordRecovery({
   verificationId: recovery.verificationId,
   secret: 'token from request',
   newPassword: 'new password from reset form',
 })
 
-const resentRecovery = await service.resendEmailPasswordRecovery({
+const resentRecovery = await service.public.passwordRecovery.resend({
   verificationId: recovery.verificationId,
   createLink: ({ verificationId, secret }) =>
     `/auth/recovery?verification=${verificationId}&token=${secret}`,
 })
 
-await service.cancelEmailPasswordRecovery({
+await service.admin.verifications.cancelPasswordRecovery({
   verificationId: recovery.verificationId,
 })
 ```
@@ -175,7 +179,7 @@ If the route already trusts a local session token and only needs to prove the cu
 before a sensitive self-service mutation, prefer the current-account confirmation helper:
 
 ```ts
-const confirmation = await service.confirmCurrentAccountPasswordByToken({
+const confirmation = await service.account.reAuth.confirmPassword({
   sessionToken,
   currentPassword: body.currentPassword,
 })
@@ -189,7 +193,7 @@ If the route must actively enforce the same recent-auth policy before app-owned 
 keep that on the trusted token boundary too:
 
 ```ts
-await service.assertCurrentAccountReAuth({
+await service.account.reAuth.assert({
   sessionToken,
   action: AuthPolicyAction.ChangePassword,
   reAuthenticatedAt,
@@ -197,7 +201,7 @@ await service.assertCurrentAccountReAuth({
 ```
 
 Current-account linking routes can pass that same `reAuthenticatedAt` marker into
-`linkCurrentIdentityByToken(...)` instead of resolving the current user separately. See
+`account.identities.link(...)` instead of resolving the current user separately. See
 [Account security recipes](account-security.md) for the canonical route shape.
 
 ## Neutral Responses

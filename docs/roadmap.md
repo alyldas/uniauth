@@ -51,6 +51,8 @@
 
 - Email magic link on the shared verification lifecycle.
 - Password credential with an app-owned `PasswordHasher` port.
+- Optional `PasswordPolicy` port and `requirePasswordPolicy` bootstrap guard for production
+  password routes.
 - Rate limit integration ports for provider sign-in, OTP, magic-link, password, and recovery
   attempts.
 - Unified OTP sign-in API without email-specific wrappers.
@@ -494,8 +496,6 @@ Tracking issues: #301, #302, #303, #304.
 
 Tracking issues: #308, #309, #310, #311.
 
-## Next Release
-
 ### v0.46 - Current-Account Verified Contact Change
 
 - Added trusted current-account verified contact change helpers for local `User.email` and
@@ -509,8 +509,27 @@ Tracking issues: #308, #309, #310, #311.
   metadata.
 - Added account-security and backend route recipes plus runnable examples for self-service verified
   contact changes.
+  Tracking issues: none.
 
-Tracking issues: none yet.
+## Next Release
+
+### 1.0 - API Stabilization and Boundary Cleanup
+
+- Completed all v0.46 API surfaces are considered released; next focus is first stable pre-1.0
+  boundary cleanup before `1.0.0`.
+- `mergeAccounts(...)` now requires a `sourceSessionToken` proof for active source accounts and
+  should still remain behind trusted backend/admin approval when product policy needs stronger
+  source-account confirmation.
+- Root provider exports remain compatibility-only during stabilization; API users are expected to prefer
+  explicit subpath imports (`@alyldas/uniauth/providers/oauth-oidc`,
+  `@alyldas/uniauth/providers/messenger`) and new consumers should treat legacy root re-exports as
+  temporary.
+- Add a contracts-vs-ports alignment section for package and application authors so contracts stay
+  implementation-neutral while ports stay runtime-owned by app bootstrap.
+- Update provider/token, support, and architecture docs so migration notes, admin boundaries, and
+  package split criteria are explicit before moving further API contracts into separate packages.
+
+Tracking issues: planned.
 
 ## Versioning
 

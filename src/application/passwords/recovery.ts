@@ -23,11 +23,11 @@ import {
   type Verification,
 } from '../../domain/types.js'
 import { invalidInput } from '../../errors.js'
-import { RateLimitAction, rateLimitKey } from '../../ports.js'
+import { PasswordPolicyPurpose, RateLimitAction, rateLimitKey } from '../../ports.js'
 import { generateSecret } from '../../utils/secrets.js'
 import {
   DEFAULT_PASSWORD_RECOVERY_SUBJECT,
-  assertPassword,
+  enforcePasswordPolicy,
   findPasswordCredentialByEmail,
   findPasswordRecoveryVerification,
   findUsableCredentialUser,
@@ -98,9 +98,14 @@ export async function finishEmailPasswordRecovery(
 ): Promise<Credential> {
   const now = input.now ?? runtime.clock.now()
   const metadata = normalizePasswordRecoveryMetadata(input.metadata)
-  assertPassword(input.newPassword)
   const passwordHasher = getPasswordHasher(runtime)
   const verification = await findPasswordRecoveryVerification(runtime, input.verificationId)
+  await enforcePasswordPolicy(runtime, {
+    password: input.newPassword,
+    purpose: PasswordPolicyPurpose.PasswordRecovery,
+    email: verification.target,
+    now,
+  })
 
   await enforceRateLimit(runtime, {
     action: RateLimitAction.PasswordRecoveryFinish,

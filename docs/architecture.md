@@ -73,6 +73,32 @@ identities, and email/phone are optional identity attributes.
 
 It delegates authorization decisions to `AuthPolicy` and storage/provider/sender work to ports.
 
+The flat method names remain available for compatibility. New route code should prefer the
+canonical grouped surface, which is organized by caller trust boundary:
+
+- `auth.public`: unauthenticated sign-in, OTP, magic-link, and password-recovery flows.
+- `auth.account`: current-account self-service by `sessionToken`, including profile, contact,
+  password, recent-auth, own sessions, own identities, snapshots, audit page, and account closure.
+- `auth.admin`: trusted backend and operator flows by `userId`, including user reads, user sessions,
+  account merge/link/unlink, raw session operations, raw verification operations, and audit reads.
+
+Public sign-in methods return `PublicAuthResult`, whose user, identity, and session fields are safe
+views. Raw `Session.tokenHash`, `Credential.passwordHash`, and `Verification.secretHash` stay out of
+the canonical public facade.
+
+```ts
+await auth.public.password.signIn({ email, password })
+await auth.account.profile.update({ sessionToken, displayName })
+await auth.admin.users.get(userId)
+```
+
+## Merge and Trust Boundary
+
+`mergeAccounts(...)` is intentionally a privileged account mutation. It requires `sourceSessionToken`
+so the active source account is proven before state moves to the target account. Trusted backend and
+admin routes may still add stronger application-level approvals around that proof, but they should
+not merge by raw `sourceUserId` alone.
+
 ## Ports
 
 Core defines repository ports, credential ports, provider registry, sender ports, rate-limit port,
@@ -132,11 +158,12 @@ Email magic links use the same verification lifecycle and the existing `EmailSen
 application provides `createLink` per start request, so routes, domains, redirect handling, cookies,
 and query parameter conventions remain outside core.
 
-Password credentials use `CredentialRepo` for stored password hashes and `PasswordHasher` for
-hash/verify work. Core does not bundle a password hashing runtime; production applications pass an
-adapter backed by their chosen algorithm, parameters, and secret-loading policy, while the testing
-package provides only a low-cost `scrypt` test hasher. Password identity records use the local
-`password` provider so unlink and last-sign-in-method policy remains shared with other identities.
+Password credentials use `CredentialRepo` for stored password hashes, `PasswordHasher` for
+hash/verify work, and an optional `PasswordPolicy` port for new password material. Core does not
+bundle a password hashing runtime or strength rules; production applications pass adapters backed by
+their chosen algorithm, parameters, secret-loading policy, and breached-password or strength checks.
+Password identity records use the local `password` provider so unlink and last-sign-in-method policy
+remains shared with other identities.
 
 Verification hashing is delegated to `SecretHasher`. The default hasher uses salted `scrypt` so
 short OTP values are not stored as fast hashes. Production deployments that need app-owned key
@@ -147,7 +174,9 @@ Rate limiting is delegated to `RateLimiter`. Core only defines stable actions an
 before security-sensitive attempts such as provider sign-in, OTP start/finish, magic-link
 start/finish, password sign-in, and password recovery. Applications own the real Redis, database,
 edge runtime, or hosted rate-limit adapter and decide exact bucket sizes, key hashing, and retry
-headers.
+headers. Production bootstraps can set `requireRateLimiter: true` to fail fast when no limiter is
+configured, and `requirePasswordPolicy: true` to fail fast when password flows are enabled without
+an application password policy.
 
 The built-in `normalizeEmail`, `normalizePhone`, and `normalizeTarget` helpers are compatibility
 utilities, not a full production canonicalization policy. If an application needs strict email
@@ -227,12 +256,25 @@ SDK, framework, or storage dependencies into the core package.
 When provider trust matters, adapters should emit a small `trust` object with stable string
 signals instead of leaking provider SDK payloads into core policy hooks.
 
+## Contracts vs Ports
+
+The project has two related boundaries:
+
+- `@alyldas/uniauth/contracts` exports stable, implementation-neutral contracts that are meant for
+  package-level compatibility and shared type/runtime understanding.
+- Runtime `ports` are integration seams that are injected at application bootstrap through adapters or
+  concrete helper implementations (`Postgres`, senders, providers, rate limiters, and hashers).
+
+In practice: import contracts from `@alyldas/uniauth/contracts` when you need stable semantics across
+packages, and keep `ports` as app-owned wiring points. This prevents implementation details from
+leaking across package boundaries while preserving an explicit runtime ownership model.
+
 ## Provider Adapter Layout
 
 Reference provider adapters now prefer explicit package subpaths such as
 `@alyldas/uniauth/providers/messenger` and `@alyldas/uniauth/providers/oauth-oidc`. Root exports
-remain for pre-1.0 compatibility, but new provider families should not automatically widen the root
-surface when a package-level subpath is enough.
+remain compatibility-only for pre-1.0 migration, and new provider families should not automatically
+widen the root surface when a package-level subpath is enough.
 
 Each provider family should keep the same rough split when it reduces real complexity:
 

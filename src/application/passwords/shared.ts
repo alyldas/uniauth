@@ -14,6 +14,7 @@ import {
 } from '../../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidCredentials, invalidInput } from '../../errors.js'
 import type { PasswordHasher } from '../../contracts.js'
+import type { PasswordPolicyInput } from '../../ports.js'
 
 export const DEFAULT_PASSWORD_RECOVERY_SUBJECT = 'Reset your password'
 export const PasswordAuditMode = {
@@ -46,6 +47,23 @@ export function normalizePasswordEmail(
 export function assertPassword(password: string): void {
   if (typeof password !== 'string' || !password) {
     throw invalidInput('Password is required.')
+  }
+}
+
+export async function enforcePasswordPolicy(
+  runtime: AuthServiceRuntime,
+  input: PasswordPolicyInput,
+): Promise<void> {
+  assertPassword(input.password)
+
+  if (!runtime.passwordPolicy) {
+    return
+  }
+
+  const decision = await runtime.passwordPolicy.validate(input)
+
+  if (decision && !decision.allowed) {
+    throw invalidInput(decision.reason ?? 'Password does not satisfy password policy.')
   }
 }
 

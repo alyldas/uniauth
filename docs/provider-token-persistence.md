@@ -78,7 +78,9 @@ UniAuth local actions do not revoke provider-side tokens for you:
 
 - `revokeSession(...)` only revokes the local UniAuth session;
 - `unlink(...)` only updates local identity links;
-- `mergeAccounts(...)` only touches local UniAuth records.
+- `mergeAccounts(...)` only touches local UniAuth records, requires `sourceSessionToken` for active
+  source accounts, and should still be wrapped by trusted admin/backend approval when product policy
+  needs stronger source-account confirmation.
 
 If an application disconnects a provider account, it should:
 

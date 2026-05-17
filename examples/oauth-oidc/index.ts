@@ -222,7 +222,7 @@ export async function finishOidcCallbackForExample(
 
   assertStateMatches(oidcState, state)
 
-  const result = await authService.signIn({
+  const result = await authService.public.provider.signIn({
     provider: 'demo-oidc',
     finishInput: {
       code,

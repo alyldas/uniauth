@@ -136,6 +136,36 @@ export function createIdentityRepo(context: PostgresStoreContext): IdentityRepo 
         throw mapIdentityWriteError(error)
       }
     },
+    disableForUserIfAnotherActive: async (id, userId, patch) => {
+      const activeIdentities = await context.queryRows<
+        IdentityRow,
+        ReturnType<typeof mapIdentityRow>
+      >(
+        `select
+           id, user_id, provider, provider_user_id, status, email, email_verified, phone,
+           phone_verified, trust, created_at, updated_at, disabled_at, metadata
+         from uniauth_identities
+         where user_id = $1 and status = 'active' and disabled_at is null
+         order by created_at asc, id asc
+         for update`,
+        [userId],
+        mapIdentityRow,
+      )
+      const target = activeIdentities.find((identity) => identity.id === id)
+
+      if (!target) {
+        throw new UniAuthError(UniAuthErrorCode.IdentityNotFound, 'Identity was not found.')
+      }
+
+      if (activeIdentities.length <= 1) {
+        throw new UniAuthError(
+          UniAuthErrorCode.LastIdentity,
+          'Cannot unlink the last active identity.',
+        )
+      }
+
+      return repo.update(id, patch)
+    },
   }
 
   return repo

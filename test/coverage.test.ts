@@ -259,6 +259,18 @@ describe('public utility coverage', () => {
       }),
     ).toThrow('Audit log repository is required.')
     expect(() =>
+      createAuthServiceRuntime({
+        repos: store,
+        requireRateLimiter: true,
+      }),
+    ).toThrow('Rate limiter is required by auth service options.')
+    expect(() =>
+      createAuthServiceRuntime({
+        repos: store,
+        requirePasswordPolicy: true,
+      }),
+    ).toThrow('Password policy is required by auth service options.')
+    expect(() =>
       createAuthService({
         repos: null as unknown as Parameters<typeof createAuthService>[0]['repos'],
       }),
@@ -332,6 +344,14 @@ describe('public utility coverage', () => {
         reAuthenticatedAt: now,
       }),
     ).toBe(false)
+    expect(() =>
+      defaultPolicy.requiresReAuth({
+        action: AuthPolicyAction.MergeAccounts,
+        userId: asUserId('user-1'),
+        now,
+        reAuthenticatedAt: addSeconds(now, 1),
+      }),
+    ).toThrow('Default auth policy re-auth timestamp cannot be in the future.')
     expect(
       permissivePolicy.requiresReAuth({
         action: AuthPolicyAction.MergeAccounts,

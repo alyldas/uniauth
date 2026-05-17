@@ -43,7 +43,7 @@ export async function unlink(runtime: AuthServiceRuntime, input: UnlinkInput): P
       throw new UniAuthError(code, message)
     }
 
-    await runtime.repos.identityRepo.update(identity.id, {
+    await runtime.repos.identityRepo.disableForUserIfAnotherActive(identity.id, user.id, {
       status: AuthIdentityStatus.Disabled,
       disabledAt: now,
       updatedAt: now,

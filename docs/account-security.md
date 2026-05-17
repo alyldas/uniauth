@@ -20,7 +20,7 @@ composition.
 Prefer the built-in read-side and projection helpers for these flows:
 
 ```ts
-const snapshot = await authService.getAccountSecuritySnapshot(userId)
+const snapshot = await authService.admin.users.securitySnapshot(userId)
 
 const verificationStatus = toVerificationStatusView(verification)
 ```
@@ -29,7 +29,7 @@ When the caller is already authenticated by a trusted local session token, prefe
 helper instead of manually composing `resolveSessionContext(...)` with a second user-scoped read:
 
 ```ts
-const current = await authService.getCurrentAccountInspectionSnapshot({
+const current = await authService.account.inspection.snapshot({
   sessionToken,
   touch: true,
   audit: {
@@ -42,7 +42,7 @@ For pre-closure export screens, use the dedicated closure export snapshot instea
 entities or calling storage repositories directly:
 
 ```ts
-const exportSnapshot = await authService.getCurrentAccountClosureExportSnapshot({
+const exportSnapshot = await authService.account.inspection.closureExport({
   sessionToken,
   touch: true,
   audit: {
@@ -56,7 +56,7 @@ const exportSnapshot = await authService.getCurrentAccountClosureExportSnapshot(
 The minimal current-account server-side composition usually looks like this:
 
 ```ts
-const current = await authService.getCurrentAccountInspectionSnapshot({
+const current = await authService.account.inspection.snapshot({
   sessionToken,
   touch: true,
   audit: {
@@ -124,7 +124,7 @@ application records remain application-owned.
 For self-service security timelines backed by a trusted local session token:
 
 ```ts
-const page = await authService.getCurrentAccountAuditEventPage({
+const page = await authService.account.inspection.auditPage({
   sessionToken,
   limit: 20,
 })
@@ -133,7 +133,7 @@ const page = await authService.getCurrentAccountAuditEventPage({
 For trusted backend security timelines or support inspection:
 
 ```ts
-const page = await authService.getAuditEventPage({
+const page = await authService.admin.audit.page({
   userId,
   limit: 20,
 })
@@ -148,12 +148,12 @@ For continuation-based current-account pagination, keep the cursor application-o
 from the last event you already returned:
 
 ```ts
-const firstPage = await authService.getCurrentAccountAuditEventPage({
+const firstPage = await authService.account.inspection.auditPage({
   sessionToken,
   limit: 20,
 })
 
-const nextPage = await authService.getCurrentAccountAuditEventPage({
+const nextPage = await authService.account.inspection.auditPage({
   sessionToken,
   before: firstPage.nextCursor,
   limit: 20,
@@ -164,12 +164,12 @@ Trusted backend or support inspection can use the same pagination semantics thro
 helper:
 
 ```ts
-const firstPage = await authService.getAuditEventPage({
+const firstPage = await authService.admin.audit.page({
   userId,
   limit: 20,
 })
 
-const nextPage = await authService.getAuditEventPage({
+const nextPage = await authService.admin.audit.page({
   userId,
   before: firstPage.nextCursor,
   limit: 20,
@@ -201,7 +201,7 @@ verification reads, continue in [Support and admin inspection recipe](support-in
 For device-list or active-session screens:
 
 1. resolve or trust the current local session token from the transport;
-2. load the aggregate view through `authService.getCurrentAccountSecuritySnapshot(...)`;
+2. load the aggregate view through `authService.account.security.snapshot(...)`;
 3. present a sanitized session list;
 4. keep revoke and logout responses application-owned.
 
@@ -210,7 +210,7 @@ For device-list or active-session screens:
 Treat sign-out of the current device as one backend write plus one transport cleanup:
 
 ```ts
-await authService.revokeCurrentSessionByToken({
+await authService.account.sessions.revokeCurrent({
   sessionToken: request.auth.sessionToken,
 })
 clearSessionCookie(response)
@@ -224,7 +224,7 @@ token deletion, mobile secure-storage deletion, redirect behavior, and neutral r
 For "sign out other devices" or "sign out all devices except this one":
 
 ```ts
-const result = await authService.revokeOtherSessionsByToken({
+const result = await authService.account.sessions.revokeOther({
   sessionToken: request.auth.sessionToken,
 })
 
@@ -244,7 +244,7 @@ For per-device revoke actions, keep the mutation on the trusted current-account 
 service enforce ownership of the selected session:
 
 ```ts
-const result = await authService.revokeOwnedSessionByToken({
+const result = await authService.account.sessions.revokeOwned({
   sessionToken: request.auth.sessionToken,
   targetSessionId: body.sessionId,
 })
@@ -257,7 +257,7 @@ return response.status(204).send()
 ```
 
 The application can still pre-load the session list through
-`getCurrentAccountSecuritySnapshot(...)` for UI rendering, but the write-side route no longer has to
+`account.security.snapshot(...)` for UI rendering, but the write-side route no longer has to
 re-prove ownership by hand. Missing, foreign, stale, or disabled-account session targets collapse
 to the neutral `SessionNotFound` path.
 
@@ -265,11 +265,11 @@ to the neutral `SessionNotFound` path.
 
 ### Update Current Account Profile
 
-Use `updateCurrentAccountProfileByToken(...)` when an authenticated settings route needs to update
+Use `account.profile.update(...)` when an authenticated settings route needs to update
 local auth profile fields owned by the `User` record:
 
 ```ts
-const user = await authService.updateCurrentAccountProfileByToken({
+const user = await authService.account.profile.update({
   sessionToken: request.auth.sessionToken,
   displayName: body.displayName,
   reAuthenticatedAt: request.auth.reAuthenticatedAt,
@@ -293,12 +293,12 @@ Applications that consider profile changes sensitive can configure
 
 ### Update Current Account Contact
 
-Use `startCurrentAccountContactChange(...)` and `finishCurrentAccountContactChange(...)` when an
+Use `account.contact.start(...)` and `account.contact.finish(...)` when an
 authenticated settings route needs to update the local `User.email` or `User.phone` field after OTP
 proof on the new target:
 
 ```ts
-const started = await authService.startCurrentAccountContactChange({
+const started = await authService.account.contact.start({
   sessionToken: request.auth.sessionToken,
   channel: body.channel,
   target: body.target,
@@ -313,7 +313,7 @@ return {
 ```
 
 ```ts
-const user = await authService.finishCurrentAccountContactChange({
+const user = await authService.account.contact.finish({
   sessionToken: request.auth.sessionToken,
   verificationId: body.verificationId,
   secret: body.code,
@@ -327,7 +327,7 @@ return {
 }
 ```
 
-`resendCurrentAccountContactChange(...)` and `cancelCurrentAccountContactChange(...)` keep the
+`account.contact.resend(...)` and `account.contact.cancel(...)` keep the
 challenge on the same trusted `sessionToken` boundary. The helpers normalize email and phone
 targets, reject unchanged targets, and update only the local `User` contact field after successful
 verification. They do not rewrite sign-in identities, password credential subjects, OAuth provider
@@ -339,14 +339,13 @@ unlink, profile, and closure routes.
 
 For sign-in method screens:
 
-1. load the aggregate view through `authService.getCurrentAccountInspectionSnapshot(...)` or
-   `authService.getAccountSecuritySnapshot(userId)`, depending on whether the route is self-service
+1. load the aggregate view through `authService.account.inspection.snapshot(...)` or
+   `authService.admin.users.securitySnapshot(userId)`, depending on whether the route is self-service
    or trusted admin/support;
 2. present provider ids, statuses, email or phone hints, and credential types;
-3. compose mutations through `linkCurrentIdentityByToken(...)`, `unlinkCurrentIdentityByToken(...)`,
-   `setCurrentAccountPasswordByToken(...)`, `changeCurrentAccountPasswordByToken(...)`,
-   `startCurrentAccountContactChange(...)`, `finishCurrentAccountContactChange(...)`,
-   `closeCurrentAccountByToken(...)`, or new provider link flows.
+3. compose mutations through `account.identities.link(...)`, `account.identities.unlink(...)`,
+   `account.password.set(...)`, `account.password.change(...)`, `account.contact.start(...)`,
+   `account.contact.finish(...)`, `account.closure.close(...)`, or new provider link flows.
 
 Keep the same public security rules:
 
@@ -365,7 +364,7 @@ For owned OTP re-auth, let the route select an identity from the current-account
 the ownership check inside core:
 
 ```ts
-const challenge = await authService.startCurrentAccountOtpReAuth({
+const challenge = await authService.account.reAuth.startOtp({
   sessionToken: request.auth.sessionToken,
   identityId: body.identityId,
   channel: body.channel,
@@ -376,7 +375,7 @@ Then finish the challenge on the same current-account session boundary and persi
 marker in app-owned request or session state:
 
 ```ts
-const confirmation = await authService.finishCurrentAccountOtpReAuth({
+const confirmation = await authService.account.reAuth.finishOtp({
   sessionToken: request.auth.sessionToken,
   verificationId: body.verificationId,
   secret: body.secret,
@@ -389,7 +388,7 @@ If the UI prefers password confirmation instead of OTP, keep that proof on the s
 session boundary:
 
 ```ts
-const confirmation = await authService.confirmCurrentAccountPasswordByToken({
+const confirmation = await authService.account.reAuth.confirmPassword({
   sessionToken: request.auth.sessionToken,
   currentPassword: body.currentPassword,
 })
@@ -402,7 +401,7 @@ If the route only needs to render whether a fresh recent-auth step is still requ
 check on the same trusted current-account boundary too:
 
 ```ts
-const status = await authService.getCurrentAccountReAuthStatus({
+const status = await authService.account.reAuth.status({
   sessionToken: request.auth.sessionToken,
   action: AuthPolicyAction.ChangePassword,
   reAuthenticatedAt: request.auth.reAuthenticatedAt,
@@ -413,7 +412,7 @@ If the route must actively enforce recent-auth before additional app-owned side 
 assert helper over duplicating policy checks in application code:
 
 ```ts
-await authService.assertCurrentAccountReAuth({
+await authService.account.reAuth.assert({
   sessionToken: request.auth.sessionToken,
   action: AuthPolicyAction.ChangePassword,
   reAuthenticatedAt: request.auth.reAuthenticatedAt,
@@ -432,12 +431,12 @@ management on the same trusted `sessionToken` boundary too. The route can stay i
 current-account ownership checks instead of falling back to generic verification orchestration:
 
 ```ts
-const resent = await authService.resendCurrentAccountOtpReAuth({
+const resent = await authService.account.reAuth.resendOtp({
   sessionToken: request.auth.sessionToken,
   verificationId: body.verificationId,
 })
 
-await authService.cancelCurrentAccountOtpReAuth({
+await authService.account.reAuth.cancelOtp({
   sessionToken: request.auth.sessionToken,
   verificationId: body.verificationId,
 })
@@ -456,7 +455,7 @@ once the caller is already authenticated.
 For direct assertion linking:
 
 ```ts
-const result = await authService.linkCurrentIdentityByToken({
+const result = await authService.account.identities.link({
   sessionToken: request.auth.sessionToken,
   assertion: {
     provider: 'github',
@@ -479,7 +478,7 @@ and pass the finish payload through the helper instead of resolving the current 
 then calling raw `link(...)`:
 
 ```ts
-const result = await authService.linkCurrentIdentityByToken({
+const result = await authService.account.identities.link({
   sessionToken: request.auth.sessionToken,
   provider: 'oidc',
   finishInput: {
@@ -508,7 +507,7 @@ Resolve the current account snapshot first so the application knows which method
 then keep the unlink on the current-account token boundary:
 
 ```ts
-await authService.unlinkCurrentIdentityByToken({
+await authService.account.identities.unlink({
   sessionToken: request.auth.sessionToken,
   identityId: body.identityId,
   reAuthenticatedAt: request.auth.reAuthenticatedAt,
@@ -523,12 +522,12 @@ stale identity targets on the same trusted current-account boundary.
 
 ### Add Or Replace A Local Password
 
-Use `setCurrentAccountPasswordByToken(...)` when the account does not yet have a local password or
+Use `account.password.set(...)` when the account does not yet have a local password or
 when the application allows a provider-first account to add one from a trusted account-security
 screen:
 
 ```ts
-await authService.setCurrentAccountPasswordByToken({
+await authService.account.password.set({
   sessionToken: request.auth.sessionToken,
   password: body.newPassword,
   reAuthenticatedAt: request.auth.reAuthenticatedAt,
@@ -536,18 +535,20 @@ await authService.setCurrentAccountPasswordByToken({
 ```
 
 The application still owns password policy UX, strength hints, recent-auth requirements, and
-whether the route should even be offered when a password credential already exists.
-`setCurrentAccountPasswordByToken(...)` only works when the current account already has a trusted
+whether the route should even be offered when a password credential already exists. New password
+material can be enforced through the `PasswordPolicy` port, and production bootstraps can set
+`requirePasswordPolicy: true` when password routes must not start without that adapter.
+`account.password.set(...)` only works when the current account already has a trusted
 email address. If not, core rejects the route with `invalid_input` instead of letting the
 application invent a local password identity subject.
 
 ### Change Password
 
-Use `changeCurrentAccountPasswordByToken(...)` when the current user already knows the existing
+Use `account.password.change(...)` when the current user already knows the existing
 password:
 
 ```ts
-await authService.changeCurrentAccountPasswordByToken({
+await authService.account.password.change({
   sessionToken: request.auth.sessionToken,
   currentPassword: body.currentPassword,
   newPassword: body.newPassword,
@@ -564,7 +565,7 @@ If the account-closure flow offers a "download my auth security data" step, keep
 read-only and on the same trusted session boundary:
 
 ```ts
-const exportSnapshot = await authService.getCurrentAccountClosureExportSnapshot({
+const exportSnapshot = await authService.account.inspection.closureExport({
   sessionToken: request.auth.sessionToken,
   audit: {
     limit: 50,
@@ -586,12 +587,12 @@ Keep the actual download format application-owned. The helper only returns local
 it does not collect product profile data, billing records, provider token records, or downstream
 application tables.
 
-Use `closeCurrentAccountByToken(...)` for self-service account closure from an authenticated
+Use `account.closure.close(...)` for self-service account closure from an authenticated
 settings route. Keep the recent-auth marker application-owned, then pass it into the helper on the
 same trusted current-account boundary:
 
 ```ts
-const result = await authService.closeCurrentAccountByToken({
+const result = await authService.account.closure.close({
   sessionToken: request.auth.sessionToken,
   reAuthenticatedAt: request.auth.reAuthenticatedAt,
 })
@@ -618,7 +619,7 @@ If the user cannot prove the current password, hand off from the authenticated o
 surface into the shared email recovery flow:
 
 ```ts
-const recovery = await authService.startEmailPasswordRecovery({
+const recovery = await authService.public.passwordRecovery.start({
   email: body.email,
   createLink(input) {
     return `https://example.com/auth/recovery?verification=${input.verificationId}&token=${input.secret}`
@@ -629,7 +630,7 @@ const recovery = await authService.startEmailPasswordRecovery({
 Then finish it from the recovery route:
 
 ```ts
-await authService.finishEmailPasswordRecovery({
+await authService.admin.credentials.finishPasswordRecovery({
   verificationId: body.verificationId,
   secret: body.secret,
   newPassword: body.newPassword,
@@ -645,7 +646,7 @@ creates or rotates a local session.
 UniAuth now exposes:
 
 ```ts
-const verification = await authService.getVerification(verificationId)
+const verification = await authService.admin.verifications.get(verificationId)
 const verificationStatus = toVerificationStatusView(verification)
 ```
 

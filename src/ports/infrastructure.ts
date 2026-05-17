@@ -3,7 +3,7 @@ import type { EmailSender, SmsSender } from './messaging.js'
 import type { ProviderRegistry } from './providers.js'
 import type { AuthServiceRepositories } from './repositories.js'
 import type { OtpSecretGenerator, RateLimiter } from './rate-limit.js'
-import type { PasswordHasher } from './security.js'
+import type { PasswordHasher, PasswordPolicy } from './security.js'
 
 export interface AuthServiceInfrastructure {
   readonly emailSender?: EmailSender
@@ -16,6 +16,7 @@ export interface AuthServiceInfrastructure {
   readonly otpSecretGenerator?: OtpSecretGenerator
   readonly emailOtpSubject?: string
   readonly passwordHasher?: PasswordHasher
+  readonly passwordPolicy?: PasswordPolicy
 }
 
 export interface UnitOfWork {
@@ -26,6 +27,7 @@ export type {
   AuthServiceRepositories,
   EmailSender,
   PasswordHasher,
+  PasswordPolicy,
   ProviderRegistry,
   RateLimiter,
   SmsSender,

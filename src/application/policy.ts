@@ -116,6 +116,10 @@ export function createDefaultAuthPolicy(options: DefaultAuthPolicyOptions = {}):
         throw invalidInput('Default auth policy re-auth timestamp is invalid.')
       }
 
+      if (context.reAuthenticatedAt.getTime() > context.now.getTime()) {
+        throw invalidInput('Default auth policy re-auth timestamp cannot be in the future.')
+      }
+
       return context.now.getTime() - context.reAuthenticatedAt.getTime() > reAuthMaxAgeMs
     },
   }

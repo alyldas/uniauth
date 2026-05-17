@@ -15,7 +15,7 @@ export async function runProviderFinishExample(): Promise<void> {
 
   providerRegistry.register(provider)
 
-  const result = await service.signIn({
+  const result = await service.public.provider.signIn({
     provider: 'oidc-demo',
     finishInput: {
       code: 'demo-code',
@@ -28,7 +28,6 @@ export async function runProviderFinishExample(): Promise<void> {
     userId: result.user.id,
     identityId: result.identity.id,
     provider: result.identity.provider,
-    providerUserId: result.identity.providerUserId,
     sessionRecordId: result.session.id,
   })
 }

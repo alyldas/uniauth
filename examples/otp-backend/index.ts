@@ -108,7 +108,7 @@ async function postOtpStart(
   JsonResponse<{ verificationId: string; delivery: OtpChannel }> | JsonResponse<RateLimitedBody>
 > {
   try {
-    const challenge = await authService.startOtpChallenge({
+    const challenge = await authService.public.otp.start({
       purpose: VerificationPurpose.SignIn,
       channel: OtpChannel.Email,
       target: request.body.email,
@@ -132,7 +132,7 @@ async function postOtpResend(
   JsonResponse<{ verificationId: string; delivery: OtpChannel }> | JsonResponse<RateLimitedBody>
 > {
   try {
-    const challenge = await authService.resendOtpChallenge({
+    const challenge = await authService.public.otp.resend({
       verificationId: parseVerificationId(request.body.verificationId),
     })
 
@@ -152,7 +152,7 @@ async function postOtpCancel(
   request: JsonRequest<CancelOtpBody>,
 ): Promise<JsonResponse<null> | JsonResponse<RateLimitedBody>> {
   try {
-    await authService.cancelOtpChallenge({
+    await authService.admin.verifications.cancelOtp({
       verificationId: parseVerificationId(request.body.verificationId),
       channel: OtpChannel.Email,
     })
@@ -169,9 +169,10 @@ async function postOtpCancel(
 async function postOtpFinish(
   request: JsonRequest<FinishOtpBody>,
 ): Promise<JsonResponse<{ userId: string; sessionRecordId: string }>> {
-  const result = await authService.finishOtpSignIn({
+  const result = await authService.public.otp.signIn({
     verificationId: parseVerificationId(request.body.verificationId),
     secret: request.body.code,
+    channel: OtpChannel.Email,
   })
 
   return {
@@ -187,7 +188,7 @@ async function postOtpFinish(
 async function getVerificationStatus(
   verificationId: VerificationId,
 ): Promise<JsonResponse<ReturnType<typeof serializeVerificationStatusView>>> {
-  const verification = await authService.getVerification(verificationId)
+  const verification = await authService.admin.verifications.get(verificationId)
 
   return {
     status: 200,
@@ -198,7 +199,7 @@ async function getVerificationStatus(
 async function getVerificationWindow(
   verificationId: VerificationId,
 ): Promise<JsonResponse<ReturnType<typeof serializeVerificationResendWindow>>> {
-  const verificationWindow = await authService.getVerificationResendWindow({
+  const verificationWindow = await authService.admin.verifications.resendWindow({
     verificationId,
   })
 

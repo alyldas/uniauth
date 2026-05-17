@@ -12,6 +12,30 @@ import {
 import { createPostgresTestKit, now } from './support.js'
 
 describe('Postgres current-account action helpers', () => {
+  it('rejects future Postgres current-account re-auth markers', async () => {
+    const { service } = await createPostgresTestKit({
+      policy: createDefaultAuthPolicy({ requireReAuthFor: [AuthPolicyAction.UpdateProfile] }),
+    })
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-current-account-future-reauth',
+        email: 'pg-current-account-future-reauth@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    await expect(
+      service.updateCurrentAccountProfileByToken({
+        sessionToken: signedIn.sessionToken,
+        displayName: 'Future Marker',
+        reAuthenticatedAt: addSeconds(now, 60),
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+  })
+
   it('revokes one owned Postgres session by trusted session token while preserving the current session', async () => {
     const { service } = await createPostgresTestKit()
     const signedIn = await service.signIn({

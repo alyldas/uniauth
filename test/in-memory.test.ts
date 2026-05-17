@@ -88,6 +88,35 @@ describe('InMemoryAuthStore', () => {
     ])
     expect(await store.identityRepo.listByUserId(createdUser.id)).toHaveLength(2)
     expect(
+      await store.identityRepo
+        .disableForUserIfAnotherActive(asIdentityId('missing'), createdUser.id, {})
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.IdentityNotFound,
+    })
+    const singleIdentityStore = new InMemoryAuthStore()
+    const singleIdentityUser = await singleIdentityStore.userRepo.create(
+      user('single-identity-user'),
+    )
+    const singleIdentity = await singleIdentityStore.identityRepo.create(
+      identity({
+        id: asIdentityId('single-identity'),
+        userId: singleIdentityUser.id,
+        provider: 'single',
+        providerUserId: 'single',
+      }),
+    )
+
+    expect(
+      await singleIdentityStore.identityRepo
+        .disableForUserIfAnotherActive(singleIdentity.id, singleIdentityUser.id, {
+          disabledAt: now,
+        })
+        .catch((caught: unknown) => caught),
+    ).toMatchObject({
+      code: UniAuthErrorCode.LastIdentity,
+    })
+    expect(
       await store.identityRepo.create(emailIdentity).catch((caught: unknown) => caught),
     ).toMatchObject({
       code: UniAuthErrorCode.IdentityAlreadyLinked,

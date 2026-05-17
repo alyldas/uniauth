@@ -85,6 +85,11 @@ export interface IdentityRepo {
   listByUserId(userId: UserId): Promise<readonly AuthIdentity[]>
   create(identity: AuthIdentity): Promise<AuthIdentity>
   update(id: IdentityId, patch: IdentityUpdatePatch): Promise<AuthIdentity>
+  disableForUserIfAnotherActive(
+    id: IdentityId,
+    userId: UserId,
+    patch: IdentityUpdatePatch,
+  ): Promise<AuthIdentity>
 }
 
 export interface CredentialRepo {

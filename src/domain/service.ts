@@ -1,11 +1,17 @@
 import type { AuthIdentity, Credential, Session, User, Verification } from './entities.js'
 import type {
   AccountInspectionSnapshot,
+  AuditEventView,
+  AccountSecurityCredentialView,
+  AccountSecurityIdentityView,
+  AccountSecuritySessionView,
+  AccountSecurityUserView,
   AccountSecuritySnapshot,
   CurrentAccountClosureExportSnapshot,
   CurrentAccountInspectionSnapshot,
   CurrentAccountSecuritySnapshot,
   VerificationResendWindow,
+  VerificationStatusView,
 } from './views.js'
 import type { AuditEvent, AuditEventPage, AuditEventQuery } from './audit.js'
 import type {
@@ -86,7 +92,160 @@ import type {
 } from './local-auth.js'
 export type { Clock, IdGenerator } from '../contracts.js'
 
+export interface PublicAuthResult {
+  readonly user: AccountSecurityUserView
+  readonly identity: AccountSecurityIdentityView
+  readonly session: AccountSecuritySessionView
+  readonly sessionToken: string
+  readonly isNewUser: boolean
+  readonly isNewIdentity: boolean
+}
+
+export interface AccountLinkResult {
+  readonly user: AccountSecurityUserView
+  readonly identity: AccountSecurityIdentityView
+  readonly linked: boolean
+}
+
+export interface AccountClosureResult {
+  readonly user: AccountSecurityUserView
+  readonly currentSessionId: SessionId
+  readonly revokedSessionIds: readonly SessionId[]
+}
+
+export interface AccountAuditEventPage {
+  readonly events: readonly AuditEventView[]
+  readonly nextCursor?: AuditEventPage['nextCursor']
+}
+
+export interface AuthPublicFacade {
+  readonly provider: {
+    signIn(input: SignInInput): Promise<PublicAuthResult>
+  }
+  readonly otp: {
+    start(input: StartOtpChallengeInput): Promise<StartOtpChallengeResult>
+    resend(input: ResendOtpChallengeInput): Promise<StartOtpChallengeResult>
+    signIn(input: FinishOtpSignInInput): Promise<PublicAuthResult>
+  }
+  readonly magicLink: {
+    start(input: StartEmailMagicLinkSignInInput): Promise<StartEmailMagicLinkSignInResult>
+    resend(input: ResendEmailMagicLinkSignInInput): Promise<StartEmailMagicLinkSignInResult>
+    finish(input: FinishEmailMagicLinkSignInInput): Promise<PublicAuthResult>
+  }
+  readonly password: {
+    signIn(input: SignInWithPasswordInput): Promise<PublicAuthResult>
+  }
+  readonly passwordRecovery: {
+    start(input: StartEmailPasswordRecoveryInput): Promise<StartEmailPasswordRecoveryResult>
+    resend(input: ResendEmailPasswordRecoveryInput): Promise<StartEmailPasswordRecoveryResult>
+  }
+}
+
+export interface AuthAccountFacade {
+  readonly profile: {
+    update(input: UpdateCurrentAccountProfileByTokenInput): Promise<AccountSecurityUserView>
+  }
+  readonly contact: {
+    start(input: StartCurrentAccountContactChangeInput): Promise<StartOtpChallengeResult>
+    resend(input: ResendCurrentAccountContactChangeInput): Promise<StartOtpChallengeResult>
+    cancel(input: CancelCurrentAccountContactChangeInput): Promise<VerificationStatusView>
+    finish(input: FinishCurrentAccountContactChangeInput): Promise<AccountSecurityUserView>
+  }
+  readonly password: {
+    set(input: SetCurrentAccountPasswordByTokenInput): Promise<AccountSecurityCredentialView>
+    confirm(
+      input: ConfirmCurrentAccountPasswordByTokenInput,
+    ): Promise<CurrentAccountPasswordReAuthConfirmation>
+    change(input: ChangeCurrentAccountPasswordByTokenInput): Promise<AccountSecurityCredentialView>
+  }
+  readonly reAuth: {
+    status(input: GetCurrentAccountReAuthStatusInput): Promise<CurrentAccountReAuthStatus>
+    assert(input: AssertCurrentAccountReAuthInput): Promise<CurrentAccountReAuthAssertion>
+    startOtp(input: StartCurrentAccountOtpReAuthInput): Promise<StartOtpChallengeResult>
+    resendOtp(input: ResendCurrentAccountOtpReAuthInput): Promise<StartOtpChallengeResult>
+    cancelOtp(input: CancelCurrentAccountOtpReAuthInput): Promise<VerificationStatusView>
+    finishOtp(
+      input: FinishCurrentAccountOtpReAuthInput,
+    ): Promise<CurrentAccountOtpReAuthConfirmation>
+    confirmPassword(
+      input: ConfirmCurrentAccountPasswordByTokenInput,
+    ): Promise<CurrentAccountPasswordReAuthConfirmation>
+  }
+  readonly sessions: {
+    revokeCurrent(input: RevokeCurrentSessionByTokenInput): Promise<void>
+    revokeOwned(input: RevokeOwnedSessionByTokenInput): Promise<RevokeOwnedSessionByTokenResult>
+    revokeOther(input: RevokeOtherSessionsByTokenInput): Promise<RevokeOtherSessionsByTokenResult>
+  }
+  readonly identities: {
+    link(input: LinkCurrentIdentityByTokenInput): Promise<AccountLinkResult>
+    unlink(input: UnlinkCurrentIdentityByTokenInput): Promise<void>
+  }
+  readonly security: {
+    snapshot(input: GetCurrentAccountSecuritySnapshotInput): Promise<CurrentAccountSecuritySnapshot>
+  }
+  readonly inspection: {
+    snapshot(
+      input: GetCurrentAccountInspectionSnapshotInput,
+    ): Promise<CurrentAccountInspectionSnapshot>
+    closureExport(
+      input: GetCurrentAccountClosureExportSnapshotInput,
+    ): Promise<CurrentAccountClosureExportSnapshot>
+    auditPage(input: GetCurrentAccountAuditEventPageInput): Promise<AccountAuditEventPage>
+  }
+  readonly closure: {
+    close(input: CloseCurrentAccountByTokenInput): Promise<AccountClosureResult>
+  }
+}
+
+export interface AuthAdminFacade {
+  readonly users: {
+    get(userId: UserId): Promise<User>
+    identities(userId: UserId): Promise<readonly AuthIdentity[]>
+    credentials(userId: UserId): Promise<readonly Credential[]>
+    sessions(userId: UserId): Promise<readonly Session[]>
+    revokeSessions(input: RevokeUserSessionsInput): Promise<RevokeUserSessionsResult>
+    securitySnapshot(userId: UserId): Promise<AccountSecuritySnapshot>
+    inspectionSnapshot(input: GetAccountInspectionSnapshotInput): Promise<AccountInspectionSnapshot>
+  }
+  readonly accounts: {
+    link(input: LinkInput): Promise<LinkResult>
+    unlink(input: UnlinkInput): Promise<void>
+    merge(input: MergeAccountsInput): Promise<MergeResult>
+  }
+  readonly sessions: {
+    create(input: CreateSessionInput): Promise<CreateSessionResult>
+    revoke(sessionId: SessionId): Promise<void>
+    touch(input: TouchSessionInput): Promise<Session>
+    resolve(input: ResolveSessionInput): Promise<Session>
+    context(input: ResolveSessionContextInput): Promise<ResolvedSessionContext>
+  }
+  readonly verifications: {
+    create(input: CreateVerificationInput): Promise<CreateVerificationResult>
+    get(verificationId: VerificationId): Promise<Verification>
+    cancel(input: CancelVerificationInput): Promise<Verification>
+    consume(input: ConsumeVerificationInput): Promise<Verification>
+    finishOtp(input: FinishOtpChallengeInput): Promise<Verification>
+    cancelOtp(input: CancelOtpChallengeInput): Promise<Verification>
+    cancelMagicLink(input: CancelEmailMagicLinkSignInInput): Promise<Verification>
+    cancelPasswordRecovery(input: CancelEmailPasswordRecoveryInput): Promise<Verification>
+    resendWindow(input: GetVerificationResendWindowInput): Promise<VerificationResendWindow>
+  }
+  readonly credentials: {
+    setPassword(input: SetPasswordInput): Promise<Credential>
+    changePassword(input: ChangePasswordInput): Promise<Credential>
+    finishPasswordRecovery(input: FinishEmailPasswordRecoveryInput): Promise<Credential>
+  }
+  readonly audit: {
+    events(input?: AuditEventQuery): Promise<readonly AuditEvent[]>
+    page(input?: AuditEventQuery): Promise<AuditEventPage>
+  }
+}
+
 export interface AuthService {
+  readonly public: AuthPublicFacade
+  readonly account: AuthAccountFacade
+  readonly admin: AuthAdminFacade
+
   signIn(input: SignInInput): Promise<AuthResult>
   signInWithPassword(input: SignInWithPasswordInput): Promise<AuthResult>
   startOtpChallenge(input: StartOtpChallengeInput): Promise<StartOtpChallengeResult>

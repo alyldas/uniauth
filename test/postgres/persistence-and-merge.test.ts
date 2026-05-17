@@ -427,6 +427,7 @@ describe('Postgres reference persistence repository coverage and merge', () => {
     const merged = await service.mergeAccounts({
       sourceUserId: source.user.id,
       targetUserId: target.user.id,
+      sourceSessionToken: source.sessionToken,
       reAuthenticatedAt: now,
       now,
     })
@@ -453,6 +454,7 @@ describe('Postgres reference persistence repository coverage and merge', () => {
     const retriedMerge = await service.mergeAccounts({
       sourceUserId: source.user.id,
       targetUserId: target.user.id,
+      sourceSessionToken: source.sessionToken,
       reAuthenticatedAt: now,
       now,
     })
@@ -522,6 +524,7 @@ describe('Postgres reference persistence repository coverage and merge', () => {
       service.mergeAccounts({
         sourceUserId: source.user.id,
         targetUserId: target.user.id,
+        sourceSessionToken: source.sessionToken,
         reAuthenticatedAt: now,
         now,
       }),

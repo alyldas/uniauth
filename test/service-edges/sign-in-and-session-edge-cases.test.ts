@@ -284,6 +284,7 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
         .mergeAccounts({
           sourceUserId: second.user.id,
           targetUserId: second.user.id,
+          sourceSessionToken: second.sessionToken,
           now,
         })
         .catch((caught: unknown) => caught),
@@ -292,6 +293,7 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
       defaultService.mergeAccounts({
         sourceUserId: second.user.id,
         targetUserId: first.user.id,
+        sourceSessionToken: second.sessionToken,
         metadata: ['not-a-record'],
         now,
       } as unknown as Parameters<typeof defaultService.mergeAccounts>[0]),
@@ -379,6 +381,7 @@ describe('DefaultAuthService sign-in and session edge cases', () => {
         .mergeAccounts({
           sourceUserId: asUserId('missing-source'),
           targetUserId: first.user.id,
+          sourceSessionToken: first.sessionToken,
           reAuthenticatedAt: now,
           now,
         })

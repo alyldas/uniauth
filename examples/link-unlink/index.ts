@@ -7,7 +7,7 @@ export async function runLinkUnlinkExample(): Promise<void> {
     policy: createDefaultAuthPolicy({ allowAutoLink: false }),
   })
 
-  const primary = await service.signIn({
+  const primary = await service.public.provider.signIn({
     assertion: {
       provider: 'email',
       providerUserId: 'alice@example.com',
@@ -16,8 +16,8 @@ export async function runLinkUnlinkExample(): Promise<void> {
       displayName: 'Alice Example',
     },
   })
-  const linked = await service.link({
-    userId: primary.user.id,
+  const linked = await service.account.identities.link({
+    sessionToken: primary.sessionToken,
     assertion: {
       provider: 'github',
       providerUserId: 'github-alice',
@@ -26,18 +26,22 @@ export async function runLinkUnlinkExample(): Promise<void> {
     },
   })
 
-  const beforeUnlink = await service.getUserIdentities(primary.user.id)
-  await service.unlink({
-    userId: primary.user.id,
+  const beforeUnlink = await service.account.security.snapshot({
+    sessionToken: primary.sessionToken,
+  })
+  await service.account.identities.unlink({
+    sessionToken: primary.sessionToken,
     identityId: linked.identity.id,
   })
-  const afterUnlink = await service.getUserIdentities(primary.user.id)
+  const afterUnlink = await service.account.security.snapshot({
+    sessionToken: primary.sessionToken,
+  })
 
   console.log({
     userId: primary.user.id,
     linkedIdentityId: linked.identity.id,
-    beforeProviders: beforeUnlink.map((identity) => identity.provider),
-    afterProviders: afterUnlink.map((identity) => identity.provider),
+    beforeProviders: beforeUnlink.account.identities.map((identity) => identity.provider),
+    afterProviders: afterUnlink.account.identities.map((identity) => identity.provider),
   })
 }
 

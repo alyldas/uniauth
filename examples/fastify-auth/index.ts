@@ -89,7 +89,7 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
       },
     },
     async (request, reply) => {
-      const challenge = await authService.startOtpChallenge({
+      const challenge = await authService.public.otp.start({
         purpose: VerificationPurpose.SignIn,
         channel: OtpChannel.Email,
         target: request.body.email,
@@ -123,9 +123,10 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
       },
     },
     async (request, reply) => {
-      const result = await authService.finishOtpSignIn({
+      const result = await authService.public.otp.signIn({
         verificationId: parseVerificationId(request.body.verificationId),
         secret: request.body.code,
+        channel: OtpChannel.Email,
         metadata: { transport: 'fastify', route: 'otp-finish' },
       })
 
@@ -180,7 +181,7 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
         return reply.status(401).send({ error: AUTHENTICATION_REQUIRED_MESSAGE })
       }
 
-      const inspection = await authService.getCurrentAccountInspectionSnapshot({
+      const inspection = await authService.account.inspection.snapshot({
         sessionToken: auth.sessionToken,
         audit: { limit: 10 },
       })
@@ -214,7 +215,7 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
         return reply.status(401).send({ error: AUTHENTICATION_REQUIRED_MESSAGE })
       }
 
-      const challenge = await authService.startCurrentAccountContactChange({
+      const challenge = await authService.account.contact.start({
         sessionToken: auth.sessionToken,
         channel: OtpChannel.Email,
         target: request.body.email,
@@ -256,7 +257,7 @@ export async function createFastifyAuthExample(): Promise<FastifyAuthExample> {
         return reply.status(401).send({ error: AUTHENTICATION_REQUIRED_MESSAGE })
       }
 
-      const user = await authService.finishCurrentAccountContactChange({
+      const user = await authService.account.contact.finish({
         sessionToken: auth.sessionToken,
         verificationId: parseVerificationId(request.body.verificationId),
         secret: request.body.code,
@@ -355,7 +356,7 @@ function createFastifySessionPreHandler(
     }
 
     try {
-      const { session, user } = await authService.resolveSessionContext({
+      const { session, user } = await authService.admin.sessions.context({
         sessionToken,
         ...(options.touch !== undefined ? { touch: options.touch } : {}),
       })

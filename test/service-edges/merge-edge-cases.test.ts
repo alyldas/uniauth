@@ -35,6 +35,7 @@ describe('DefaultAuthService merge edge cases', () => {
       await mergeKit.service.mergeAccounts({
         sourceUserId: source.user.id,
         targetUserId: target.user.id,
+        sourceSessionToken: source.sessionToken,
       }),
     ).toMatchObject({ movedIdentityIds: [source.identity.id] })
     expect(nonActiveSourceSession.session.status).toBe(SessionStatus.Active)
@@ -97,6 +98,7 @@ describe('DefaultAuthService merge edge cases', () => {
       failingService.mergeAccounts({
         sourceUserId: source.user.id,
         targetUserId: target.user.id,
+        sourceSessionToken: source.sessionToken,
         reAuthenticatedAt: now,
         now,
       }),
@@ -164,6 +166,7 @@ describe('DefaultAuthService merge edge cases', () => {
       service.mergeAccounts({
         sourceUserId: asUserId('disabled-source'),
         targetUserId: target.user.id,
+        sourceSessionToken: target.sessionToken,
         reAuthenticatedAt: now,
         now,
       }),

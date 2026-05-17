@@ -79,16 +79,33 @@ import {
   getVerification,
   getVerificationResendWindow,
 } from './verifications.js'
+import {
+  toAccountSecurityCredentialView,
+  toAccountSecurityIdentityView,
+  toAccountSecuritySessionView,
+  toAccountSecurityUserView,
+  toAuditEventView,
+  toVerificationStatusView,
+} from '../domain/types.js'
 import type {
   AuthIdentity,
+  AccountAuditEventPage,
+  AccountClosureResult,
   AccountInspectionSnapshot,
+  AccountLinkResult,
+  AccountSecurityCredentialView,
   AccountSecuritySnapshot,
+  AccountSecurityUserView,
   AuditEvent,
   AuditEventPage,
   AuditEventQuery,
   AssertCurrentAccountReAuthInput,
   AuthResult,
+  AuthAccountFacade,
+  AuthAdminFacade,
   AuthService,
+  AuthPublicFacade,
+  PublicAuthResult,
   CancelCurrentAccountContactChangeInput,
   CurrentAccountClosureExportSnapshot,
   CurrentAccountInspectionSnapshot,
@@ -169,22 +186,147 @@ import type {
   Verification,
   VerificationResendWindow,
   VerificationId,
+  VerificationStatusView,
 } from '../domain/types.js'
 export type { DefaultAuthServiceOptions } from './runtime-defaults.js'
 
 export class DefaultAuthService implements AuthService {
+  readonly public: AuthPublicFacade
+  readonly account: AuthAccountFacade
+  readonly admin: AuthAdminFacade
+
   private readonly runtime: AuthServiceRuntime
 
   constructor(options: DefaultAuthServiceOptions) {
     this.runtime = createAuthServiceRuntime(options)
+    this.public = {
+      provider: {
+        signIn: this.publicSignIn.bind(this),
+      },
+      otp: {
+        start: this.startOtpChallenge.bind(this),
+        resend: this.resendOtpChallenge.bind(this),
+        signIn: this.publicFinishOtpSignIn.bind(this),
+      },
+      magicLink: {
+        start: this.startEmailMagicLinkSignIn.bind(this),
+        resend: this.resendEmailMagicLinkSignIn.bind(this),
+        finish: this.publicFinishEmailMagicLinkSignIn.bind(this),
+      },
+      password: {
+        signIn: this.publicSignInWithPassword.bind(this),
+      },
+      passwordRecovery: {
+        start: this.startEmailPasswordRecovery.bind(this),
+        resend: this.resendEmailPasswordRecovery.bind(this),
+      },
+    }
+    this.account = {
+      profile: {
+        update: this.accountUpdateProfile.bind(this),
+      },
+      contact: {
+        start: this.startCurrentAccountContactChange.bind(this),
+        resend: this.resendCurrentAccountContactChange.bind(this),
+        cancel: this.accountCancelContactChange.bind(this),
+        finish: this.accountFinishContactChange.bind(this),
+      },
+      password: {
+        set: this.accountSetPassword.bind(this),
+        confirm: this.confirmCurrentAccountPasswordByToken.bind(this),
+        change: this.accountChangePassword.bind(this),
+      },
+      reAuth: {
+        status: this.getCurrentAccountReAuthStatus.bind(this),
+        assert: this.assertCurrentAccountReAuth.bind(this),
+        startOtp: this.startCurrentAccountOtpReAuth.bind(this),
+        resendOtp: this.resendCurrentAccountOtpReAuth.bind(this),
+        cancelOtp: this.accountCancelOtpReAuth.bind(this),
+        finishOtp: this.finishCurrentAccountOtpReAuth.bind(this),
+        confirmPassword: this.confirmCurrentAccountPasswordByToken.bind(this),
+      },
+      sessions: {
+        revokeCurrent: this.revokeCurrentSessionByToken.bind(this),
+        revokeOwned: this.revokeOwnedSessionByToken.bind(this),
+        revokeOther: this.revokeOtherSessionsByToken.bind(this),
+      },
+      identities: {
+        link: this.accountLinkIdentity.bind(this),
+        unlink: this.unlinkCurrentIdentityByToken.bind(this),
+      },
+      security: {
+        snapshot: this.getCurrentAccountSecuritySnapshot.bind(this),
+      },
+      inspection: {
+        snapshot: this.getCurrentAccountInspectionSnapshot.bind(this),
+        closureExport: this.getCurrentAccountClosureExportSnapshot.bind(this),
+        auditPage: this.accountAuditEventPage.bind(this),
+      },
+      closure: {
+        close: this.accountClose.bind(this),
+      },
+    }
+    this.admin = {
+      users: {
+        get: this.getUser.bind(this),
+        identities: this.getUserIdentities.bind(this),
+        credentials: this.getUserCredentials.bind(this),
+        sessions: this.getUserSessions.bind(this),
+        revokeSessions: this.revokeUserSessions.bind(this),
+        securitySnapshot: this.getAccountSecuritySnapshot.bind(this),
+        inspectionSnapshot: this.getAccountInspectionSnapshot.bind(this),
+      },
+      accounts: {
+        link: this.link.bind(this),
+        unlink: this.unlink.bind(this),
+        merge: this.mergeAccounts.bind(this),
+      },
+      sessions: {
+        create: this.createSession.bind(this),
+        revoke: this.revokeSession.bind(this),
+        touch: this.touchSession.bind(this),
+        resolve: this.resolveSession.bind(this),
+        context: this.resolveSessionContext.bind(this),
+      },
+      verifications: {
+        create: this.createVerification.bind(this),
+        get: this.getVerification.bind(this),
+        cancel: this.cancelVerification.bind(this),
+        consume: this.consumeVerification.bind(this),
+        finishOtp: this.finishOtpChallenge.bind(this),
+        cancelOtp: this.cancelOtpChallenge.bind(this),
+        cancelMagicLink: this.cancelEmailMagicLinkSignIn.bind(this),
+        cancelPasswordRecovery: this.cancelEmailPasswordRecovery.bind(this),
+        resendWindow: this.getVerificationResendWindow.bind(this),
+      },
+      credentials: {
+        setPassword: this.setPassword.bind(this),
+        changePassword: this.changePassword.bind(this),
+        finishPasswordRecovery: this.finishEmailPasswordRecovery.bind(this),
+      },
+      audit: {
+        events: this.getAuditEvents.bind(this),
+        page: this.getAuditEventPage.bind(this),
+      },
+    }
   }
 
   async signIn(input: SignInInput): Promise<AuthResult> {
     return signIn(this.runtime, input)
   }
 
+  private async publicSignIn(input: SignInInput): Promise<PublicAuthResult> {
+    return toPublicAuthResult(await this.signIn(input))
+  }
+
   async signInWithPassword(input: SignInWithPasswordInput): Promise<AuthResult> {
     return signInWithPassword(this.runtime, input)
+  }
+
+  private async publicSignInWithPassword(
+    input: SignInWithPasswordInput,
+  ): Promise<PublicAuthResult> {
+    return toPublicAuthResult(await this.signInWithPassword(input))
   }
 
   async startOtpChallenge(input: StartOtpChallengeInput): Promise<StartOtpChallengeResult> {
@@ -209,6 +351,12 @@ export class DefaultAuthService implements AuthService {
     return cancelCurrentAccountOtpReAuth(this.runtime, input)
   }
 
+  private async accountCancelOtpReAuth(
+    input: CancelCurrentAccountOtpReAuthInput,
+  ): Promise<VerificationStatusView> {
+    return toVerificationStatusView(await this.cancelCurrentAccountOtpReAuth(input))
+  }
+
   async finishCurrentAccountOtpReAuth(
     input: FinishCurrentAccountOtpReAuthInput,
   ): Promise<CurrentAccountOtpReAuthConfirmation> {
@@ -231,6 +379,10 @@ export class DefaultAuthService implements AuthService {
     return finishOtpSignIn(this.runtime, input)
   }
 
+  private async publicFinishOtpSignIn(input: FinishOtpSignInInput): Promise<PublicAuthResult> {
+    return toPublicAuthResult(await this.finishOtpSignIn(input))
+  }
+
   async startEmailMagicLinkSignIn(
     input: StartEmailMagicLinkSignInInput,
   ): Promise<StartEmailMagicLinkSignInResult> {
@@ -249,6 +401,12 @@ export class DefaultAuthService implements AuthService {
 
   async finishEmailMagicLinkSignIn(input: FinishEmailMagicLinkSignInInput): Promise<AuthResult> {
     return finishEmailMagicLinkSignIn(this.runtime, input)
+  }
+
+  private async publicFinishEmailMagicLinkSignIn(
+    input: FinishEmailMagicLinkSignInInput,
+  ): Promise<PublicAuthResult> {
+    return toPublicAuthResult(await this.finishEmailMagicLinkSignIn(input))
   }
 
   async setPassword(input: SetPasswordInput): Promise<Credential> {
@@ -345,8 +503,20 @@ export class DefaultAuthService implements AuthService {
     return getCurrentAccountAuditEventPage(this.runtime, input)
   }
 
+  private async accountAuditEventPage(
+    input: GetCurrentAccountAuditEventPageInput,
+  ): Promise<AccountAuditEventPage> {
+    return toAccountAuditEventPage(await this.getCurrentAccountAuditEventPage(input))
+  }
+
   async linkCurrentIdentityByToken(input: LinkCurrentIdentityByTokenInput): Promise<LinkResult> {
     return linkCurrentIdentityByToken(this.runtime, input)
+  }
+
+  private async accountLinkIdentity(
+    input: LinkCurrentIdentityByTokenInput,
+  ): Promise<AccountLinkResult> {
+    return toAccountLinkResult(await this.linkCurrentIdentityByToken(input))
   }
 
   async revokeCurrentSessionByToken(input: RevokeCurrentSessionByTokenInput): Promise<void> {
@@ -375,10 +545,22 @@ export class DefaultAuthService implements AuthService {
     return closeCurrentAccountByToken(this.runtime, input)
   }
 
+  private async accountClose(
+    input: CloseCurrentAccountByTokenInput,
+  ): Promise<AccountClosureResult> {
+    return toAccountClosureResult(await this.closeCurrentAccountByToken(input))
+  }
+
   async updateCurrentAccountProfileByToken(
     input: UpdateCurrentAccountProfileByTokenInput,
   ): Promise<User> {
     return updateCurrentAccountProfileByToken(this.runtime, input)
+  }
+
+  private async accountUpdateProfile(
+    input: UpdateCurrentAccountProfileByTokenInput,
+  ): Promise<AccountSecurityUserView> {
+    return toAccountSecurityUserView(await this.updateCurrentAccountProfileByToken(input))
   }
 
   async startCurrentAccountContactChange(
@@ -399,16 +581,34 @@ export class DefaultAuthService implements AuthService {
     return cancelCurrentAccountContactChange(this.runtime, input)
   }
 
+  private async accountCancelContactChange(
+    input: CancelCurrentAccountContactChangeInput,
+  ): Promise<VerificationStatusView> {
+    return toVerificationStatusView(await this.cancelCurrentAccountContactChange(input))
+  }
+
   async finishCurrentAccountContactChange(
     input: FinishCurrentAccountContactChangeInput,
   ): Promise<User> {
     return finishCurrentAccountContactChange(this.runtime, input)
   }
 
+  private async accountFinishContactChange(
+    input: FinishCurrentAccountContactChangeInput,
+  ): Promise<AccountSecurityUserView> {
+    return toAccountSecurityUserView(await this.finishCurrentAccountContactChange(input))
+  }
+
   async setCurrentAccountPasswordByToken(
     input: SetCurrentAccountPasswordByTokenInput,
   ): Promise<Credential> {
     return setCurrentAccountPasswordByToken(this.runtime, input)
+  }
+
+  private async accountSetPassword(
+    input: SetCurrentAccountPasswordByTokenInput,
+  ): Promise<AccountSecurityCredentialView> {
+    return toAccountSecurityCredentialView(await this.setCurrentAccountPasswordByToken(input))
   }
 
   async confirmCurrentAccountPasswordByToken(
@@ -421,6 +621,12 @@ export class DefaultAuthService implements AuthService {
     input: ChangeCurrentAccountPasswordByTokenInput,
   ): Promise<Credential> {
     return changeCurrentAccountPasswordByToken(this.runtime, input)
+  }
+
+  private async accountChangePassword(
+    input: ChangeCurrentAccountPasswordByTokenInput,
+  ): Promise<AccountSecurityCredentialView> {
+    return toAccountSecurityCredentialView(await this.changeCurrentAccountPasswordByToken(input))
   }
 
   async touchSession(input: TouchSessionInput): Promise<Session> {
@@ -490,4 +696,38 @@ export class DefaultAuthService implements AuthService {
 
 export function createAuthService(options: DefaultAuthServiceOptions): DefaultAuthService {
   return new DefaultAuthService(options)
+}
+
+function toPublicAuthResult(result: AuthResult): PublicAuthResult {
+  return {
+    user: toAccountSecurityUserView(result.user),
+    identity: toAccountSecurityIdentityView(result.identity),
+    session: toAccountSecuritySessionView(result.session),
+    sessionToken: result.sessionToken,
+    isNewUser: result.isNewUser,
+    isNewIdentity: result.isNewIdentity,
+  }
+}
+
+function toAccountLinkResult(result: LinkResult): AccountLinkResult {
+  return {
+    user: toAccountSecurityUserView(result.user),
+    identity: toAccountSecurityIdentityView(result.identity),
+    linked: result.linked,
+  }
+}
+
+function toAccountClosureResult(result: CloseCurrentAccountByTokenResult): AccountClosureResult {
+  return {
+    user: toAccountSecurityUserView(result.user),
+    currentSessionId: result.currentSessionId,
+    revokedSessionIds: result.revokedSessionIds,
+  }
+}
+
+function toAccountAuditEventPage(page: AuditEventPage): AccountAuditEventPage {
+  return {
+    events: page.events.map((event) => toAuditEventView(event)),
+    ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
+  }
 }

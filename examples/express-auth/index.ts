@@ -92,7 +92,7 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
     try {
       const email = readRequiredString(request.body?.email, 'email')
       const password = readRequiredString(request.body?.password, 'password')
-      const result = await authService.signInWithPassword({
+      const result = await authService.public.password.signIn({
         email,
         password,
         metadata: { transport: 'express', route: 'password-sign-in' },
@@ -111,7 +111,7 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
   app.post('/auth/otp/start', async (request, response, next) => {
     try {
       const email = readRequiredString(request.body?.email, 'email')
-      const challenge = await authService.startOtpChallenge({
+      const challenge = await authService.public.otp.start({
         purpose: VerificationPurpose.SignIn,
         channel: OtpChannel.Email,
         target: email,
@@ -133,9 +133,10 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
         readRequiredString(request.body?.verificationId, 'verificationId'),
       )
       const code = readRequiredString(request.body?.code, 'code')
-      const result = await authService.finishOtpSignIn({
+      const result = await authService.public.otp.signIn({
         verificationId,
         secret: code,
+        channel: OtpChannel.Email,
         metadata: { transport: 'express', route: 'otp-finish' },
       })
 
@@ -182,7 +183,7 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
           return
         }
 
-        const inspection = await authService.getCurrentAccountInspectionSnapshot({
+        const inspection = await authService.account.inspection.snapshot({
           sessionToken: auth.sessionToken,
           audit: { limit: 10 },
         })
@@ -208,7 +209,7 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
         }
 
         const email = readRequiredString(request.body?.email, 'email')
-        const challenge = await authService.startCurrentAccountContactChange({
+        const challenge = await authService.account.contact.start({
           sessionToken: auth.sessionToken,
           channel: OtpChannel.Email,
           target: email,
@@ -243,7 +244,7 @@ export async function createExpressAuthExample(): Promise<ExpressAuthExample> {
           readRequiredString(request.body?.verificationId, 'verificationId'),
         )
         const code = readRequiredString(request.body?.code, 'code')
-        const user = await authService.finishCurrentAccountContactChange({
+        const user = await authService.account.contact.finish({
           sessionToken: auth.sessionToken,
           verificationId,
           secret: code,
@@ -334,7 +335,7 @@ async function seedDemoAccount(authService: DefaultAuthService): Promise<DemoAcc
     email: 'demo@example.com',
     password: 'demo-password-123',
   }
-  const initial = await authService.signIn({
+  const initial = await authService.public.provider.signIn({
     assertion: {
       provider: 'express-demo-seed',
       providerUserId: demoAccount.email,
@@ -345,7 +346,7 @@ async function seedDemoAccount(authService: DefaultAuthService): Promise<DemoAcc
     metadata: { seed: true },
   })
 
-  await authService.setPassword({
+  await authService.admin.credentials.setPassword({
     userId: initial.user.id,
     email: demoAccount.email,
     password: demoAccount.password,
@@ -391,7 +392,7 @@ function createExpressSessionMiddleware(
     }
 
     try {
-      const { session, user } = await authService.resolveSessionContext({
+      const { session, user } = await authService.admin.sessions.context({
         sessionToken,
         ...(options.touch !== undefined ? { touch: options.touch } : {}),
       })

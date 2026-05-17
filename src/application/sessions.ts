@@ -19,7 +19,7 @@ import {
   hasActiveSessionStatus,
   isActiveSession,
 } from '../domain/types.js'
-import { UniAuthError, UniAuthErrorCode, invalidInput } from '../errors.js'
+import { UniAuthError, UniAuthErrorCode, invalidInput, isUniAuthError } from '../errors.js'
 import { generateSecret, hashSecret } from '../utils/secrets.js'
 import { addSeconds, assertValidDate } from '../utils/time.js'
 
@@ -100,6 +100,8 @@ export async function resolveSession(
   if (!session || !isActiveSession(session, now)) {
     throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
   }
+
+  await requireActiveSessionUser(runtime, session.userId)
 
   return session
 }
@@ -216,6 +218,21 @@ async function requireStoredSession(
   }
 
   return session
+}
+
+async function requireActiveSessionUser(
+  runtime: AuthServiceRuntime,
+  userId: UserId,
+): Promise<void> {
+  try {
+    await getActiveUser(runtime, userId)
+  } catch (error) {
+    if (isUniAuthError(error) && error.code === UniAuthErrorCode.UserNotFound) {
+      throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
+    }
+
+    throw error
+  }
 }
 
 export async function revokeStoredSession(

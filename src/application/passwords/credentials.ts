@@ -11,12 +11,13 @@ import {
 } from '../../domain/types.js'
 import { UniAuthError, UniAuthErrorCode, invalidCredentials, invalidInput } from '../../errors.js'
 import {
-  assertPassword,
+  enforcePasswordPolicy,
   ensurePasswordIdentity,
   findUsablePasswordIdentity,
   getPasswordHasher,
   normalizePasswordEmail,
 } from './shared.js'
+import { PasswordPolicyPurpose } from '../../ports.js'
 
 export async function setPassword(
   runtime: AuthServiceRuntime,
@@ -29,7 +30,13 @@ export async function setPassword(
     await ensureReAuth(runtime, AuthPolicyAction.SetPassword, user.id, input.reAuthenticatedAt, now)
 
     const email = normalizePasswordEmail(runtime, input.email)
-    assertPassword(input.password)
+    await enforcePasswordPolicy(runtime, {
+      password: input.password,
+      purpose: PasswordPolicyPurpose.SetPassword,
+      userId: user.id,
+      email,
+      now,
+    })
     const passwordHasher = getPasswordHasher(runtime)
     const existingForEmail = await runtime.repos.credentialRepo.findPasswordByEmail(email)
 
@@ -83,7 +90,6 @@ export async function changePassword(
       now,
     )
 
-    assertPassword(input.newPassword)
     const passwordHasher = getPasswordHasher(runtime)
     const credential = await runtime.repos.credentialRepo.findPasswordByUserId(user.id)
 
@@ -95,6 +101,13 @@ export async function changePassword(
     }
 
     await findUsablePasswordIdentity(runtime, credential, credential.subject)
+    await enforcePasswordPolicy(runtime, {
+      password: input.newPassword,
+      purpose: PasswordPolicyPurpose.ChangePassword,
+      userId: user.id,
+      email: credential.subject,
+      now,
+    })
 
     return runtime.repos.credentialRepo.update(credential.id, {
       passwordHash: await passwordHasher.hash(input.newPassword),

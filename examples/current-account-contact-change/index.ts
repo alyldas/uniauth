@@ -11,7 +11,7 @@ export async function runCurrentAccountContactChangeExample(): Promise<void> {
     }),
     verificationResendCooldownSeconds: 0,
   })
-  const signedIn = await service.signIn({
+  const signedIn = await service.public.provider.signIn({
     assertion: {
       provider: 'email',
       providerUserId: 'alice@example.com',
@@ -22,7 +22,7 @@ export async function runCurrentAccountContactChangeExample(): Promise<void> {
     now,
   })
 
-  const emailChange = await service.startCurrentAccountContactChange({
+  const emailChange = await service.account.contact.start({
     sessionToken: signedIn.sessionToken,
     channel: OtpChannel.Email,
     target: 'alice.new@example.com',
@@ -37,14 +37,14 @@ export async function runCurrentAccountContactChangeExample(): Promise<void> {
     throw new Error('Expected the application-owned email sender to capture one message.')
   }
 
-  const updated = await service.finishCurrentAccountContactChange({
+  const updated = await service.account.contact.finish({
     sessionToken: signedIn.sessionToken,
     verificationId: emailChange.verificationId,
     secret: '123456',
     now: addSeconds(now, 20),
     metadata: { route: 'account-contact-email-finish' },
   })
-  const phoneChange = await service.startCurrentAccountContactChange({
+  const phoneChange = await service.account.contact.start({
     sessionToken: signedIn.sessionToken,
     channel: OtpChannel.Phone,
     target: '+1 (555) 000-0100',
@@ -53,14 +53,14 @@ export async function runCurrentAccountContactChangeExample(): Promise<void> {
     now: addSeconds(now, 30),
     metadata: { route: 'account-contact-phone-start' },
   })
-  const resentPhoneChange = await service.resendCurrentAccountContactChange({
+  const resentPhoneChange = await service.account.contact.resend({
     sessionToken: signedIn.sessionToken,
     verificationId: phoneChange.verificationId,
     secret: '777777',
     now: addSeconds(now, 40),
     metadata: { route: 'account-contact-phone-resend' },
   })
-  const cancelledPhoneChange = await service.cancelCurrentAccountContactChange({
+  const cancelledPhoneChange = await service.account.contact.cancel({
     sessionToken: signedIn.sessionToken,
     verificationId: resentPhoneChange.verificationId,
     now: addSeconds(now, 50),
