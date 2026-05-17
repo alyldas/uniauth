@@ -74,6 +74,7 @@ export interface LinkCurrentIdentityByTokenInput {
 export interface MergeAccountsInput {
   readonly sourceUserId: UserId
   readonly targetUserId: UserId
+  readonly sourceSessionToken: string
   readonly reAuthenticatedAt?: Date
   readonly now?: Date
   readonly metadata?: Record<string, unknown>

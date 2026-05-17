@@ -16,9 +16,10 @@ import {
 } from './merge-support.js'
 import { audit } from '../support.js'
 import { normalizeMetadataRecord } from '../metadata.js'
+import { resolveSessionContext } from '../session-context.js'
 import type { MergeAccountsInput, MergeResult } from '../../domain/types.js'
 import { AuditEventType, isActiveUser } from '../../domain/types.js'
-import { UniAuthError, UniAuthErrorCode } from '../../errors.js'
+import { UniAuthError, UniAuthErrorCode, invalidInput } from '../../errors.js'
 
 export async function mergeAccounts(
   runtime: AuthServiceRuntime,
@@ -36,6 +37,8 @@ export async function mergeAccounts(
       if (alreadyMergedResult) {
         return alreadyMergedResult
       }
+
+      await ensureSourceOwnership(runtime, input, now)
 
       const mergeAllowed = await runtime.policy.canMergeUsers({
         sourceUser: state.sourceUser,
@@ -154,4 +157,23 @@ async function resolveAlreadyMergedResult(
   })
 
   return result
+}
+
+async function ensureSourceOwnership(
+  runtime: AuthServiceRuntime,
+  input: MergeAccountsInput,
+  now: Date,
+): Promise<void> {
+  if (!input.sourceSessionToken) {
+    throw invalidInput('Source session token is required for account merge.')
+  }
+
+  const { user } = await resolveSessionContext(runtime, {
+    sessionToken: input.sourceSessionToken,
+    now,
+  })
+
+  if (user.id !== input.sourceUserId) {
+    throw new UniAuthError(UniAuthErrorCode.SessionNotFound, 'Session was not found.')
+  }
 }

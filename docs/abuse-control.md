@@ -55,7 +55,7 @@ After a trusted backend creates an OTP, magic-link, or password-recovery verific
 serve a cooldown endpoint through the new resend window API:
 
 ```ts
-const window = await authService.getVerificationResendWindow({
+const window = await authService.admin.verifications.resendWindow({
   verificationId,
   cooldownSeconds: 60,
 })
@@ -93,7 +93,7 @@ Trusted backends can convert a resend request into a fresh verification plus a f
 attempt:
 
 ```ts
-const resent = await authService.resendOtpChallenge({
+const resent = await authService.public.otp.resend({
   verificationId,
 })
 ```
@@ -101,13 +101,13 @@ const resent = await authService.resendOtpChallenge({
 The same pattern exists for email-link flows:
 
 ```ts
-const resentMagic = await authService.resendEmailMagicLinkSignIn({
+const resentMagic = await authService.public.magicLink.resend({
   verificationId,
   createLink: ({ verificationId, secret }) =>
     `/auth/magic?verification=${verificationId}&token=${secret}`,
 })
 
-const resentRecovery = await authService.resendEmailPasswordRecovery({
+const resentRecovery = await authService.public.passwordRecovery.resend({
   verificationId,
   createLink: ({ verificationId, secret }) =>
     `/auth/recovery?verification=${verificationId}&token=${secret}`,
@@ -127,7 +127,7 @@ Recommended semantics:
 Trusted backends can explicitly terminate the active pending verification:
 
 ```ts
-await authService.cancelVerification({
+await authService.admin.verifications.cancel({
   verificationId,
   metadata: { reason: 'user_cancelled' },
 })
@@ -137,16 +137,16 @@ For the common local-auth flows, use the narrower helpers when the backend alrea
 type:
 
 ```ts
-await authService.cancelOtpChallenge({
+await authService.admin.verifications.cancelOtp({
   verificationId,
   channel: OtpChannel.Email,
 })
 
-await authService.cancelEmailMagicLinkSignIn({
+await authService.admin.verifications.cancelMagicLink({
   verificationId,
 })
 
-await authService.cancelEmailPasswordRecovery({
+await authService.admin.verifications.cancelPasswordRecovery({
   verificationId,
 })
 ```
@@ -166,7 +166,7 @@ One practical trusted backend pattern:
 ```ts
 async function postOtpStart(email: string) {
   try {
-    const challenge = await authService.startOtpChallenge({
+    const challenge = await authService.public.otp.start({
       purpose: VerificationPurpose.SignIn,
       channel: OtpChannel.Email,
       target: email,
@@ -193,7 +193,7 @@ One resend endpoint can stay equally neutral:
 ```ts
 async function postOtpResend(verificationId: string) {
   try {
-    const challenge = await authService.resendOtpChallenge({
+    const challenge = await authService.public.otp.resend({
       verificationId,
     })
 
@@ -214,7 +214,7 @@ And one explicit cancellation endpoint can stay equally small:
 
 ```ts
 async function postOtpCancel(verificationId: string) {
-  await authService.cancelOtpChallenge({
+  await authService.admin.verifications.cancelOtp({
     verificationId,
     channel: OtpChannel.Email,
   })
@@ -233,7 +233,7 @@ The same pattern applies to magic-link sign-in:
 ```ts
 async function postMagicLinkStart(email: string) {
   try {
-    const challenge = await authService.startEmailMagicLinkSignIn({
+    const challenge = await authService.public.magicLink.start({
       email,
       createLink: ({ verificationId, secret }) =>
         `/auth/magic?verification=${verificationId}&token=${secret}`,
@@ -253,7 +253,7 @@ async function postMagicLinkStart(email: string) {
 ```
 
 If the application later wants to show resend state, it should use
-`getVerificationResendWindow(...)` from a trusted backend route rather than deriving timers in the
+`admin.verifications.resendWindow(...)` from a trusted backend route rather than deriving timers in the
 browser.
 
 For resend execution:
@@ -261,7 +261,7 @@ For resend execution:
 ```ts
 async function postMagicLinkResend(verificationId: string) {
   try {
-    const challenge = await authService.resendEmailMagicLinkSignIn({
+    const challenge = await authService.public.magicLink.resend({
       verificationId,
       createLink: ({ verificationId, secret }) =>
         `/auth/magic?verification=${verificationId}&token=${secret}`,
@@ -284,7 +284,7 @@ Cancellation can stay just as narrow:
 
 ```ts
 async function postMagicLinkCancel(verificationId: string) {
-  await authService.cancelEmailMagicLinkSignIn({
+  await authService.admin.verifications.cancelMagicLink({
     verificationId,
   })
 
@@ -302,7 +302,7 @@ Password-recovery start can reuse the exact same pattern:
 ```ts
 async function postPasswordRecoveryStart(email: string) {
   try {
-    const challenge = await authService.startEmailPasswordRecovery({
+    const challenge = await authService.public.passwordRecovery.start({
       email,
       createLink: ({ verificationId, secret }) =>
         `/auth/recovery?verification=${verificationId}&token=${secret}`,
@@ -329,7 +329,7 @@ Resend execution follows the same server-owned pattern:
 ```ts
 async function postPasswordRecoveryResend(verificationId: string) {
   try {
-    const challenge = await authService.resendEmailPasswordRecovery({
+    const challenge = await authService.public.passwordRecovery.resend({
       verificationId,
       createLink: ({ verificationId, secret }) =>
         `/auth/recovery?verification=${verificationId}&token=${secret}`,
@@ -352,7 +352,7 @@ And the matching cancellation endpoint:
 
 ```ts
 async function postPasswordRecoveryCancel(verificationId: string) {
-  await authService.cancelEmailPasswordRecovery({
+  await authService.admin.verifications.cancelPasswordRecovery({
     verificationId,
   })
 

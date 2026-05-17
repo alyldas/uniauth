@@ -6,6 +6,7 @@ import {
   DefaultAuthService,
   OtpChannel,
   PASSWORD_PROVIDER_ID,
+  PasswordPolicyPurpose,
   RateLimitAction,
   SessionStatus,
   UniAuthErrorCode,
@@ -343,6 +344,123 @@ describe('password credentials', () => {
     expect(nonStringSetupPasswordError).toMatchObject({ code: UniAuthErrorCode.InvalidInput })
     expect(nonStringSignInPasswordError).toMatchObject({
       code: UniAuthErrorCode.InvalidCredentials,
+    })
+  })
+
+  it('enforces configured password policy only for new password material', async () => {
+    const seenPurposes: string[] = []
+    const { service, store } = createInMemoryAuthKit({
+      clock: { now: () => now },
+      passwordPolicy: {
+        validate(input) {
+          seenPurposes.push(input.purpose)
+
+          if (input.password.length < 12) {
+            return { allowed: false, reason: 'Password is too weak.' }
+          }
+        },
+      },
+    })
+    const initial = await service.signIn({
+      assertion: assertion({ provider: 'oauth', providerUserId: 'policy-oauth' }),
+      now,
+    })
+    const weakSetError = await service
+      .setPassword({
+        userId: initial.user.id,
+        email: 'policy@example.com',
+        password: 'short',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+    await service.setPassword({
+      userId: initial.user.id,
+      email: 'policy@example.com',
+      password: 'long-enough-password',
+      now,
+    })
+    const weakChangeError = await service
+      .changePassword({
+        userId: initial.user.id,
+        currentPassword: 'long-enough-password',
+        newPassword: 'short',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+    const wrongCurrentError = await service
+      .changePassword({
+        userId: initial.user.id,
+        currentPassword: 'wrong-password',
+        newPassword: 'short',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+    const recovery = await service.startEmailPasswordRecovery({
+      email: 'policy@example.com',
+      secret: 'policy-recovery-secret',
+      createLink: ({ verificationId, secret }) => `${verificationId}:${secret}`,
+      now,
+    })
+    const weakRecoveryError = await service
+      .finishEmailPasswordRecovery({
+        verificationId: recovery.verificationId,
+        secret: 'policy-recovery-secret',
+        newPassword: 'short',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+    await service.finishEmailPasswordRecovery({
+      verificationId: recovery.verificationId,
+      secret: 'policy-recovery-secret',
+      newPassword: 'long-recovered-password',
+      now,
+    })
+
+    expect(weakSetError).toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Password is too weak.',
+    })
+    expect(weakChangeError).toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Password is too weak.',
+    })
+    expect(wrongCurrentError).toMatchObject({ code: UniAuthErrorCode.InvalidCredentials })
+    expect(weakRecoveryError).toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Password is too weak.',
+    })
+    expect(store.listCredentials()).toHaveLength(1)
+    expect(seenPurposes).toEqual([
+      PasswordPolicyPurpose.SetPassword,
+      PasswordPolicyPurpose.SetPassword,
+      PasswordPolicyPurpose.ChangePassword,
+      PasswordPolicyPurpose.PasswordRecovery,
+      PasswordPolicyPurpose.PasswordRecovery,
+    ])
+  })
+
+  it('uses a stable default message when password policy denies without a reason', async () => {
+    const { service } = createInMemoryAuthKit({
+      passwordPolicy: {
+        validate: () => ({ allowed: false }),
+      },
+    })
+    const initial = await service.signIn({
+      assertion: assertion({ provider: 'oauth', providerUserId: 'policy-default-message-oauth' }),
+      now,
+    })
+    const error = await service
+      .setPassword({
+        userId: initial.user.id,
+        email: 'policy-default-message@example.com',
+        password: 'any-password',
+        now,
+      })
+      .catch((caught: unknown) => caught)
+
+    expect(error).toMatchObject({
+      code: UniAuthErrorCode.InvalidInput,
+      message: 'Password does not satisfy password policy.',
     })
   })
 

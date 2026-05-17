@@ -27,7 +27,7 @@ Do not call these flows directly from browsers or mobile clients.
 The preferred starting point is the trusted aggregate inspection helper:
 
 ```ts
-const inspection = await authService.getAccountInspectionSnapshot({
+const inspection = await authService.admin.users.inspectionSnapshot({
   userId,
   audit: {
     limit: 50,
@@ -99,9 +99,9 @@ If the operator surface needs one narrower panel instead of the whole snapshot, 
 exposes the individual read-side calls:
 
 ```ts
-const user = await authService.getUser(userId)
-const sessions = await authService.getUserSessions(userId)
-const credentials = await authService.getUserCredentials(userId)
+const user = await authService.admin.users.get(userId)
+const sessions = await authService.admin.users.sessions(userId)
+const credentials = await authService.admin.users.credentials(userId)
 ```
 
 Use the aggregate inspection helper as the default and treat it as the canonical support pagination
@@ -114,7 +114,7 @@ If the operator surface needs a custom audit filter or explicitly needs raw audi
 down to the narrower audit API:
 
 ```ts
-const auditPage = await authService.getAuditEventPage({
+const auditPage = await authService.admin.audit.page({
   userId,
   limit: 50,
 })
@@ -126,12 +126,12 @@ For continuation-friendly trusted pagination, derive the cursor from the last it
 returned and keep it server-owned:
 
 ```ts
-const firstPage = await authService.getAuditEventPage({
+const firstPage = await authService.admin.audit.page({
   userId,
   limit: 50,
 })
 
-const nextPage = await authService.getAuditEventPage({
+const nextPage = await authService.admin.audit.page({
   userId,
   before: firstPage.nextCursor,
   limit: 50,
@@ -161,7 +161,7 @@ when you do not need metadata.
 When support or admin tooling needs to inspect one verification by id:
 
 ```ts
-const verification = await authService.getVerification(verificationId)
+const verification = await authService.admin.verifications.get(verificationId)
 const verificationStatus = toVerificationStatusView(verification)
 ```
 
@@ -186,7 +186,7 @@ For a continuation-friendly next page, stay on the same aggregate helper and reu
 already returns. This should be the default recipe for operator tooling:
 
 ```ts
-const nextInspection = await authService.getAccountInspectionSnapshot({
+const nextInspection = await authService.admin.users.inspectionSnapshot({
   userId,
   audit: {
     limit: 50,
@@ -204,11 +204,11 @@ async function inspectAccountSecurity(input: {
   readonly userId: string
   readonly verificationId?: string
   readonly before?: NonNullable<
-    Awaited<ReturnType<typeof authService.getAccountInspectionSnapshot>>['nextAuditCursor']
+    Awaited<ReturnType<typeof authService.admin.users.inspectionSnapshot>>['nextAuditCursor']
   >
   readonly limit?: number
 }) {
-  const inspection = await authService.getAccountInspectionSnapshot({
+  const inspection = await authService.admin.users.inspectionSnapshot({
     userId: input.userId,
     audit: {
       limit: input.limit ?? 50,
@@ -217,7 +217,7 @@ async function inspectAccountSecurity(input: {
   })
 
   const verificationStatus = input.verificationId
-    ? toVerificationStatusView(await authService.getVerification(input.verificationId))
+    ? toVerificationStatusView(await authService.admin.verifications.get(input.verificationId))
     : undefined
 
   return {

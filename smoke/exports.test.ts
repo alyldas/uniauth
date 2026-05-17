@@ -1,5 +1,7 @@
-import { readFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rmdir, unlink, writeFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import packageJson from '../package.json'
 import tsconfigBuild from '../tsconfig.build.json'
@@ -14,6 +16,7 @@ interface PackageMetadata {
 }
 
 const packageMetadata = packageJson as PackageMetadata
+const packageName = packageMetadata.name
 
 const expectedEntrypoints = {
   '.': 'src/index.ts',
@@ -24,6 +27,108 @@ const expectedEntrypoints = {
   './postgres': 'src/postgres.ts',
   './testing': 'src/testing/index.ts',
 } as const
+
+const canonicalSurfaceDocs = [
+  'README.md',
+  'docs/abuse-control.md',
+  'docs/account-security.md',
+  'docs/architecture.md',
+  'docs/backend-recipes.md',
+  'docs/bridges.md',
+  'docs/comparison.md',
+  'docs/development.md',
+  'docs/licensing.md',
+  'docs/local-auth.md',
+  'docs/messenger-providers.md',
+  'docs/normalization.md',
+  'docs/oauth-oidc.md',
+  'docs/otp-delivery.md',
+  'docs/postgres.md',
+  'docs/provider-token-persistence.md',
+  'docs/roadmap.md',
+  'docs/security.md',
+  'docs/session-transport.md',
+  'docs/support-inspection.md',
+  'docs/threat-model.md',
+  'examples/basic-node/index.ts',
+  'examples/current-account-contact-change/index.ts',
+  'examples/express-auth/index.ts',
+  'examples/fastify-auth/index.ts',
+  'examples/link-unlink/index.ts',
+  'examples/oauth-oidc/index.ts',
+  'examples/otp-backend/index.ts',
+  'examples/provider-finish/index.ts',
+  'examples/shared/email.ts',
+  'examples/shared/http.ts',
+  'examples/shared/session-cookie.ts',
+  'examples/shared/views.ts',
+] as const
+
+const flatServiceCallPattern = /\b(?:service|authService)\.(?!public\b|account\b|admin\b)\w+\s*\(/gu
+
+const packageExportPath = (exportPath: string): string => {
+  return exportPath === '.' ? packageName : `${packageName}${exportPath.slice(1)}`
+}
+
+const findMatchesWithLineNumbers = (source: string, pattern: RegExp): string[] => {
+  return Array.from(source.matchAll(pattern), (match) => {
+    const line = source.slice(0, match.index).split('\n').length
+    return `${line}: ${match[0]}`
+  })
+}
+
+const writeTypeConsumerCheckFile = async (dir: string): Promise<void> => {
+  await writeFile(
+    join(dir, 'package-consumer-check.ts'),
+    `import { createAuthService, PasswordPolicyPurpose, type AccountAuditEventPage, type AccountClosureResult, type AccountLinkResult, type AuthAccountFacade, type AuthAdminFacade, type AuthPolicyAction, type AuthPublicFacade, type AuditEventType, type PublicAuthResult, type UniAuthErrorCode, type PasswordPolicy } from ${JSON.stringify(packageName)}
+import { mapAuthJsOAuthToAssertion, mapBetterAuthOAuthToAssertion } from ${JSON.stringify(`${packageName}/bridges`)}
+import { createOAuthOidcProvider } from ${JSON.stringify(`${packageName}/providers/oauth-oidc`)}
+import { createTelegramMiniAppProvider } from ${JSON.stringify(`${packageName}/providers/messenger`)}
+import { applyPostgresAuthSchema, createPostgresAuthStore, POSTGRES_AUTH_SCHEMA_SQL } from ${JSON.stringify(`${packageName}/postgres`)}
+import { createInMemoryAuthKit } from ${JSON.stringify(`${packageName}/testing`)}
+
+export type SmokeTypeConsumerCheck = {
+  policyAction: AuthPolicyAction
+  eventType: AuditEventType
+  errorCode: UniAuthErrorCode
+  publicFacade: AuthPublicFacade
+  accountFacade: AuthAccountFacade
+  adminFacade: AuthAdminFacade
+  publicAuthResult: PublicAuthResult
+  accountLinkResult: AccountLinkResult
+  accountClosureResult: AccountClosureResult
+  accountAuditEventPage: AccountAuditEventPage
+  passwordPolicy: PasswordPolicy
+}
+
+export const _authPolicyAction: AuthPolicyAction = 'changePassword'
+export const _auditEventType: AuditEventType = 'auth.sign_in'
+export const _errorCode: UniAuthErrorCode = 'invalid_input'
+export const _passwordPolicyPurpose = PasswordPolicyPurpose.SetPassword
+export const _passwordPolicy: PasswordPolicy = { validate: () => ({ allowed: true }) }
+export const _createAuthService = createAuthService
+export const _mapAuthJsOAuthToAssertion = mapAuthJsOAuthToAssertion
+export const _mapBetterAuthOAuthToAssertion = mapBetterAuthOAuthToAssertion
+export const _createOAuthOidcProvider = createOAuthOidcProvider
+export const _createTelegramMiniAppProvider = createTelegramMiniAppProvider
+export const _applyPostgresAuthSchema = applyPostgresAuthSchema
+export const _createPostgresAuthStore = createPostgresAuthStore
+export const _postgresSchema = POSTGRES_AUTH_SCHEMA_SQL
+export const _createInMemoryAuthKit = createInMemoryAuthKit
+`,
+    'utf8',
+  )
+}
+
+const extractInterfaceDeclaration = (source: string, interfaceName: string): string => {
+  const start = source.indexOf(`export interface ${interfaceName}`)
+  if (start === -1) {
+    return ''
+  }
+
+  const nextInterface = source.indexOf('\nexport interface ', start + 1)
+  return source.slice(start, nextInterface === -1 ? undefined : nextInterface)
+}
 
 describe('package exports', () => {
   it('keeps package exports, tsup entries, and declaration entry files aligned', () => {
@@ -49,19 +154,19 @@ describe('package exports', () => {
   it('loads the root entry point without mutating process environment', async () => {
     const before = { ...process.env }
 
-    await import('../dist')
+    await import(packageExportPath('.'))
 
     expect(process.env).toEqual(before)
   })
 
   it('loads the public ESM entry points', async () => {
-    const bridges = await import('../dist/bridges')
-    const contracts = await import('../dist/contracts')
-    const core = await import('../dist')
-    const messengerProviders = await import('../dist/providers/messenger')
-    const oauthOidcProviders = await import('../dist/providers/oauth-oidc')
-    const postgres = await import('../dist/postgres')
-    const testing = await import('../dist/testing')
+    const core = await import(packageExportPath('.'))
+    const bridges = await import(packageExportPath('./bridges'))
+    const contracts = await import(packageExportPath('./contracts'))
+    const messengerProviders = await import(packageExportPath('./providers/messenger'))
+    const oauthOidcProviders = await import(packageExportPath('./providers/oauth-oidc'))
+    const postgres = await import(packageExportPath('./postgres'))
+    const testing = await import(packageExportPath('./testing'))
 
     expect(Object.keys(contracts)).toEqual([])
     expect(bridges.mapAuthJsOAuthToAssertion).toBeTypeOf('function')
@@ -80,6 +185,9 @@ describe('package exports', () => {
     expect(core.MAX_WEBAPP_PROVIDER_ID).toBe('max-webapp')
     expect(core.OtpChannel.Phone).toBe('phone')
     expect(core.PASSWORD_PROVIDER_ID).toBe('password')
+    expect(core.PasswordPolicyPurpose.SetPassword).toBe('set_password')
+    expect(core.PasswordPolicyPurpose.ChangePassword).toBe('change_password')
+    expect(core.PasswordPolicyPurpose.PasswordRecovery).toBe('password_recovery')
     expect(core.PHONE_OTP_PROVIDER_ID).toBe('phone-otp')
     expect(core.VerificationPurpose.ContactChange).toBe('contact-change')
     expect(core.RateLimitAction.ProviderSignIn).toBe('provider:sign-in')
@@ -170,6 +278,9 @@ describe('package exports', () => {
     expect(core.DefaultAuthService.prototype.revokeUserSessions).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.getUserSessions).toBeTypeOf('function')
     expect(core.DefaultAuthService.prototype.touchSession).toBeTypeOf('function')
+    expect(testing.createInMemoryAuthKit().service.public.password.signIn).toBeTypeOf('function')
+    expect(testing.createInMemoryAuthKit().service.account.profile.update).toBeTypeOf('function')
+    expect(testing.createInMemoryAuthKit().service.admin.users.get).toBeTypeOf('function')
     expect(core.toAccountInspectionSnapshot).toBeTypeOf('function')
     expect(core.toAccountSecuritySnapshot).toBeTypeOf('function')
     expect(core.toCurrentAccountInspectionSnapshot).toBeTypeOf('function')
@@ -214,8 +325,7 @@ describe('package exports', () => {
 
   it('loads every public package subpath through self-reference exports', async () => {
     for (const exportPath of Object.keys(expectedEntrypoints)) {
-      const importPath =
-        exportPath === '.' ? packageMetadata.name : `${packageMetadata.name}${exportPath.slice(1)}`
+      const importPath = packageExportPath(exportPath)
       const result = spawnSync(
         process.execPath,
         ['--input-type=module', '--eval', `await import(${JSON.stringify(importPath)})`],
@@ -227,6 +337,59 @@ describe('package exports', () => {
 
       expect(result.stderr).toBe('')
       expect(result.status).toBe(0)
+    }
+  })
+
+  it('keeps docs and examples on the canonical grouped service surface', async () => {
+    const directFlatCalls: string[] = []
+
+    for (const filePath of canonicalSurfaceDocs) {
+      const source = await readFile(join(process.cwd(), filePath), 'utf8')
+      for (const match of findMatchesWithLineNumbers(source, flatServiceCallPattern)) {
+        directFlatCalls.push(`${filePath}:${match}`)
+      }
+    }
+
+    expect(directFlatCalls).toEqual([])
+  })
+
+  it('type-checks package self-reference consumer imports', async () => {
+    const temporaryDirectory = await mkdtemp(join(process.cwd(), '.uniauth-package-consumer-'))
+    const consumerSourcePath = join(temporaryDirectory, 'package-consumer-check.ts')
+    const tscPath = fileURLToPath(new URL('../node_modules/typescript/bin/tsc', import.meta.url))
+
+    try {
+      await writeTypeConsumerCheckFile(temporaryDirectory)
+      const result = spawnSync(
+        tscPath,
+        [
+          '--pretty',
+          'false',
+          '--ignoreConfig',
+          '--module',
+          'NodeNext',
+          '--moduleResolution',
+          'NodeNext',
+          '--target',
+          'ES2022',
+          '--strict',
+          '--noEmit',
+          '--skipLibCheck',
+          '--types',
+          'node',
+          consumerSourcePath,
+        ],
+        {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+        },
+      )
+
+      expect(result.status).toBe(0)
+      expect(result.stderr).toBe('')
+    } finally {
+      await unlink(consumerSourcePath).catch(() => undefined)
+      await rmdir(temporaryDirectory).catch(() => undefined)
     }
   })
 
@@ -265,6 +428,32 @@ describe('package exports', () => {
     )
 
     expect(contractsDeclarations).toContain('AuthServiceInfrastructure')
+    expect(serviceDeclarations).toContain('export interface PublicAuthResult')
+    expect(serviceDeclarations).toContain('export interface AuthPublicFacade')
+    expect(serviceDeclarations).toContain('export interface AuthAccountFacade')
+    expect(serviceDeclarations).toContain('export interface AuthAdminFacade')
+    expect(serviceDeclarations).toContain('readonly public: AuthPublicFacade')
+    const publicFacadeDeclaration = extractInterfaceDeclaration(
+      serviceDeclarations,
+      'AuthPublicFacade',
+    )
+    const accountFacadeDeclaration = extractInterfaceDeclaration(
+      serviceDeclarations,
+      'AuthAccountFacade',
+    )
+    const publicAuthResultDeclaration = extractInterfaceDeclaration(
+      serviceDeclarations,
+      'PublicAuthResult',
+    )
+    expect(publicFacadeDeclaration).not.toMatch(/Promise<(AuthResult|Verification|Credential)>/u)
+    expect(accountFacadeDeclaration).not.toMatch(
+      /Promise<(User|AuthIdentity|LinkResult|Verification|Credential|AuditEventPage|CloseCurrentAccountByTokenResult)>/u,
+    )
+    expect(publicAuthResultDeclaration).not.toMatch(/tokenHash|passwordHash|secretHash/u)
+    expect(serviceDeclarations).toContain('export interface AccountLinkResult')
+    expect(serviceDeclarations).toContain('export interface AccountClosureResult')
+    expect(serviceDeclarations).toContain('export interface AccountAuditEventPage')
+    expect(contractsDeclarations).toContain('PasswordPolicy')
     expect(viewDeclarations).toContain('export interface CurrentAccountSecuritySnapshot')
     expect(viewDeclarations).toContain('export interface CurrentAccountInspectionSnapshot')
     expect(viewDeclarations).toContain('export interface CurrentAccountClosureExportSnapshot')

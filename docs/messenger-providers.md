@@ -21,8 +21,8 @@ import {
 } from '@alyldas/uniauth/providers/messenger'
 ```
 
-The root package keeps these exports for compatibility, but messenger-specific consumers should
-prefer the explicit `@alyldas/uniauth/providers/messenger` subpath.
+The root package keeps these exports for compatibility-only migration support, but messenger-specific
+consumers should prefer the explicit `@alyldas/uniauth/providers/messenger` subpath.
 
 The shared validator follows the signed WebApp launch-data algorithm used by Telegram and MAX:
 
@@ -53,7 +53,7 @@ providerRegistry.register(telegramProvider)
 Finish a sign-in with raw `Telegram.WebApp.initData`:
 
 ```ts
-const result = await service.signIn({
+const result = await service.public.provider.signIn({
   provider: TELEGRAM_MINI_APP_PROVIDER_ID,
   finishInput: {
     payload: {
@@ -84,7 +84,7 @@ providerRegistry.register(maxProvider)
 Direct `initData`:
 
 ```ts
-await service.signIn({
+await service.public.provider.signIn({
   provider: MAX_WEBAPP_PROVIDER_ID,
   finishInput: {
     payload: {
@@ -97,7 +97,7 @@ await service.signIn({
 Full URL or fragment:
 
 ```ts
-await service.signIn({
+await service.public.provider.signIn({
   provider: MAX_WEBAPP_PROVIDER_ID,
   finishInput: {
     payload: {
@@ -118,7 +118,7 @@ Messenger providers stay app-owned at bootstrap and transport layers:
 - register providers in the same bootstrap where `ProviderRegistry` and `AuthService` are created;
 - pass raw signed `initData` from your HTTP or RPC boundary into `finishInput.payload`;
 - issue sealed browser cookies, redirects, and CSRF/state handling in the application layer after
-  `service.signIn(...)` returns a local session.
+  `service.public.provider.signIn(...)` returns a local session.
 
 ### Telegram Mini App Route
 
@@ -138,7 +138,7 @@ providerRegistry.register(
 
 export async function postTelegramMiniAppSignIn(request: Request) {
   const body = await request.json()
-  const result = await authService.signIn({
+  const result = await authService.public.provider.signIn({
     provider: TELEGRAM_MINI_APP_PROVIDER_ID,
     finishInput: {
       payload: {
@@ -182,7 +182,7 @@ providerRegistry.register(
 
 export async function postMaxWebAppSignIn(request: Request) {
   const body = await request.json()
-  const result = await authService.signIn({
+  const result = await authService.public.provider.signIn({
     provider: MAX_WEBAPP_PROVIDER_ID,
     finishInput: {
       payload: {

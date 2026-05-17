@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import packageJson from '../../package.json'
 import {
   AuditEventType,
+  DefaultAuthService,
   OtpChannel,
   PASSWORD_PROVIDER_ID,
   SessionStatus,
@@ -142,6 +143,15 @@ describe('DefaultAuthService read side and sessions', () => {
     await store.userRepo.update(result.user.id, { disabledAt: addSeconds(now, 10) })
 
     await expect(
+      service.resolveSession({
+        sessionToken: result.sessionToken,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+      message: 'Session was not found.',
+    })
+    await expect(
       service.resolveSessionContext({
         sessionToken: result.sessionToken,
         touch: true,
@@ -152,6 +162,75 @@ describe('DefaultAuthService read side and sessions', () => {
       message: 'Session was not found.',
     })
     expect(store.listSessions()).toEqual([result.session])
+  })
+
+  it('keeps session context neutral if the user disappears after token resolution', async () => {
+    const { service, store } = createInMemoryAuthKit()
+    const result = await service.signIn({ assertion: assertion(), now })
+    let userReadCount = 0
+    const racingService = new DefaultAuthService({
+      repos: {
+        userRepo: {
+          ...store.userRepo,
+          findById: async (userId) => {
+            userReadCount += 1
+            return userReadCount === 1 ? store.userRepo.findById(userId) : undefined
+          },
+        },
+        identityRepo: store.identityRepo,
+        credentialRepo: store.credentialRepo,
+        verificationRepo: store.verificationRepo,
+        sessionRepo: store.sessionRepo,
+        auditLogRepo: store.auditLogRepo,
+      },
+      transaction: store,
+    })
+
+    await expect(
+      racingService.resolveSessionContext({
+        sessionToken: result.sessionToken,
+        now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+      message: 'Session was not found.',
+    })
+  })
+
+  it('rethrows unexpected session-context user lookup failures', async () => {
+    const { service, store } = createInMemoryAuthKit()
+    const result = await service.signIn({ assertion: assertion(), now })
+    let userReadCount = 0
+    const lookupFailure = new Error('user lookup failed')
+    const failingService = new DefaultAuthService({
+      repos: {
+        userRepo: {
+          ...store.userRepo,
+          findById: async (userId) => {
+            userReadCount += 1
+
+            if (userReadCount === 1) {
+              return store.userRepo.findById(userId)
+            }
+
+            throw lookupFailure
+          },
+        },
+        identityRepo: store.identityRepo,
+        credentialRepo: store.credentialRepo,
+        verificationRepo: store.verificationRepo,
+        sessionRepo: store.sessionRepo,
+        auditLogRepo: store.auditLogRepo,
+      },
+      transaction: store,
+    })
+
+    await expect(
+      failingService.resolveSessionContext({
+        sessionToken: result.sessionToken,
+        now,
+      }),
+    ).rejects.toBe(lookupFailure)
   })
 
   it('reads local credentials and verifications through the public service surface', async () => {

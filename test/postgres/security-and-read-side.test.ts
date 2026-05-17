@@ -6,6 +6,7 @@ import {
   UniAuthErrorCode,
   VerificationPurpose,
   addSeconds,
+  asUserId,
   createDefaultAuthPolicy,
   toAuditEventCursor,
 } from '../../src'
@@ -100,6 +101,38 @@ describe('Postgres reference persistence security and read side', () => {
       }),
     ).rejects.toMatchObject({
       code: UniAuthErrorCode.LastIdentity,
+    })
+  })
+
+  it('enforces atomic identity disable guards in the Postgres repository', async () => {
+    const { service, store } = await createPostgresTestKit()
+    const signedIn = await service.signIn({
+      assertion: {
+        provider: 'email',
+        providerUserId: 'pg-identity-disable-guard',
+        email: 'pg-identity-disable-guard@example.com',
+        emailVerified: true,
+      },
+      now,
+    })
+
+    await expect(
+      store.identityRepo.disableForUserIfAnotherActive(signedIn.identity.id, signedIn.user.id, {
+        disabledAt: now,
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.LastIdentity,
+    })
+    await expect(
+      store.identityRepo.disableForUserIfAnotherActive(
+        signedIn.identity.id,
+        asUserId('different-user'),
+        {
+          disabledAt: now,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.IdentityNotFound,
     })
   })
 
@@ -253,6 +286,15 @@ describe('Postgres reference persistence security and read side', () => {
       disabledAt: addSeconds(now, 10),
     })
 
+    await expect(
+      service.resolveSession({
+        sessionToken: signedIn.sessionToken,
+        now: addSeconds(now, 20),
+      }),
+    ).rejects.toMatchObject({
+      code: UniAuthErrorCode.SessionNotFound,
+      message: 'Session was not found.',
+    })
     await expect(
       service.resolveSessionContext({
         sessionToken: signedIn.sessionToken,

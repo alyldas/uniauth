@@ -45,7 +45,9 @@ risks, see [Threat model](threat-model.md).
 - Link provider identity: allowed by default; extension point: `AuthPolicy.canLinkIdentity`.
 - Unlink identity: allowed only when another active identity remains; extension point:
   `AuthPolicy.canUnlinkIdentity`.
-- Merge users: denied by default; extension point: `AuthPolicy.canMergeUsers`. The merge context now
+- Merge users: denied by default; extension point: `AuthPolicy.canMergeUsers`. `mergeAccounts(...)`
+  requires `sourceSessionToken` for active source accounts and should only be available through
+  trusted backend/admin flows when product policy requires stronger approval. The merge context
   includes source and target active identities so policy can inspect provider trust and metadata.
 - Re-auth: required for merge by default; extension point: `AuthPolicy.requiresReAuth`.
 - Current-account contact change: allowed by default after trusted session resolution and OTP proof;
@@ -89,8 +91,9 @@ risks, see [Threat model](threat-model.md).
 - Email magic-link sign-in reuses the same anti-enumeration, hash-only secret storage, and
   consume-once guarantees as OTP sign-in.
 - OTP code generation can be configured without changing the hash-only verification storage model.
-- Password credentials use a `PasswordHasher` port so production apps can choose a password hashing
-  runtime without adding a mandatory dependency to core.
+- Password credentials use `PasswordHasher` and optional `PasswordPolicy` ports so production apps
+  can choose hashing runtime, parameters, strength rules, and breached-password checks without
+  adding mandatory dependencies to core.
 - Password recovery reuses the verification lifecycle and rate-limit port without creating sessions
   during reset.
 
@@ -137,8 +140,8 @@ risks, see [Threat model](threat-model.md).
 - SMTP/SMS delivery security.
 - SMTP/SMS retry, bounce handling, and dead-letter queues.
 - Magic-link route handling, browser redirects, cookie issuance, and request parsing.
-- Password strength policy, breached-password checks, password hashing parameter selection, pepper
-  loading, and password reset UI.
+- Password strength-policy implementation, breached-password data sources, password hashing
+  parameter selection, pepper loading, and password reset UI.
 - Production rate-limit storage, distributed counters, edge runtime integration, and response
   headers.
 - Database migrations and production SQL constraints.

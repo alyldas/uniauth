@@ -89,7 +89,7 @@ license, subscription, private contract, or other written permission.
 ```mermaid
 flowchart LR
   Provider["AuthProvider<br/>external assertion"] --> Registry["ProviderRegistry<br/>SDK-free lookup"]
-  Registry --> Service["AuthService<br/>signIn / link / unlink / merge"]
+  Registry --> Service["AuthService<br/>public / account / admin"]
   Policy["AuthPolicy<br/>auto-link / merge / re-auth"] --> Service
   RateLimiter["RateLimiter<br/>attempt buckets"] --> Service
   Service --> Repos["Repositories<br/>users / identities / credentials / sessions / verifications"]
@@ -97,6 +97,33 @@ flowchart LR
   Service --> Senders["Sender ports<br/>email / SMS"]
   Testing["@alyldas/uniauth/testing<br/>in-memory kit"] --> Service
 ```
+
+`DefaultAuthService` keeps the flat method surface for compatibility, but the canonical route
+surface is grouped by security boundary:
+
+```ts
+await auth.public.password.signIn({ email, password })
+await auth.public.otp.start({ target, channel })
+await auth.public.magicLink.finish({ verificationId, secret })
+await auth.public.passwordRecovery.start({ email, createLink })
+
+await auth.account.profile.update({ sessionToken, displayName })
+await auth.account.contact.start({ sessionToken, target, channel })
+await auth.account.password.change({ sessionToken, currentPassword, newPassword })
+await auth.account.reAuth.assert({ sessionToken, reAuthenticatedAt })
+await auth.account.sessions.revokeOther({ sessionToken })
+await auth.account.security.snapshot({ sessionToken })
+
+await auth.admin.users.get(userId)
+await auth.admin.users.sessions(userId)
+await auth.admin.accounts.merge({ sourceUserId, targetUserId, sourceSessionToken })
+await auth.admin.verifications.get(verificationId)
+await auth.admin.audit.page({ userId })
+```
+
+`auth.public` sign-in methods return `PublicAuthResult`: user, identity, and session views plus the
+one-time `sessionToken`, without server-only hashes such as `tokenHash`, `passwordHash`, or
+`secretHash`.
 
 ```mermaid
 sequenceDiagram
@@ -120,7 +147,7 @@ sequenceDiagram
   end
   Service->>Store: create local session
   Service->>Audit: auth.session_created
-  Service-->>App: neutral AuthResult
+  Service-->>App: neutral PublicAuthResult
 ```
 
 ```mermaid
@@ -196,6 +223,7 @@ import {
   type EmailMagicLink,
   type EmailPasswordRecoveryLink,
   type PasswordHasher,
+  type PasswordPolicy,
   type ProviderIdentityAssertion,
   type RateLimiter,
   type SecretHasher,
@@ -241,6 +269,7 @@ import type {
   Clock,
   IdGenerator,
   PasswordHasher,
+  PasswordPolicy,
   ProviderRegistry,
   RateLimiter,
   SecretHasher,
@@ -303,7 +332,7 @@ const { service } = createInMemoryAuthKit({
   policy,
 })
 
-const result = await service.signIn({
+const result = await service.public.provider.signIn({
   assertion: {
     provider: 'email-otp',
     providerUserId: 'alice@example.com',
@@ -321,7 +350,7 @@ For account-security or verification-status pages, prefer the built-in read-side
 helpers instead of serializing raw entities directly:
 
 ```ts
-const snapshot = await service.getAccountSecuritySnapshot(userId)
+const snapshot = await service.admin.users.securitySnapshot(userId)
 
 const verificationStatus = toVerificationStatusView(verification)
 ```
@@ -330,7 +359,7 @@ When the caller is already authenticated by a trusted local `sessionToken`, pref
 helper instead of manually composing `resolveSessionContext(...)` and `getAccountSecuritySnapshot(...)`:
 
 ```ts
-const current = await service.getCurrentAccountSecuritySnapshot({
+const current = await service.account.security.snapshot({
   sessionToken,
   touch: true,
 })
@@ -340,7 +369,7 @@ When the current account page also needs a bounded self-service audit timeline, 
 inspection aggregate instead of mixing current-account and admin-oriented helpers:
 
 ```ts
-const currentInspection = await service.getCurrentAccountInspectionSnapshot({
+const currentInspection = await service.account.inspection.snapshot({
   sessionToken,
   touch: true,
   audit: {
@@ -353,7 +382,7 @@ Before destructive account closure, a self-service route can also stay on the tr
 boundary and return a safe pre-closure auth snapshot:
 
 ```ts
-const closureExport = await service.getCurrentAccountClosureExportSnapshot({
+const closureExport = await service.account.inspection.closureExport({
   sessionToken,
   audit: {
     limit: 50,
@@ -364,7 +393,7 @@ const closureExport = await service.getCurrentAccountClosureExportSnapshot({
 Trusted backend tooling can start from one trusted aggregate inspection helper:
 
 ```ts
-const inspection = await service.getAccountInspectionSnapshot({
+const inspection = await service.admin.users.inspectionSnapshot({
   userId,
   audit: {
     limit: 20,
@@ -375,48 +404,48 @@ const inspection = await service.getAccountInspectionSnapshot({
 If the surrounding tooling truly needs raw audit entities, custom filters, or metadata-aware
 serialization, `getAuditEvents(...)` and `getAuditEventPage(...)` remain available as the narrower
 read-side primitives. Self-service current-account routes that need timeline pagination can stay on
-the trusted token boundary through `getCurrentAccountAuditEventPage(...)`.
+the trusted token boundary through `account.inspection.auditPage(...)`.
 
 The same trusted token boundary can also own self-service account mutations:
 
 ```ts
-await service.updateCurrentAccountProfileByToken({
+await service.account.profile.update({
   sessionToken,
   displayName,
   reAuthenticatedAt,
 })
 
-const contactChange = await service.startCurrentAccountContactChange({
+const contactChange = await service.account.contact.start({
   sessionToken,
   channel: OtpChannel.Email,
   target: newEmail,
   reAuthenticatedAt,
 })
 
-await service.finishCurrentAccountContactChange({
+await service.account.contact.finish({
   sessionToken,
   verificationId: contactChange.verificationId,
   secret: code,
 })
 
-await service.revokeOwnedSessionByToken({
+await service.account.sessions.revokeOwned({
   sessionToken,
   targetSessionId,
 })
 
-await service.unlinkCurrentIdentityByToken({
+await service.account.identities.unlink({
   sessionToken,
   identityId,
   reAuthenticatedAt,
 })
 
-await service.linkCurrentIdentityByToken({
+await service.account.identities.link({
   sessionToken,
   assertion,
   reAuthenticatedAt,
 })
 
-await service.closeCurrentAccountByToken({
+await service.account.closure.close({
   sessionToken,
   reAuthenticatedAt,
 })
@@ -426,24 +455,24 @@ The same trusted boundary can bootstrap recent-auth proof for those sensitive cu
 mutations:
 
 ```ts
-const challenge = await service.startCurrentAccountOtpReAuth({
+const challenge = await service.account.reAuth.startOtp({
   sessionToken,
   identityId,
   channel: OtpChannel.Email,
 })
 
-const resent = await service.resendCurrentAccountOtpReAuth({
+const resent = await service.account.reAuth.resendOtp({
   sessionToken,
   verificationId: challenge.verificationId,
 })
 
-const otpConfirmation = await service.finishCurrentAccountOtpReAuth({
+const otpConfirmation = await service.account.reAuth.finishOtp({
   sessionToken,
   verificationId: resent.verificationId,
   secret: codeFromUserInput,
 })
 
-const passwordConfirmation = await service.confirmCurrentAccountPasswordByToken({
+const passwordConfirmation = await service.account.reAuth.confirmPassword({
   sessionToken,
   currentPassword,
 })
@@ -451,7 +480,7 @@ const passwordConfirmation = await service.confirmCurrentAccountPasswordByToken(
 passwordConfirmation.currentSessionId
 passwordConfirmation.reAuthenticatedAt
 
-const reAuthStatus = await service.getCurrentAccountReAuthStatus({
+const reAuthStatus = await service.account.reAuth.status({
   sessionToken,
   action: AuthPolicyAction.ChangePassword,
   reAuthenticatedAt: otpConfirmation.reAuthenticatedAt,
@@ -461,7 +490,7 @@ const reAuthStatus = await service.getCurrentAccountReAuthStatus({
 Trusted resend and cooldown polling can use one read-side helper per verification:
 
 ```ts
-const resendWindow = await service.getVerificationResendWindow({
+const resendWindow = await service.admin.verifications.resendWindow({
   verificationId,
   cooldownSeconds: 60,
 })
@@ -487,7 +516,7 @@ Public error helpers use the `UniAuth` brand casing:
 
 ```ts
 try {
-  await service.signIn({})
+  await service.public.provider.signIn({})
 } catch (error) {
   if (isUniAuthError(error) && error.code === UniAuthErrorCode.InvalidInput) {
     throw new UniAuthError(UniAuthErrorCode.InvalidInput, error.message)
@@ -497,7 +526,10 @@ try {
 
 Rate limiting is optional and app-owned. Core calls a `RateLimiter` port before security-sensitive
 attempts and turns a denied decision into a stable `UniAuthErrorCode.RateLimited` error without
-creating users, sessions, or consuming OTP verifications.
+creating users, sessions, or consuming OTP verifications. Production bootstraps can set
+`requireRateLimiter: true` so local auth flows fail fast if a limiter was not wired. Password
+strength checks are also optional and app-owned through `PasswordPolicy`; production bootstraps can
+set `requirePasswordPolicy: true` to fail fast when password flows are enabled without that policy.
 
 ```ts
 const rateLimiter: RateLimiter = {
@@ -513,21 +545,21 @@ const rateLimiter: RateLimiter = {
 const { service } = createInMemoryAuthKit({ rateLimiter })
 ```
 
-OTP sign-in is still headless: `startOtpChallenge` creates a hashed verification secret and sends
-the plain code through the configured sender port; `finishOtpSignIn` consumes the code once and
-creates a local session. Email and phone OTP both use this unified API.
+OTP sign-in is still headless: `public.otp.start` creates a hashed verification secret and sends the
+plain code through the configured sender port; `public.otp.signIn` consumes the code once and creates
+a local session. Email and phone OTP both use this unified API.
 
 ```ts
 const { service } = createInMemoryAuthKit()
 
-const challenge = await service.startOtpChallenge({
+const challenge = await service.public.otp.start({
   purpose: VerificationPurpose.SignIn,
   channel: OtpChannel.Email,
   target: 'alice@example.com',
   secret: '123456',
 })
 
-const result = await service.finishOtpSignIn({
+const result = await service.public.otp.signIn({
   verificationId: challenge.verificationId,
   secret: '123456',
   channel: OtpChannel.Email,
@@ -555,14 +587,14 @@ domain, redirect handling, or cookie transport; the application provides a `crea
 an `EmailSender`.
 
 ```ts
-const magicLink = await service.startEmailMagicLinkSignIn({
+const magicLink = await service.public.magicLink.start({
   email: 'alice@example.com',
   createLink(input: EmailMagicLink) {
     return `/auth/magic?verification=${input.verificationId}&token=${input.secret}`
   },
 })
 
-const magicResult = await service.finishEmailMagicLinkSignIn({
+const magicResult = await service.public.magicLink.finish({
   verificationId: magicLink.verificationId,
   secret: 'token-from-request',
 })
@@ -570,8 +602,9 @@ const magicResult = await service.finishEmailMagicLinkSignIn({
 console.log(magicResult.identity.provider === EMAIL_MAGIC_LINK_PROVIDER_ID)
 ```
 
-Password credentials use a dedicated `CredentialRepo` and a `PasswordHasher` port. Production apps
-should provide an adapter backed by their chosen password hashing runtime and parameters; the
+Password credentials use a dedicated `CredentialRepo`, a `PasswordHasher` port, and an optional
+`PasswordPolicy` port for new password material. Production apps should provide adapters backed by
+their chosen password hashing runtime, parameters, and strength or breached-password policy; the
 in-memory testing kit only ships a low-cost `scrypt` test hasher.
 
 ```ts
@@ -584,15 +617,23 @@ const passwordHasher: PasswordHasher = {
   },
 }
 
-const { service } = createInMemoryAuthKit({ passwordHasher })
+const passwordPolicy: PasswordPolicy = {
+  validate({ password }) {
+    if (password.length < 12) {
+      return { allowed: false, reason: 'Password is too weak.' }
+    }
+  },
+}
 
-await service.setPassword({
-  userId,
-  email: 'alice@example.com',
+const { service } = createInMemoryAuthKit({ passwordHasher, passwordPolicy })
+
+await service.account.password.set({
+  sessionToken,
   password: 'new password from settings form',
+  reAuthenticatedAt,
 })
 
-const passwordResult = await service.signInWithPassword({
+const passwordResult = await service.public.password.signIn({
   email: 'alice@example.com',
   password: 'password from sign-in form',
 })
@@ -604,14 +645,14 @@ Password recovery is an email verification flow. Core creates a hashed recovery 
 your `createLink` function; your application owns the route and reset form.
 
 ```ts
-const recovery = await service.startEmailPasswordRecovery({
+const recovery = await service.public.passwordRecovery.start({
   email: 'alice@example.com',
   createLink(input: EmailPasswordRecoveryLink) {
     return `/auth/recovery?verification=${input.verificationId}&token=${input.secret}`
   },
 })
 
-await service.finishEmailPasswordRecovery({
+await service.admin.credentials.finishPasswordRecovery({
   verificationId: recovery.verificationId,
   secret: 'token-from-request',
   newPassword: 'new password from reset form',

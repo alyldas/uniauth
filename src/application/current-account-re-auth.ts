@@ -48,6 +48,7 @@ import {
   invalidInput,
   isUniAuthError,
 } from '../errors.js'
+import { assertValidDate } from '../utils/time.js'
 
 const CURRENT_ACCOUNT_RE_AUTH_TARGET_ERROR =
   'Identity cannot be used for current-account OTP re-auth.'
@@ -63,6 +64,7 @@ export async function getCurrentAccountReAuthStatus(
   input: GetCurrentAccountReAuthStatusInput,
 ): Promise<CurrentAccountReAuthStatus> {
   const actor = await resolveCurrentAccountActor(runtime, input.sessionToken, input.now)
+  validateReAuthMarker(input.reAuthenticatedAt, actor.now)
 
   return {
     currentSessionId: actor.sessionId,
@@ -76,6 +78,18 @@ export async function getCurrentAccountReAuthStatus(
     }),
     checkedAt: actor.now,
     ...optionalProp('reAuthenticatedAt', input.reAuthenticatedAt),
+  }
+}
+
+function validateReAuthMarker(reAuthenticatedAt: Date | undefined, now: Date): void {
+  if (reAuthenticatedAt === undefined) {
+    return
+  }
+
+  assertValidDate(reAuthenticatedAt, 'Re-authentication time is invalid.')
+
+  if (reAuthenticatedAt.getTime() > now.getTime()) {
+    throw invalidInput('Re-authentication time cannot be in the future.')
   }
 }
 

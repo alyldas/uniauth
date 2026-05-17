@@ -82,7 +82,7 @@ app.use(express.json())
 
 app.post('/auth/password/sign-in', async (req, res, next) => {
   try {
-    const result = await authService.signInWithPassword({
+    const result = await authService.public.password.signIn({
       email: req.body.email,
       password: req.body.password,
     })
@@ -99,6 +99,14 @@ app.post('/auth/password/sign-in', async (req, res, next) => {
   }
 })
 ```
+
+Prefer the grouped service surface in new routes:
+
+- `authService.public` for unauthenticated sign-in, OTP, magic-link, and password-recovery routes.
+- `authService.account` for current-account self-service routes that start from a trusted
+  `sessionToken`.
+- `authService.admin` for trusted backend/operator routes that address users, accounts, sessions,
+  verifications, or audit data directly.
 
 For Express session middleware shape, bearer-vs-cookie extraction, and the
 `resolveSessionContext({ sessionToken, touch })` helper, use
@@ -138,7 +146,7 @@ const app = Fastify()
 await app.register(cookie)
 
 app.post('/auth/magic/finish', async (request, reply) => {
-  const result = await authService.finishEmailMagicLinkSignIn({
+  const result = await authService.public.magicLink.finish({
     verificationId: request.body.verificationId,
     secret: request.body.secret,
   })
@@ -180,7 +188,7 @@ current-account helpers, then persist the resulting marker in app-owned session 
 ```ts
 app.post('/auth/account/reauth/otp/finish', requireSession, async (req, res, next) => {
   try {
-    const confirmation = await authService.finishCurrentAccountOtpReAuth({
+    const confirmation = await authService.account.reAuth.finishOtp({
       sessionToken: req.auth.sessionToken,
       verificationId: req.body.verificationId,
       secret: req.body.code,
@@ -194,9 +202,9 @@ app.post('/auth/account/reauth/otp/finish', requireSession, async (req, res, nex
 })
 ```
 
-Use `startCurrentAccountOtpReAuth(...)`, `resendCurrentAccountOtpReAuth(...)`, and
-`cancelCurrentAccountOtpReAuth(...)` for the rest of that challenge lifecycle. For password-based
-recent-auth, use `confirmCurrentAccountPasswordByToken(...)` and store the returned
+Use `account.reAuth.startOtp(...)`, `account.reAuth.resendOtp(...)`, and
+`account.reAuth.cancelOtp(...)` for the rest of that challenge lifecycle. For password-based
+recent-auth, use `account.reAuth.confirmPassword(...)` and store the returned
 `currentSessionId` and `reAuthenticatedAt` marker the same way. The framework still owns request
 validation, browser UI, recent-auth marker TTL, cookies, and redirects.
 
@@ -218,7 +226,7 @@ export class PasswordAuthController {
     @Body() body: { email: string; password: string },
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.auth.signInWithPassword(body)
+    const result = await this.auth.public.password.signIn(body)
 
     res.cookie('session', sealSessionToken(result.sessionToken), {
       httpOnly: true,
@@ -251,7 +259,7 @@ import { authService } from '@/server/auth-service'
 
 export async function POST(request: Request) {
   const body = await request.json()
-  const result = await authService.finishOtpSignIn({
+  const result = await authService.public.otp.signIn({
     verificationId: body.verificationId,
     secret: body.secret,
   })
@@ -326,7 +334,7 @@ current-account routes:
 ```ts
 app.patch('/auth/account/profile', requireSession, async (req, res, next) => {
   try {
-    const user = await authService.updateCurrentAccountProfileByToken({
+    const user = await authService.account.profile.update({
       sessionToken: req.auth.sessionToken,
       displayName: req.body.displayName,
       reAuthenticatedAt: req.auth.reAuthenticatedAt,
@@ -357,7 +365,7 @@ validation, UI labels, cookie rotation, notification preferences, and any produc
 ```ts
 app.post('/auth/account/contact-change/start', requireSession, async (req, res, next) => {
   try {
-    const started = await authService.startCurrentAccountContactChange({
+    const started = await authService.account.contact.start({
       sessionToken: req.auth.sessionToken,
       channel: req.body.channel,
       target: req.body.target,
@@ -378,7 +386,7 @@ app.post('/auth/account/contact-change/start', requireSession, async (req, res, 
 ```ts
 app.post('/auth/account/contact-change/finish', requireSession, async (req, res, next) => {
   try {
-    const user = await authService.finishCurrentAccountContactChange({
+    const user = await authService.account.contact.finish({
       sessionToken: req.auth.sessionToken,
       verificationId: req.body.verificationId,
       secret: req.body.code,
@@ -396,7 +404,7 @@ app.post('/auth/account/contact-change/finish', requireSession, async (req, res,
 })
 ```
 
-Use `resendCurrentAccountContactChange(...)` and `cancelCurrentAccountContactChange(...)` for
+Use `account.contact.resend(...)` and `account.contact.cancel(...)` for
 trusted resend and cancellation routes. The helpers update only `User.email` or `User.phone` after
 proof of the new target; sign-in identities, password credential subjects, OAuth profiles, avatars,
 and downstream application records remain owned by their existing flows.
@@ -410,7 +418,7 @@ the destructive close route:
 ```ts
 app.get('/auth/account/closure-export', requireSession, async (req, res, next) => {
   try {
-    const snapshot = await authService.getCurrentAccountClosureExportSnapshot({
+    const snapshot = await authService.account.inspection.closureExport({
       sessionToken: req.auth.sessionToken,
       audit: {
         limit: 50,
@@ -440,7 +448,7 @@ clear browser transport state after the helper succeeds:
 ```ts
 app.post('/auth/account/close', requireSession, async (req, res, next) => {
   try {
-    await authService.closeCurrentAccountByToken({
+    await authService.account.closure.close({
       sessionToken: req.auth.sessionToken,
       reAuthenticatedAt: req.auth.reAuthenticatedAt,
     })

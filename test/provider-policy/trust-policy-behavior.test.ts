@@ -125,6 +125,7 @@ describe('provider trust and link policy behavior', () => {
         .mergeAccounts({
           sourceUserId: untrustedUser.user.id,
           targetUserId: mergeTarget.user.id,
+          sourceSessionToken: untrustedUser.sessionToken,
           reAuthenticatedAt: now,
           now,
         })

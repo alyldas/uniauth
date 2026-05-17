@@ -136,6 +136,34 @@ export class InMemoryAuthStore implements AuthServiceRepositories, UnitOfWork {
       this.identities.set(updated.id, updated)
       return updated
     },
+    disableForUserIfAnotherActive: async (id, userId, patch) => {
+      const existing = this.identities.get(id)
+
+      if (
+        !existing ||
+        existing.userId !== userId ||
+        existing.status !== AuthIdentityStatus.Active ||
+        existing.disabledAt
+      ) {
+        throw new UniAuthError(UniAuthErrorCode.IdentityNotFound, 'Identity was not found.')
+      }
+
+      const activeIdentities = [...this.identities.values()].filter(
+        (identity) =>
+          identity.userId === userId &&
+          identity.status === AuthIdentityStatus.Active &&
+          !identity.disabledAt,
+      )
+
+      if (activeIdentities.length <= 1) {
+        throw new UniAuthError(
+          UniAuthErrorCode.LastIdentity,
+          'Cannot unlink the last active identity.',
+        )
+      }
+
+      return this.identityRepo.update(id, patch)
+    },
   }
 
   readonly credentialRepo: CredentialRepo = {

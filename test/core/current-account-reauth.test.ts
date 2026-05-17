@@ -13,6 +13,31 @@ import { createInMemoryAuthKit } from '../../src/testing'
 import { assertion, now } from './support.js'
 
 describe('DefaultAuthService current-account re-auth helpers', () => {
+  it('rejects future re-auth markers in current-account status reads', async () => {
+    const { service } = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({
+        requireReAuthFor: [AuthPolicyAction.CloseAccount],
+      }),
+    })
+    const signedIn = await service.signIn({
+      assertion: assertion({
+        providerUserId: 'current-account-reauth-status-future',
+        email: 'current-account-reauth-status-future@example.com',
+        emailVerified: true,
+      }),
+      now,
+    })
+
+    await expect(
+      service.getCurrentAccountReAuthStatus({
+        sessionToken: signedIn.sessionToken,
+        action: AuthPolicyAction.CloseAccount,
+        reAuthenticatedAt: addSeconds(now, 60),
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+  })
+
   it('starts current-account OTP re-auth from an owned verified identity and composes with sensitive actions', async () => {
     const { service, emailSender, store } = createInMemoryAuthKit({
       policy: createDefaultAuthPolicy({

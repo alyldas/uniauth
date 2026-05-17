@@ -52,6 +52,10 @@ export async function ensureReAuth(
 
   if (reAuthenticatedAt !== undefined) {
     assertValidDate(reAuthenticatedAt, 'Re-authentication time is invalid.')
+
+    if (reAuthenticatedAt.getTime() > now.getTime()) {
+      throw invalidInput('Re-authentication time cannot be in the future.')
+    }
   }
 
   const required = await runtime.policy.requiresReAuth({

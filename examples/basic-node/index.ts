@@ -7,15 +7,16 @@ export async function runBasicExample(): Promise<void> {
     policy: createDefaultAuthPolicy({ allowAutoLink: false }),
   })
 
-  const challenge = await service.startOtpChallenge({
+  const challenge = await service.public.otp.start({
     purpose: VerificationPurpose.SignIn,
     channel: OtpChannel.Email,
     target: 'alice@example.com',
     secret: '123456',
   })
-  const result = await service.finishOtpSignIn({
+  const result = await service.public.otp.signIn({
     verificationId: challenge.verificationId,
     secret: '123456',
+    channel: OtpChannel.Email,
   })
 
   console.log({

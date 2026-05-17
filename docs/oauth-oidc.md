@@ -17,8 +17,8 @@ import {
 } from '@alyldas/uniauth/providers/oauth-oidc'
 ```
 
-The root package keeps these exports for compatibility, but provider-specific consumers should
-prefer the explicit `@alyldas/uniauth/providers/oauth-oidc` subpath.
+The root package keeps these exports for compatibility-only migration support, but provider-specific
+consumers should prefer the explicit `@alyldas/uniauth/providers/oauth-oidc` subpath.
 
 ## Runtime Boundary
 
@@ -83,7 +83,7 @@ providerRegistry.register(
 ## Sign-In
 
 ```ts
-await service.signIn({
+await service.public.provider.signIn({
   provider: 'example-oauth',
   finishInput: {
     code: request.query.code,

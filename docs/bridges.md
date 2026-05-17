@@ -73,7 +73,7 @@ const assertion = mapAuthJsOAuthToAssertion({
   },
 })
 
-await authService.signIn({ assertion })
+await authService.public.provider.signIn({ assertion })
 ```
 
 `providerAccountId` is treated as the exact provider identity key. If the profile subject disagrees
@@ -121,7 +121,7 @@ const assertion = mapBetterAuthOAuthToAssertion({
   },
 })
 
-await authService.signIn({ assertion })
+await authService.public.provider.signIn({ assertion })
 ```
 
 The helper accepts either:

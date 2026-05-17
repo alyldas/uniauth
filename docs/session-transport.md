@@ -38,7 +38,7 @@ Minimum expectations:
 Example shape:
 
 ```ts
-const result = await authService.finishOtpSignIn({
+const result = await authService.public.otp.signIn({
   verificationId: body.verificationId,
   secret: body.code,
 })
@@ -59,7 +59,7 @@ resolve the token through UniAuth instead of treating `Session.id` as the client
 ```ts
 const sessionToken = unsealSessionToken(request.cookies.session)
 
-const auth = await authService.resolveSessionContext({
+const auth = await authService.admin.sessions.context({
   sessionToken,
 })
 
@@ -69,7 +69,7 @@ return {
 }
 ```
 
-`resolveSessionContext(...)` stays neutral for stale local auth state too: if the token resolves to
+`admin.sessions.context(...)` stays neutral for stale local auth state too: if the token resolves to
 an active session record but the linked local user is already disabled or missing, the helper still
 fails through the same `SessionNotFound` path expected by middleware.
 
@@ -77,7 +77,7 @@ Applications that prefer explicit activity writes can still update `lastSeenAt` 
 service API:
 
 ```ts
-await authService.touchSession({
+await authService.admin.sessions.touch({
   sessionId: session.id,
 })
 ```
@@ -124,7 +124,7 @@ export function createExpressSessionMiddleware(authService: AuthService) {
     }
 
     try {
-      const { session, user } = await authService.resolveSessionContext({
+      const { session, user } = await authService.admin.sessions.context({
         sessionToken,
         touch: true,
       })
@@ -220,7 +220,7 @@ export function createFastifySessionPreHandler(authService: AuthService) {
     }
 
     try {
-      const { session, user } = await authService.resolveSessionContext({
+      const { session, user } = await authService.admin.sessions.context({
         sessionToken,
       })
       request.auth = {
@@ -254,12 +254,12 @@ function readBearerToken(header: string | undefined): string | undefined {
 }
 ```
 
-Fastify users often keep `touch: false` in the preHandler and call `touchSession(...)` in a second
+Fastify users often keep `touch: false` in the preHandler and call `admin.sessions.touch(...)` in a second
 protected-route hook or in the route handler itself, so lightweight public requests can resolve auth
 context without forcing an activity write every time.
 
 If one authenticated request also needs the current account-security page, resolve the transport
-here and then hand off to `authService.getCurrentAccountSecuritySnapshot({ sessionToken, touch })`
+here and then hand off to `authService.account.security.snapshot({ sessionToken, touch })`
 as described in [Account security recipes](account-security.md).
 
 What stays application-owned:
@@ -278,7 +278,7 @@ and then send it back in an `Authorization` header or another app-owned header.
 Example shape:
 
 ```ts
-const result = await authService.signInWithPassword({
+const result = await authService.public.password.signIn({
   email: body.email,
   password: body.password,
 })
@@ -324,7 +324,7 @@ UniAuth revokes the local session record, but it does not clear browser cookies 
 
 Treat logout as two coordinated steps:
 
-1. resolve the client token to a server session and call `authService.revokeSession(session.id)`;
+1. resolve the client token to a server session and call `authService.admin.sessions.revoke(session.id)`;
 2. remove the transport artifact:
    - clear the cookie;
    - delete the bearer token from client state;
@@ -333,17 +333,17 @@ Treat logout as two coordinated steps:
 For self-service logout after transport resolution, prefer the token-based helper:
 
 ```ts
-await authService.revokeCurrentSessionByToken({
+await authService.account.sessions.revokeCurrent({
   sessionToken,
 })
 clearSessionCookie(response)
 ```
 
 For sign-out-all-devices or device-management screens, applications can first call
-`authService.getCurrentAccountSecuritySnapshot({ sessionToken })` and then revoke the active subset
-through `authService.revokeOtherSessionsByToken({ sessionToken })`,
-`authService.revokeOwnedSessionByToken({ sessionToken, targetSessionId })`, or, for trusted admin
-flows, through `authService.revokeUserSessions({ userId, exceptSessionId })`. UniAuth still does
+`authService.account.security.snapshot({ sessionToken })` and then revoke the active subset
+through `authService.account.sessions.revokeOther({ sessionToken })`,
+`authService.account.sessions.revokeOwned({ sessionToken, targetSessionId })`, or, for trusted admin
+flows, through `authService.admin.users.revokeSessions({ userId, exceptSessionId })`. UniAuth still does
 not clear cookies or bearer stores for those clients; the application must remove the transport
 artifact on each device as it becomes aware of the revoked local session.
 

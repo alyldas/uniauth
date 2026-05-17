@@ -12,6 +12,7 @@ import type {
   IdGenerator,
   OtpSecretGenerator,
   PasswordHasher,
+  PasswordPolicy,
   RateLimiter,
   SecretHasher,
 } from '../../contracts.js'
@@ -42,6 +43,7 @@ export interface CreateInMemoryAuthKitOptions {
   readonly otpSecretGenerator?: OtpSecretGenerator
   readonly emailOtpSubject?: string
   readonly passwordHasher?: PasswordHasher
+  readonly passwordPolicy?: PasswordPolicy
   readonly sessionTtlSeconds?: number
   readonly verificationTtlSeconds?: number
   readonly verificationResendCooldownSeconds?: number
@@ -90,6 +92,7 @@ export function createInMemoryAuthKit(
     ...optionalProp('otpSecretLength', options.otpSecretLength),
     ...optionalProp('otpSecretGenerator', options.otpSecretGenerator),
     ...optionalProp('emailOtpSubject', options.emailOtpSubject),
+    ...optionalProp('passwordPolicy', options.passwordPolicy),
     ...optionalProp('sessionTtlSeconds', options.sessionTtlSeconds),
     ...optionalProp('verificationTtlSeconds', options.verificationTtlSeconds),
     ...optionalProp('verificationResendCooldownSeconds', options.verificationResendCooldownSeconds),

@@ -34,6 +34,8 @@ export interface DefaultAuthServiceOptions extends AuthServiceInfrastructure {
   readonly sessionTtlSeconds?: number
   readonly verificationTtlSeconds?: number
   readonly verificationResendCooldownSeconds?: number
+  readonly requireRateLimiter?: boolean
+  readonly requirePasswordPolicy?: boolean
 }
 
 export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): AuthServiceRuntime {
@@ -42,6 +44,14 @@ export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): Au
   }
 
   assertRepositories(options.repos)
+
+  if (options.requireRateLimiter === true && !options.rateLimiter) {
+    throw invalidInput('Rate limiter is required by auth service options.')
+  }
+
+  if (options.requirePasswordPolicy === true && !options.passwordPolicy) {
+    throw invalidInput('Password policy is required by auth service options.')
+  }
 
   return {
     repos: options.repos,
@@ -54,6 +64,7 @@ export function createAuthServiceRuntime(options: DefaultAuthServiceOptions): Au
     ...optionalProp('otpSecretGenerator', options.otpSecretGenerator),
     ...optionalProp('emailOtpSubject', options.emailOtpSubject),
     ...optionalProp('passwordHasher', options.passwordHasher),
+    ...optionalProp('passwordPolicy', options.passwordPolicy),
     policy: options.policy ?? defaultAuthPolicy,
     providerRegistry: options.providerRegistry,
     transaction:
@@ -90,6 +101,7 @@ function assertRepositories(repos: unknown): asserts repos is AuthServiceReposit
       'listByUserId',
       'create',
       'update',
+      'disableForUserIfAnotherActive',
     ],
     'Identity repository',
   )

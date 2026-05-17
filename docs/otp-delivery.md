@@ -47,12 +47,12 @@ For a small HTTP-facing composition example around `startOtpChallenge(...)`,
 [OTP backend wiring example](../examples/otp-backend/index.ts).
 
 Applications that need to poll or inspect one verification record after creation can do that
-through the public `authService.getVerification(verificationId)` read-side helper. Prefer
+through the trusted `authService.admin.verifications.get(verificationId)` read-side helper. Prefer
 `toVerificationStatusView(...)` before serializing outward-facing responses, and never expose
 `secretHash` outside trusted server-side tooling.
 
 If the backend also needs resend countdown or cooldown reads, prefer
-`authService.getVerificationResendWindow(...)` from a trusted server route instead of deriving
+`authService.admin.verifications.resendWindow(...)` from a trusted server route instead of deriving
 timers in the browser. See [OTP and magic-link abuse-control recipes](abuse-control.md).
 
 ## What Core Owns
@@ -89,7 +89,7 @@ Those are delivery infrastructure concerns, not auth-domain state transitions.
 The recommended production pattern is to keep the current sender ports and implement queueing inside
 the sender adapter:
 
-1. `AuthService.startOtpChallenge(...)` creates the pending verification and plain secret.
+1. `AuthService.public.otp.start(...)` creates the pending verification and plain secret.
 2. An `EmailSender` or `SmsSender` adapter enqueues a delivery job instead of talking to the vendor
    inline.
 3. A worker later sends the message through SMTP, SES, Twilio, Vonage, or another provider.

@@ -3,6 +3,7 @@ import {
   AuditEventType,
   SessionStatus,
   UniAuthErrorCode,
+  addSeconds,
   createDefaultAuthPolicy,
   isUniAuthError,
 } from '../../src'
@@ -71,6 +72,86 @@ describe('DefaultAuthService policies and merge flows', () => {
     expect(error).toMatchObject({ code: UniAuthErrorCode.LastIdentity })
   })
 
+  it('keeps one active identity after concurrent unlink attempts', async () => {
+    const { service, store } = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({ requireReAuthFor: [] }),
+    })
+    const result = await service.signIn({ assertion: assertion(), now })
+    const linked = await service.link({
+      userId: result.user.id,
+      assertion: assertion({ provider: 'oauth', providerUserId: 'concurrent-unlink' }),
+      now,
+    })
+
+    const outcomes = await Promise.allSettled([
+      service.unlink({ userId: result.user.id, identityId: result.identity.id, now }),
+      service.unlink({ userId: result.user.id, identityId: linked.identity.id, now }),
+    ])
+
+    expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1)
+    expect(outcomes.filter((outcome) => outcome.status === 'rejected')).toHaveLength(1)
+    expect(
+      store
+        .listIdentities()
+        .filter((identity) => identity.userId === result.user.id && !identity.disabledAt),
+    ).toHaveLength(1)
+  })
+
+  it('rejects future re-auth markers for sensitive policy checks', async () => {
+    const { service } = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({ allowMergeAccounts: true }),
+    })
+    const source = await service.signIn({
+      assertion: assertion({ providerUserId: 'future-reauth-source' }),
+      now,
+    })
+    const target = await service.signIn({
+      assertion: assertion({ providerUserId: 'future-reauth-target' }),
+      now,
+    })
+
+    await expect(
+      service.mergeAccounts({
+        sourceUserId: source.user.id,
+        targetUserId: target.user.id,
+        sourceSessionToken: source.sessionToken,
+        reAuthenticatedAt: addSeconds(now, 60),
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+  })
+
+  it('requires source session proof before merging active accounts', async () => {
+    const { service } = createInMemoryAuthKit({
+      policy: createDefaultAuthPolicy({ allowMergeAccounts: true, requireReAuthFor: [] }),
+    })
+    const source = await service.signIn({
+      assertion: assertion({ providerUserId: 'source-proof-source' }),
+      now,
+    })
+    const target = await service.signIn({
+      assertion: assertion({ providerUserId: 'source-proof-target' }),
+      now,
+    })
+
+    await expect(
+      service.mergeAccounts({
+        sourceUserId: source.user.id,
+        targetUserId: target.user.id,
+        now,
+      } as unknown as Parameters<typeof service.mergeAccounts>[0]),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.InvalidInput })
+
+    await expect(
+      service.mergeAccounts({
+        sourceUserId: source.user.id,
+        targetUserId: target.user.id,
+        sourceSessionToken: target.sessionToken,
+        now,
+      }),
+    ).rejects.toMatchObject({ code: UniAuthErrorCode.SessionNotFound })
+  })
+
   it('rejects linking an identity already attached to another user without leaking ownership', async () => {
     const { service } = createInMemoryAuthKit()
     const first = await service.signIn({ assertion: assertion(), now })
@@ -121,6 +202,7 @@ describe('DefaultAuthService policies and merge flows', () => {
       .mergeAccounts({
         sourceUserId: deniedSource.user.id,
         targetUserId: deniedTarget.user.id,
+        sourceSessionToken: deniedSource.sessionToken,
         reAuthenticatedAt: now,
         now,
       })
@@ -143,6 +225,7 @@ describe('DefaultAuthService policies and merge flows', () => {
     const merged = await allowedKit.service.mergeAccounts({
       sourceUserId: source.user.id,
       targetUserId: target.user.id,
+      sourceSessionToken: source.sessionToken,
       now,
     })
 
@@ -186,6 +269,7 @@ describe('DefaultAuthService policies and merge flows', () => {
     const merged = await kit.service.mergeAccounts({
       sourceUserId: source.user.id,
       targetUserId: target.user.id,
+      sourceSessionToken: source.sessionToken,
       reAuthenticatedAt: now,
       now,
     })
@@ -211,6 +295,7 @@ describe('DefaultAuthService policies and merge flows', () => {
     const retriedMerge = await kit.service.mergeAccounts({
       sourceUserId: source.user.id,
       targetUserId: target.user.id,
+      sourceSessionToken: source.sessionToken,
       reAuthenticatedAt: now,
       now,
     })
@@ -276,6 +361,7 @@ describe('DefaultAuthService policies and merge flows', () => {
       .mergeAccounts({
         sourceUserId: source.user.id,
         targetUserId: target.user.id,
+        sourceSessionToken: source.sessionToken,
         reAuthenticatedAt: now,
         now,
       })
