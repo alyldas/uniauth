@@ -120,12 +120,22 @@ function readMarkdownAnchors(file) {
 }
 
 function toGitHubHeadingAnchor(heading) {
-  return heading
-    .trim()
-    .replace(/<[^>]+>/gu, '')
+  return stripHtmlTags(heading)
     .replace(/`([^`]+)`/gu, '$1')
     .toLowerCase()
     .replace(/[^\p{Letter}\p{Number}\s-]/gu, '')
     .trim()
     .replace(/\s+/gu, '-')
+}
+
+function stripHtmlTags(value) {
+  let previous
+  let next = value.trim()
+
+  do {
+    previous = next
+    next = previous.replace(/<[^>]+>/gu, '')
+  } while (next !== previous)
+
+  return next
 }
